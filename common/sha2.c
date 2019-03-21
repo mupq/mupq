@@ -4,6 +4,11 @@
 
 #include "sha2.h"
 
+#ifdef PROFILE_HASHING
+#include "hal.h"
+extern unsigned long long hash_cycles;
+#endif
+
 typedef unsigned long long uint64;
 
 static uint64 load_bigendian(const unsigned char *x)
@@ -268,6 +273,9 @@ static const unsigned char iv_512[64] = {
 
 int sha384(unsigned char *out, const unsigned char *in, unsigned long long inlen)
 {
+#ifdef PROFILE_HASHING
+  uint64_t t0 = hal_get_time();
+#endif
   unsigned char h[64];
   unsigned char padded[256];
   unsigned int i;
@@ -311,11 +319,19 @@ int sha384(unsigned char *out, const unsigned char *in, unsigned long long inlen
 
   for (i = 0;i < 48;++i) out[i] = h[i];
 
+#ifdef PROFILE_HASHING
+  uint64_t t1 = hal_get_time();
+  hash_cycles += (t1-t0);
+#endif
+
   return 0;
 }
 
 int sha512(unsigned char *out, const unsigned char *in, unsigned long long inlen)
 {
+#ifdef PROFILE_HASHING
+  uint64_t t0 = hal_get_time();
+#endif
   unsigned char h[64];
   unsigned char padded[256];
   unsigned int i;
@@ -359,5 +375,9 @@ int sha512(unsigned char *out, const unsigned char *in, unsigned long long inlen
 
   for (i = 0;i < 64;++i) out[i] = h[i];
 
+#ifdef PROFILE_HASHING
+  uint64_t t1 = hal_get_time();
+  hash_cycles += (t1-t0);
+#endif
   return 0;
 }
