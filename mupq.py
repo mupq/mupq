@@ -46,12 +46,17 @@ class Implementation(object):
                    path)
 
     def get_binary_path(self, type_):
-        return (f"bin/{self.primitive}_{self.scheme}"
+        return (f"bin/{self.project}_{self.primitive}_{self.scheme}"
                 f"_{self.implementation}_{type_}.bin")
 
     def build_binary(self, type_):
         subprocess.check_call(
-            ['make', self.get_binary_path(type_)])
+            ['make',
+             f'PROJECT={self.project}',
+             f"TYPE={self.primitive.split('_')[1]}",
+             f"SCHEME={self.scheme}",
+             f"IMPLEMENTATION={self.implementation}",
+             self.get_binary_path(type_)])
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
