@@ -23,6 +23,7 @@ class Implementation(object):
 
     def __init__(self, project, primitive, scheme, implementation, path):
         """Sets up this scheme"""
+        self.log = logging.getLogger(__class__.__name__)
         self.project = project
         self.primitive = primitive
         self.scheme = scheme
@@ -46,17 +47,17 @@ class Implementation(object):
                    path)
 
     def get_binary_path(self, type_):
-        return (f"bin/{self.project}_{self.primitive}_{self.scheme}"
-                f"_{self.implementation}_{type_}.bin")
+        return f'bin/{self.path.replace("/", "_")}_{type_}.bin'
 
     def build_binary(self, type_):
+        self.log.info(f"Building {self} - {type_}")
         subprocess.check_call(
             ['make',
-             f'PROJECT={self.project}',
-             f"TYPE={self.primitive.split('_')[1]}",
-             f"SCHEME={self.scheme}",
-             f"IMPLEMENTATION={self.implementation}",
-             self.get_binary_path(type_)])
+             f"IMPLEMENTATION_PATH={self.path}",
+             self.get_binary_path(type_)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            )
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -286,3 +287,13 @@ class TestVectors(BoardTestCase):
 
         for implementation in self.get_implementations():
             self.run_test(implementation)
+
+
+class BuildAll(BoardTestCase):
+
+    def __init__(self, settings):
+        super().__init__(settings, None)
+
+    def run_test(self, implementation):
+        for test_type in ('test', 'testvectors', 'speed', 'stack'):
+            implementation.build_binary(test_type)
