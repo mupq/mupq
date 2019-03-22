@@ -238,6 +238,8 @@ class StackBenchmark(BoardTestCase):
 class SpeedBenchmark(StackBenchmark):
     test_type = 'speed'
 
+class HashingBenchmark(StackBenchmark):
+    test_type = 'hashing'
 
 class TestVectors(BoardTestCase):
     test_type = 'testvectors'
