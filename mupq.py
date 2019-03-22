@@ -295,5 +295,5 @@ class BuildAll(BoardTestCase):
         super().__init__(settings, None)
 
     def run_test(self, implementation):
-        for test_type in ('test', 'testvectors', 'speed', 'stack'):
+        for test_type in ('test', 'testvectors', 'speed', 'hashing', 'stack'):
             implementation.build_binary(test_type)
