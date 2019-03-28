@@ -18,6 +18,7 @@ class Implementation(object):
 
     #: regex to parse the paths into schemes
     _path_regex = re.compile(
+        r'(?P<project>\S+/)?'
         r'(?P<type>crypto_sign|crypto_kem)/'
         r'(?P<scheme>\S+)/'
         r'(?P<implementation>\S+)/?$')
