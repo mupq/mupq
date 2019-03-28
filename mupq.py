@@ -56,10 +56,7 @@ class Implementation(object):
         subprocess.check_call(
             ['make',
              f"IMPLEMENTATION_PATH={self.path}",
-             self.get_binary_path(type_)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            )
+             self.get_binary_path(type_)])
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -122,7 +119,7 @@ class Platform(contextlib.AbstractContextManager):
         return super().__enter__()
 
     def __exit__(self, *args, **kwargs):
-        return super().__exit(*args, **kwargs)
+        return super().__exit__(*args, **kwargs)
 
     def device(self):
         raise NotImplementedError("Override this")
@@ -207,8 +204,13 @@ class BoardTestCase(abc.ABC):
         binary = implementation.get_binary_path(f'{self.test_type}')
         return self.interface.run(binary)
 
-    def test_all(self):
+    def test_all(self, args):
+        exclude = "--exclude" in args
         for implementation in self.get_implementations():
+            if exclude and implementation.scheme in args:
+                continue
+            if not exclude and len(args) > 0 and implementation.scheme not in args:
+                continue
             self.run_test(implementation)
 
 
@@ -266,9 +268,13 @@ class TestVectors(BoardTestCase):
             super().run_test(implementation).encode('utf-8'))
         assert self.testvectorhash[implementation.scheme] == checksum
 
-    def _prepare_testvectors(self):
+    def _prepare_testvectors(self, exclude, args):
         for scheme, implementations in self.schemes.items():
             for impl in implementations:
+                if exclude and impl.scheme in args:
+                    continue
+                if not exclude and len(args)>0 and impl.scheme not in args:
+                    continue
                 if impl.implementation not in ('ref', 'clean'):
                     continue
                 # Build host version
@@ -277,7 +283,9 @@ class TestVectors(BoardTestCase):
                 hostbin = (binpath
                            .replace('bin/', 'bin-host/')
                            .replace('.bin', ''))
-                subprocess.check_call(['make', hostbin])
+                subprocess.check_call(['make',
+                                       f"IMPLEMENTATION_PATH={impl.path}",
+                                       hostbin])
                 checksum = self.hash_output(
                         subprocess.check_output(
                             [hostbin],
@@ -286,14 +294,19 @@ class TestVectors(BoardTestCase):
                 self.testvectorhash[scheme] = checksum
                 break
 
-    def test_all(self):
+    def test_all(self, args):
         self.schemes = defaultdict(list)
         for implementation in self.get_implementations(all=True):
             self.schemes[implementation.scheme].append(implementation)
-
-        self._prepare_testvectors()
+        
+        exclude = "--exclude" in args
+        self._prepare_testvectors(exclude, args)
 
         for implementation in self.get_implementations():
+            if exclude and implementation.scheme in args:
+                continue
+            if not exclude and len(args)>0 and implementation.scheme not in args:
+                continue
             self.run_test(implementation)
 
 
