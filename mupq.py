@@ -134,7 +134,7 @@ class Platform(contextlib.AbstractContextManager):
         """Runs the flashed target and collects the result"""
         self.flash(binary_path)
         while not self._wait_for_start():
-            pass
+          self.flash(binary_path)
         self.log.info("Output started")
         return self._read_output()
 
