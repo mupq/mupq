@@ -204,7 +204,7 @@ class BoardTestCase(abc.ABC):
         binary = implementation.get_binary_path(f'{self.test_type}')
         return self.interface.run(binary)
 
-    def test_all(self, args):
+    def test_all(self, args=[]):
         exclude = "--exclude" in args
         for implementation in self.get_implementations():
             if exclude and implementation.scheme in args:
