@@ -1,5 +1,6 @@
 import abc
 from collections import defaultdict
+import contextlib
 import re
 import os
 import logging
@@ -110,11 +111,17 @@ class PlatformSettings(object):
         return False
 
 
-class Platform(abc.ABC):
+class Platform(contextlib.AbstractContextManager):
     """Generic platform interface"""
 
     def __init__(self):
         self.log = logging.getLogger("platform interface")
+
+    def __enter__(self):
+        return super().__enter__()
+
+    def __exit__(self, *args, **kwargs):
+        return super().__exit(*args, **kwargs)
 
     def device(self):
         raise NotImplementedError("Override this")
