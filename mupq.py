@@ -442,13 +442,16 @@ class MarkdownConverter(Converter):
 
 class CsvConverter(Converter):
     def _header(self, headline):
-        print(headline)
+        # always pad to 11 columns, so that github can nicely render it
+        print(headline+","*10)
 
     def _subheader(self, headline):
-        print(headline)
+        # always pad to 11 columns, so that github can nicely render it
+        print(headline+","*10)
 
     def _tablehead(self, columns):
-      print(",".join(columns))
+        # always pad to 11 columns, so that github can nicely render it
+        print(",".join(columns)+(","*(11-len(columns))))
 
     def _speed(self):
         """ overwrite this here to we can can have three columns for mean, min, max """
@@ -470,7 +473,9 @@ class CsvConverter(Converter):
         return (cyclesKem, cyclesSign)
 
     def _row(self, data):
-      print(",".join(data))
+        # always pad to 11 columns, so that github can nicely render it
+        row = ",".join(data)
+        print(row+(","*(10-row.count(","))))
 
     def _formatStats(self, l):
         mean, minimum, maximum = self._stats(l)
