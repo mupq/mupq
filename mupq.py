@@ -299,7 +299,7 @@ class TestVectors(BoardTestCase):
         self.schemes = defaultdict(list)
         for implementation in self.get_implementations(all=True):
             self.schemes[implementation.scheme].append(implementation)
-        
+
         exclude = "--exclude" in args
         self._prepare_testvectors(exclude, args)
 
@@ -322,57 +322,50 @@ class BuildAll(BoardTestCase):
 
 class Converter(object):
     def convert(self):
-        cyclesKem, cyclesSign = self._speed()
+        self._speed()
         self._stack()
-        self._hashing(cyclesKem, cyclesSign) 
-    
+        self._hashing()
+
     def _speed(self):
-        """ returns the mean cycle counts so we can use them for printing hash 
-            cycles """
         self._header("Speed Evaluation")
         self._subheader("Key Encapsulation Schemes")
-        self._tablehead(["scheme", "implementation", "key generation [cycles]", 
+        self._tablehead(["scheme", "implementation", "key generation [cycles]",
                          "encapsulation [cycles]", "decapsulation [cycles]"])
-        cyclesKem = self._processPrimitives("benchmarks/speed/crypto_kem/", True)
-        
+        self._processPrimitives("benchmarks/speed/crypto_kem/", "speed")
+
         self._subheader("Signature Schemes")
-        self._tablehead(["scheme", "implementation", "key generation [cycles]", 
+        self._tablehead(["scheme", "implementation", "key generation [cycles]",
                          "sign [cycles]", "verify [cycles]"])
-        cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", True)
-        return cyclesKem, cyclesSign
-       
+        self._processPrimitives("benchmarks/speed/crypto_sign/", "speed")
+
     def _stack(self):
         self._header("Memory Evaluation")
         self._subheader("Key Encapsulation Schemes")
-        self._tablehead(["Scheme", "Implementation", "Key Generation [bytes]", 
+        self._tablehead(["Scheme", "Implementation", "Key Generation [bytes]",
                          "Encapsulation [bytes]", "Decapsulation [bytes]"])
-        self._processPrimitives("benchmarks/stack/crypto_kem/", False)
-        
+        self._processPrimitives("benchmarks/stack/crypto_kem/", "stack")
+
         self._subheader("Signature Schemes")
-        self._tablehead(["Scheme", "Implementation", "Key Generation [bytes]", 
+        self._tablehead(["Scheme", "Implementation", "Key Generation [bytes]",
                          "Sign [bytes]", "Verify [bytes]"])
-        self._processPrimitives("benchmarks/stack/crypto_sign/", False)
-    
-    def _hashing(self, cyclesKem, cyclesSign):   
-        """ prints the cycles spent in hashing and the percentage of the total 
+        self._processPrimitives("benchmarks/stack/crypto_sign/", "stack")
+
+    def _hashing(self):
+        """ prints the cycles spent in hashing and the percentage of the total
             runtime """
         self._header("Hashing Evaluation")
         self._subheader("Key Encapsulation Schemes")
-        self._tablehead(["Scheme", "Implementation", 
-                         "Key Generation [hash cycles]", "Key Generation [hash %]", 
-                         "Encapsulation [hash cycles]", "Encapsulation [hash %]",
-                         "Decapsulation [hash cycles]", "Decapsulation [hash cycles]"])
-        self._processPrimitives("benchmarks/hashing/crypto_kem/", False, cyclesKem)   
-        
-        self._subheader("Signature Schemes")
-        self._tablehead(["Scheme", "Implementation", 
-                         "Key Generation [hash cycles]", "Key Generation [hash %]", 
-                         "Sign [hash cycles]", "Sign [hash %]",
-                         "Verify [hash cycles]", "Verify [hash cycles]"])
-        self._processPrimitives("benchmarks/hashing/crypto_sign/", False, cyclesSign)   
-        
+        self._tablehead(["Scheme", "Implementation", "Key Generation [%]",
+                         "Encapsulation [%]", "Decapsulation [%]"])
+        self._processPrimitives("benchmarks/hashing/crypto_kem/", "hashing")
 
-    def _processPrimitives(self, path, printStats, referenceCycles=None):
+        self._subheader("Signature Schemes")
+        self._tablehead(["Scheme", "Implementation", "Key Generation [%]",
+                         "Sign [%]", "Verify [%]"])
+        self._processPrimitives("benchmarks/hashing/crypto_sign/", "hashing")
+
+
+    def _processPrimitives(self, path, type_):
         if os.path.exists(path) == False:
             return;
         data = dict()
@@ -382,114 +375,109 @@ class Converter(object):
                 measurements = []
                 for measurement in os.listdir(path+"/"+scheme+"/"+implementation):
                     with open(path+"/"+scheme+"/"+implementation+"/"+measurement, "r") as f:
-                        d = self._parseData(f.read())
+                        d = self._parseData(f.read(), type_=="hashing")
                         measurements.append(d)
-                self._formatData(scheme, implementation, measurements, printStats, referenceCycles)
+                self._formatData(scheme, implementation, measurements, type_)
                 data[scheme][implementation] = measurements
         return data
-    
+
     def _stats(self, data):
-        return (int(statistics.mean(data)), min(data), max(data)) 
-    
-    def _parseData(self, fileContents):
+        return (int(statistics.mean(data)), min(data), max(data))
+
+    def _parseData(self, fileContents, isHashing):
         parts = fileContents.split("\n")
-        keygen = int(parts[1])
-        encsign = int(parts[3])
-        decverify = int(parts[5])
+        if not isHashing:
+            keygen = int(parts[1])
+            encsign = int(parts[3])
+            decverify = int(parts[5])
+        else:
+            keygentotal    = int(parts[1])
+            keygen         = int(parts[3])/keygentotal
+            encsigntotal   = int(parts[5])
+            encsign        = int(parts[7])/encsigntotal
+            decverifytotal = int(parts[9])
+            decverify      = int(parts[11])/decverifytotal
         return [keygen, encsign, decverify]
-    
-    def _formatData(self, scheme, implementation, data, printStats, totalCycles):
-        if printStats:
+
+    def _formatData(self, scheme, implementation, data, type_):
+        if type_ == "speed":
             keygen    = self._formatStats([item[0] for item in data])
             encsign   = self._formatStats([item[1] for item in data])
             decverify = self._formatStats([item[2] for item in data])
             self._row([f"{scheme} ({len(data)} executions)", implementation, keygen, encsign, decverify])
-        elif totalCycles is not None:
-            keygentotal     = int(statistics.mean([item[0] for item in totalCycles[scheme][implementation]]))
-            keygen          = int(statistics.mean([item[0] for item in data]))
-            encsigntotal    = int(statistics.mean([item[1] for item in totalCycles[scheme][implementation]]))
-            encsign         = int(statistics.mean([item[1] for item in data]))
-            decverifytotal  = int(statistics.mean([item[2] for item in totalCycles[scheme][implementation]]))
-            decverify       = int(statistics.mean([item[2] for item in data]))
-
-            keygenpercentage    = self._formatPercentage(keygen/keygentotal)
-            keygen              = self._formatNumber(keygen)
-            encsignpercentage   = self._formatPercentage(encsign/encsigntotal)
-            encsign             = self._formatNumber(encsign)
-            decverifypercentage = self._formatPercentage(decverify/decverifytotal)
-            decverify           = self._formatNumber(decverify)  
-            self._row([scheme, implementation, keygen, keygenpercentage,
-                       encsign, encsignpercentage, decverify, decverifypercentage])
-        else:
+        elif type_ == "stack":
             keygen     = self._formatNumber(max([item[0] for item in data]))
             encsign    = self._formatNumber(max([item[1] for item in data]))
             decverify  = self._formatNumber(max([item[2] for item in data]))
+            self._row([scheme, implementation, keygen, encsign, decverify])
+        elif type_ == "hashing":
+            keygen     = self._formatPercentage(max([item[0] for item in data]))
+            encsign    = self._formatPercentage(max([item[1] for item in data]))
+            decverify  = self._formatPercentage(max([item[2] for item in data]))
             self._row([scheme, implementation, keygen, encsign, decverify])
 
 class MarkdownConverter(Converter):
     def _header(self, headline):
         print(f"### {headline}")
-  
+
     def _subheader(self, headline):
         print(f"#### {headline}")
 
-    def _tablehead(self, columns): 
+    def _tablehead(self, columns):
       print("| "+ " | ".join(columns)+" |")
       print("| "+ " | ".join(["-"*(len(c)) for c in columns]) + " |")
-    
+
     def _row(self, data):
         print("| "+ " | ".join(data)+" |")
-    
+
     def _formatStats(self, l):
         mean, minimum, maximum = self._stats(l)
-        return "AVG: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(mean, minimum, maximum) 
+        return "AVG: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(mean, minimum, maximum)
 
     def _formatNumber(self, num):
         return f"{num:,}"
-    
+
     def _formatPercentage(self, perc):
-        return f"{int(perc*100):,}%"
-  
-    
+        return f"{perc*100:.1f}%"
 
 class CsvConverter(Converter):
     def _header(self, headline):
-        print(headline) 
+        print(headline)
 
     def _subheader(self, headline):
         print(headline)
 
     def _tablehead(self, columns):
       print(",".join(columns))
-    
+
     def _speed(self):
         """ overwrite this here to we can can have three columns for mean, min, max """
         self._header("Speed Evaluation")
         self._subheader("Key Encapsulation Schemes")
-        self._tablehead(["Scheme", "Implementation"] + 
-                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] + 
-                        [f"Encapsulation [cycles] ({x})" for x in ["mean", "min", "max"]] + 
-                        [f"Decapsulation [cycles] ({x})" for x in ["mean", "min", "max"]]) 
+        self._tablehead(["Scheme", "Implementation"] +
+                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Encapsulation [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Decapsulation [cycles] ({x})" for x in ["mean", "min", "max"]])
 
-        cyclesKem = self._processPrimitives("benchmarks/speed/crypto_kem/", True)
-        
+        cyclesKem = self._processPrimitives("benchmarks/speed/crypto_kem/", "speed")
+
         self._subheader("Signature Schemes")
         self._tablehead(["Scheme", "Implementation"]+
-                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] + 
-                        [f"Sign [cycles] ({x})" for x in ["mean", "min", "max"]] + 
-                        [f"Verify [cycles] ({x})" for x in ["mean", "min", "max"]]) 
-        cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", True)
+                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Sign [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Verify [cycles] ({x})" for x in ["mean", "min", "max"]])
+        cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", "speed")
         return (cyclesKem, cyclesSign)
-  
+
     def _row(self, data):
       print(",".join(data))
-    
+
     def _formatStats(self, l):
         mean, minimum, maximum = self._stats(l)
-        return f"{mean},{minimum},{maximum}" 
+        return f"{mean},{minimum},{maximum}"
 
     def _formatNumber(self, num):
         return str(num)
 
     def _formatPercentage(self, perc):
-        return str(perc)
+        return f"{perc*100:.1f}"
