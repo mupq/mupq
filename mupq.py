@@ -418,10 +418,10 @@ class Converter(object):
 
 class MarkdownConverter(Converter):
     def _header(self, headline):
-        print(f"### {headline}")
+        print(f"# {headline}")
 
     def _subheader(self, headline):
-        print(f"#### {headline}")
+        print(f"## {headline}")
 
     def _tablehead(self, columns):
       print("| "+ " | ".join(columns)+" |")
