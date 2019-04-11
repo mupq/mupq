@@ -139,14 +139,15 @@ void cshake128_simple_squeezeblocks(unsigned char *output, unsigned long long nb
 
 void cshake128_simple(unsigned char *output, unsigned long long outlen, uint16_t cstm, const unsigned char *in, unsigned long long inlen)
 {
-#ifdef PROFILE_HASHING
-  uint64_t t0 = hal_get_time();
-#endif
   uint64_t s[25];
   unsigned char t[SHAKE128_RATE];
   unsigned int i;
 
   cshake128_simple_absorb(s, cstm, in, inlen);
+
+#ifdef PROFILE_HASHING
+  uint64_t t0 = hal_get_time();
+#endif
 
   /* Squeeze output */
   keccak_squeezeblocks(output, outlen/SHAKE128_RATE, s, SHAKE128_RATE);
@@ -432,14 +433,15 @@ void cshake256_simple_squeezeblocks(unsigned char *output, unsigned long long nb
 
 void cshake256_simple(unsigned char *output, unsigned long long outlen, uint16_t cstm, const unsigned char *in, unsigned long long inlen)
 {
-#ifdef PROFILE_HASHING
-  uint64_t t0 = hal_get_time();
-#endif
   uint64_t s[25];
   unsigned char t[SHAKE256_RATE];
   unsigned int i;
 
   cshake256_simple_absorb(s, cstm, in, inlen);
+
+#ifdef PROFILE_HASHING
+  uint64_t t0 = hal_get_time();
+#endif
 
   /* Squeeze output */
   keccak_squeezeblocks(output, outlen/SHAKE256_RATE, s, SHAKE256_RATE);

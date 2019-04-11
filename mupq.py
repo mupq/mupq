@@ -411,9 +411,9 @@ class Converter(object):
             decverify  = self._formatNumber(max([item[2] for item in data]))
             self._row([scheme, implementation, keygen, encsign, decverify])
         elif type_ == "hashing":
-            keygen     = self._formatPercentage(max([item[0] for item in data]))
-            encsign    = self._formatPercentage(max([item[1] for item in data]))
-            decverify  = self._formatPercentage(max([item[2] for item in data]))
+            keygen     = self._formatPercentage(statistics.mean([item[0] for item in data]))
+            encsign    = self._formatPercentage(statistics.mean([item[1] for item in data]))
+            decverify  = self._formatPercentage(statistics.mean([item[2] for item in data]))
             self._row([scheme, implementation, keygen, encsign, decverify])
 
 class MarkdownConverter(Converter):
