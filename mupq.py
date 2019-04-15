@@ -24,7 +24,7 @@ class Implementation(object):
         r'(?P<scheme>\S+)/'
         r'(?P<implementation>\S+)/?$')
 
-    def __init__(self, project, primitive, scheme, implementation, path):
+    def __init__(self, project, primitive, scheme, implementation, path, namespace):
         """Sets up this scheme"""
         self.log = logging.getLogger(__class__.__name__)
         self.project = project
@@ -32,9 +32,13 @@ class Implementation(object):
         self.scheme = scheme
         self.implementation = implementation
         self.path = path
+        if namespace == '':
+            self.namespace = None
+        else:
+            self.namespace = f"{namespace}_{scheme.replace('-','').upper()}_{implementation.upper()}_"
 
     @classmethod
-    def from_path(cls, project, path):
+    def from_path(cls, project, path, namespace):
         """
         Construct a scheme implemenation from a path
 
@@ -47,17 +51,24 @@ class Implementation(object):
                    matches.group("type"),
                    matches.group("scheme"),
                    matches.group("implementation"),
-                   path)
+                   path, namespace)
 
     def get_binary_path(self, type_):
         return f'bin/{self.path.replace("/", "_")}_{type_}.bin'
 
     def build_binary(self, type_):
         self.log.info(f"Building {self} - {type_}")
-        subprocess.check_call(
-            ['make',
-             f"IMPLEMENTATION_PATH={self.path}",
-             self.get_binary_path(type_)])
+        if self.namespace != None:
+            subprocess.check_call(
+              ['make',
+              f"IMPLEMENTATION_PATH={self.path}",
+              f"MUPQ_NAMESPACE={self.namespace}",
+              self.get_binary_path(type_)])
+        else:
+            subprocess.check_call(
+                ['make',
+                f"IMPLEMENTATION_PATH={self.path}",
+                self.get_binary_path(type_)])
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -66,8 +77,8 @@ class Implementation(object):
 class PlatformSettings(object):
     """Contains the settings for a certain platform"""
     scheme_folders = [
-        ('pqclean', 'mupq/pqclean/crypto_kem'),
-        ('pqclean', 'mupq/pqclean/crypto_sign'),
+        ('pqclean', 'mupq/pqclean/crypto_kem', 'PQCLEAN'),
+        ('pqclean', 'mupq/pqclean/crypto_sign', 'PQCLEAN'),
     ]
     skip_list = []
     name = None
@@ -81,7 +92,7 @@ class PlatformSettings(object):
     def get_implementations(self, all=False):
         """Get the schemes"""
         try:
-            for (parent, scheme_folder) in self.scheme_folders:
+            for (parent, scheme_folder,namespace) in self.scheme_folders:
                 for scheme in os.listdir(scheme_folder):
                     scheme_path = os.path.join(scheme_folder, scheme)
                     if not os.path.isdir(scheme_path):
@@ -89,7 +100,9 @@ class PlatformSettings(object):
                     for implementation_path in os.listdir(scheme_path):
                         path = os.path.join(scheme_path,
                                             implementation_path)
-                        impl = Implementation.from_path(parent, path)
+                        if not os.path.isdir(path):
+                            continue
+                        impl = Implementation.from_path(parent, path, namespace)
                         if not all and self.should_skip(impl):
                             continue
                         yield impl
