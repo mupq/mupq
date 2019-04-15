@@ -6,6 +6,22 @@
 #include <string.h>
 
 #define MLEN 59
+// https://stackoverflow.com/a/1489985/1711232
+#define PASTER(x, y) x####y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define NAMESPACE(fun) EVALUATOR(MUPQ_NAMESPACE, fun)
+
+// use different names so we can have empty namespaces
+#define MUPQ_CRYPTO_PUBLICKEYBYTES NAMESPACE(CRYPTO_PUBLICKEYBYTES)
+#define MUPQ_CRYPTO_SECRETKEYBYTES NAMESPACE(CRYPTO_SECRETKEYBYTES)
+#define MUPQ_CRYPTO_BYTES          NAMESPACE(CRYPTO_BYTES)
+#define MUPQ_CRYPTO_ALGNAME        NAMESPACE(CRYPTO_ALGNAME)
+
+#define MUPQ_crypto_sign_keypair NAMESPACE(crypto_sign_keypair)
+#define MUPQ_crypto_sign NAMESPACE(crypto_sign)
+#define MUPQ_crypto_sign_open NAMESPACE(crypto_sign_open)
+#define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
+#define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
 
 static void printcycles(const char *s, unsigned long long c)
 {
@@ -19,10 +35,10 @@ unsigned long long hash_cycles;
 
 int main(void)
 {
-  unsigned char sk[CRYPTO_SECRETKEYBYTES];
-  unsigned char pk[CRYPTO_PUBLICKEYBYTES];
-  unsigned char sm[MLEN+CRYPTO_BYTES];
-  unsigned long long smlen;
+  unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
+  unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
+  unsigned char sm[MLEN+MUPQ_CRYPTO_BYTES];
+  size_t smlen;
   unsigned long long t0, t1;
 
   hal_setup(CLOCK_BENCHMARK);
@@ -32,7 +48,7 @@ int main(void)
   // Key-pair generation
   hash_cycles = 0;
   t0 = hal_get_time();
-  crypto_sign_keypair(pk, sk);
+  MUPQ_crypto_sign_keypair(pk, sk);
   t1 = hal_get_time();
   printcycles("keypair cycles:", t1-t0);
   printcycles("keypair hash cycles:", hash_cycles);
@@ -40,7 +56,7 @@ int main(void)
   // Signing
   hash_cycles = 0;
   t0 = hal_get_time();
-  crypto_sign(sm, &smlen, sm, MLEN, sk);
+  MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
   t1 = hal_get_time();
   printcycles("sign cycles: ", t1-t0);
   printcycles("sign hash cycles: ", hash_cycles);
@@ -48,7 +64,7 @@ int main(void)
   // Verification
   hash_cycles = 0;
   t0 = hal_get_time();
-  crypto_sign_open(sm, &smlen, sm, smlen, pk);
+  MUPQ_crypto_sign_open(sm, &smlen, sm, smlen, pk);
   t1 = hal_get_time();
   printcycles("verify cycles: ", t1-t0);
   printcycles("verify hash cycles: ", hash_cycles);

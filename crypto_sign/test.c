@@ -7,6 +7,24 @@
 #define NTESTS 15
 #define MLEN 32
 
+// https://stackoverflow.com/a/1489985/1711232
+#define PASTER(x, y) x####y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define NAMESPACE(fun) EVALUATOR(MUPQ_NAMESPACE, fun)
+
+
+// use different names so we can have empty namespaces
+#define MUPQ_CRYPTO_PUBLICKEYBYTES NAMESPACE(CRYPTO_PUBLICKEYBYTES)
+#define MUPQ_CRYPTO_SECRETKEYBYTES NAMESPACE(CRYPTO_SECRETKEYBYTES)
+#define MUPQ_CRYPTO_BYTES          NAMESPACE(CRYPTO_BYTES)
+#define MUPQ_CRYPTO_ALGNAME        NAMESPACE(CRYPTO_ALGNAME)
+
+#define MUPQ_crypto_sign_keypair NAMESPACE(crypto_sign_keypair)
+#define MUPQ_crypto_sign NAMESPACE(crypto_sign)
+#define MUPQ_crypto_sign_open NAMESPACE(crypto_sign_open)
+#define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
+#define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
+
 /* allocate a bit more for all keys and messages and
  * make sure it is not touched by the implementations.
  */
@@ -24,13 +42,13 @@ static int check_canary(unsigned char *d)
 }
 static int test_sign(void)
 {
-    unsigned char pk[CRYPTO_PUBLICKEYBYTES+16];
-    unsigned char sk[CRYPTO_SECRETKEYBYTES+16];
-    unsigned char sm[MLEN + CRYPTO_BYTES+16];
+    unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES+16];
+    unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES+16];
+    unsigned char sm[MLEN + MUPQ_CRYPTO_BYTES+16];
     unsigned char m[MLEN+16];
 
-    unsigned long long mlen;
-    unsigned long long smlen;
+    size_t mlen;
+    size_t smlen;
 
     int i;
     write_canary(pk); write_canary(pk+sizeof(pk)-8);
@@ -39,15 +57,15 @@ static int test_sign(void)
     write_canary(m); write_canary(m+sizeof(m)-8);
 
     for (i = 0; i < NTESTS; i++) {
-        crypto_sign_keypair(pk+8, sk+8);
+        MUPQ_crypto_sign_keypair(pk+8, sk+8);
         hal_send_str("crypto_sign_keypair DONE.\n");
 
         randombytes(m+8, MLEN);
-        crypto_sign(sm+8, &smlen, m+8, MLEN, sk+8);
+        MUPQ_crypto_sign(sm+8, &smlen, m+8, MLEN, sk+8);
         hal_send_str("crypto_sign DONE.\n");
 
         // By relying on m == sm we prevent having to allocate CRYPTO_BYTES twice
-        if (crypto_sign_open(sm+8, &mlen, sm+8, smlen, pk+8))
+        if (MUPQ_crypto_sign_open(sm+8, &mlen, sm+8, smlen, pk+8))
         {
             hal_send_str("ERROR Signature did not verify correctly!\n");
         }
@@ -70,31 +88,31 @@ static int test_sign(void)
 
 static int test_wrong_pk(void)
 {
-    unsigned char pk[CRYPTO_PUBLICKEYBYTES];
-    unsigned char pk2[CRYPTO_PUBLICKEYBYTES];
-    unsigned char sk[CRYPTO_SECRETKEYBYTES];
-    unsigned char sm[MLEN + CRYPTO_BYTES];
+    unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
+    unsigned char pk2[MUPQ_CRYPTO_PUBLICKEYBYTES];
+    unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
+    unsigned char sm[MLEN + MUPQ_CRYPTO_BYTES];
     unsigned char m[MLEN];
 
-    unsigned long long mlen;
-    unsigned long long smlen;
+    size_t mlen;
+    size_t smlen;
 
     int i;
 
     for (i = 0; i < NTESTS; i++) {
-        crypto_sign_keypair(pk2, sk);
+        MUPQ_crypto_sign_keypair(pk2, sk);
         hal_send_str("crypto_sign_keypair DONE.\n");
 
-        crypto_sign_keypair(pk, sk);
+        MUPQ_crypto_sign_keypair(pk, sk);
         hal_send_str("crypto_sign_keypair DONE.\n");
 
 
         randombytes(m, MLEN);
-        crypto_sign(sm, &smlen, m, MLEN, sk);
+        MUPQ_crypto_sign(sm, &smlen, m, MLEN, sk);
         hal_send_str("crypto_sign DONE.\n");
 
         // By relying on m == sm we prevent having to allocate CRYPTO_BYTES twice
-        if (crypto_sign_open(sm, &mlen, sm, smlen, pk2))
+        if (MUPQ_crypto_sign_open(sm, &mlen, sm, smlen, pk2))
         {
             hal_send_str("OK Signature did not verify correctly under wrong public key!\n");
         }

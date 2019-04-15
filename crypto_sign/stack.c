@@ -7,6 +7,22 @@
 
 #define MLEN 32
 #define MAX_SIZE 0x16000
+// https://stackoverflow.com/a/1489985/1711232
+#define PASTER(x, y) x####y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define NAMESPACE(fun) EVALUATOR(MUPQ_NAMESPACE, fun)
+
+// use different names so we can have empty namespaces
+#define MUPQ_CRYPTO_PUBLICKEYBYTES NAMESPACE(CRYPTO_PUBLICKEYBYTES)
+#define MUPQ_CRYPTO_SECRETKEYBYTES NAMESPACE(CRYPTO_SECRETKEYBYTES)
+#define MUPQ_CRYPTO_BYTES          NAMESPACE(CRYPTO_BYTES)
+#define MUPQ_CRYPTO_ALGNAME        NAMESPACE(CRYPTO_ALGNAME)
+
+#define MUPQ_crypto_sign_keypair NAMESPACE(crypto_sign_keypair)
+#define MUPQ_crypto_sign NAMESPACE(crypto_sign)
+#define MUPQ_crypto_sign_open NAMESPACE(crypto_sign_open)
+#define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
+#define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
 
 static void send_stack_usage(const char *s, unsigned int c) {
   char outs[120];
@@ -20,14 +36,14 @@ volatile unsigned char *p;
 unsigned int c;
 uint8_t canary = 0x42;
 
-unsigned char pk[CRYPTO_PUBLICKEYBYTES];
-unsigned char sk[CRYPTO_SECRETKEYBYTES];
-unsigned char sm[MLEN + CRYPTO_BYTES];
+unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
+unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
+unsigned char sm[MLEN + MUPQ_CRYPTO_BYTES];
 unsigned char m[MLEN];
-unsigned char m_out[MLEN + CRYPTO_BYTES];
+unsigned char m_out[MLEN + MUPQ_CRYPTO_BYTES];
 
-unsigned long long mlen;
-unsigned long long smlen;
+size_t mlen;
+size_t smlen;
 unsigned int rc;
 unsigned int stack_key_gen, stack_sign, stack_verify;
 
@@ -47,7 +63,7 @@ static int test_sign(void) {
   volatile unsigned char a;
   // Alice generates a public key
   FILL_STACK()
-  crypto_sign_keypair(pk, sk);
+  MUPQ_crypto_sign_keypair(pk, sk);
   CHECK_STACK()
   if(c >= canary_size) return -1;
   stack_key_gen = c;
@@ -55,14 +71,14 @@ static int test_sign(void) {
   // Bob derives a secret key and creates a response
   randombytes(m, MLEN);
   FILL_STACK()
-  crypto_sign(sm, &smlen, m, MLEN, sk);
+  MUPQ_crypto_sign(sm, &smlen, m, MLEN, sk);
   CHECK_STACK()
   if(c >= canary_size) return -1;
   stack_sign = c;
 
   // Alice uses Bobs response to get her secret key
   FILL_STACK()
-  rc = crypto_sign_open(m_out, &mlen, sm, smlen, pk);
+  rc = MUPQ_crypto_sign_open(m_out, &mlen, sm, smlen, pk);
   CHECK_STACK()
   if(c >= canary_size) return -1;
   stack_verify = c;
