@@ -10,6 +10,23 @@
 
 #define MAXMLEN 2048
 
+// https://stackoverflow.com/a/1489985/1711232
+#define PASTER(x, y) x####y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define NAMESPACE(fun) EVALUATOR(MUPQ_NAMESPACE, fun)
+
+// use different names so we can have empty namespaces
+#define MUPQ_CRYPTO_PUBLICKEYBYTES NAMESPACE(CRYPTO_PUBLICKEYBYTES)
+#define MUPQ_CRYPTO_SECRETKEYBYTES NAMESPACE(CRYPTO_SECRETKEYBYTES)
+#define MUPQ_CRYPTO_BYTES          NAMESPACE(CRYPTO_BYTES)
+#define MUPQ_CRYPTO_ALGNAME        NAMESPACE(CRYPTO_ALGNAME)
+
+#define MUPQ_crypto_sign_keypair NAMESPACE(crypto_sign_keypair)
+#define MUPQ_crypto_sign NAMESPACE(crypto_sign)
+#define MUPQ_crypto_sign_open NAMESPACE(crypto_sign_open)
+#define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
+#define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
+
 typedef uint32_t uint32;
 
 static void printbytes(const unsigned char *x, unsigned long long xlen)
@@ -68,13 +85,13 @@ int randombytes(uint8_t *x, size_t xlen)
 
 int main(void)
 {
-  unsigned char sk[CRYPTO_SECRETKEYBYTES];
-  unsigned char pk[CRYPTO_PUBLICKEYBYTES];
+  unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
+  unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
 
   unsigned char mi[MAXMLEN];
-  unsigned char sm[MAXMLEN+CRYPTO_BYTES];
-  unsigned long long smlen;
-  unsigned long long mlen;
+  unsigned char sm[MAXMLEN+MUPQ_CRYPTO_BYTES];
+  size_t smlen;
+  size_t mlen;
 
   int r;
   unsigned long long i,k;
@@ -83,17 +100,17 @@ int main(void)
   {
     randombytes(mi,i);
 
-    crypto_sign_keypair(pk, sk);
+    MUPQ_crypto_sign_keypair(pk, sk);
 
-    printbytes(pk,CRYPTO_PUBLICKEYBYTES);
-    printbytes(sk,CRYPTO_SECRETKEYBYTES);
+    printbytes(pk,MUPQ_CRYPTO_PUBLICKEYBYTES);
+    printbytes(sk,MUPQ_CRYPTO_SECRETKEYBYTES);
 
-    crypto_sign(sm, &smlen, mi, i, sk);
+    MUPQ_crypto_sign(sm, &smlen, mi, i, sk);
 
     printbytes(sm, smlen);
 
     // By relying on m == sm we prevent having to allocate CRYPTO_BYTES twice
-    r = crypto_sign_open(sm, &mlen, sm, smlen, pk);
+    r = MUPQ_crypto_sign_open(sm, &mlen, sm, smlen, pk);
 
     if(r)
     {

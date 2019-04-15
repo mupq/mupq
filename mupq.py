@@ -297,7 +297,13 @@ class TestVectors(BoardTestCase):
                 hostbin = (binpath
                            .replace('bin/', 'bin-host/')
                            .replace('.bin', ''))
-                subprocess.check_call(['make',
+                if impl.namespace != None:
+                    subprocess.check_call(['make',
+                                       f"IMPLEMENTATION_PATH={impl.path}",
+                                       f"MUPQ_NAMESPACE={impl.namespace}",
+                                       hostbin])
+                else: 
+                    subprocess.check_call(['make',
                                        f"IMPLEMENTATION_PATH={impl.path}",
                                        hostbin])
                 checksum = self.hash_output(
