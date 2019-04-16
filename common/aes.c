@@ -37,7 +37,11 @@ extern unsigned long long hash_cycles;
 #endif
 
 extern void aes128_keyexp_asm(const uint8_t *key, uint8_t *rk);
+extern void aes192_keyexp_asm(const uint8_t *key, uint8_t *rk);
+extern void aes256_keyexp_asm(const uint8_t *key, uint8_t *rk);
 extern void aes128_encrypt_asm(const uint8_t *rk, const uint8_t *in, uint8_t *out);
+extern void aes192_encrypt_asm(const uint8_t *rk, const uint8_t *in, uint8_t *out);
+extern void aes256_encrypt_asm(const uint8_t *rk, const uint8_t *in, uint8_t *out);
 
 static inline uint32_t br_dec32le(const unsigned char *src) {
     return (uint32_t)src[0]
@@ -331,93 +335,6 @@ static void br_aes_ct64_interleave_out(uint32_t *w, uint64_t q0, uint64_t q1) {
     w[3] = (uint32_t)x3 | (uint32_t)(x3 >> 16);
 }
 
-static const unsigned char Rcon[] = {
-    0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36
-};
-
-static uint32_t sub_word(uint32_t x) {
-    uint64_t q[8];
-
-    memset(q, 0, sizeof q);
-    q[0] = x;
-    br_aes_ct64_ortho(q);
-    br_aes_ct64_bitslice_Sbox(q);
-    br_aes_ct64_ortho(q);
-    return (uint32_t)q[0];
-}
-
-static void br_aes_ct64_keysched(uint64_t *comp_skey, const unsigned char *key, unsigned int key_len) {
-    unsigned int i, j, k, nk, nkf;
-    uint32_t tmp;
-    uint32_t skey[60];
-    unsigned nrounds = 10 + ((key_len - 16) >> 2);
-
-    nk = (key_len >> 2);
-    nkf = ((nrounds + 1) << 2);
-    br_range_dec32le(skey, (key_len >> 2), key);
-    tmp = skey[(key_len >> 2) - 1];
-    for (i = nk, j = 0, k = 0; i < nkf; i ++) {
-        if (j == 0) {
-            tmp = (tmp << 24) | (tmp >> 8);
-            tmp = sub_word(tmp) ^ Rcon[k];
-        } else if (nk > 6 && j == 4) {
-            tmp = sub_word(tmp);
-        }
-        tmp ^= skey[i - nk];
-        skey[i] = tmp;
-        if (++ j == nk) {
-            j = 0;
-            k ++;
-        }
-    }
-
-    for (i = 0, j = 0; i < nkf; i += 4, j += 2) {
-        uint64_t q[8];
-
-        br_aes_ct64_interleave_in(&q[0], &q[4], skey + i);
-        q[1] = q[0];
-        q[2] = q[0];
-        q[3] = q[0];
-        q[5] = q[4];
-        q[6] = q[4];
-        q[7] = q[4];
-        br_aes_ct64_ortho(q);
-        comp_skey[j + 0] =
-            (q[0] & (uint64_t)0x1111111111111111)
-            | (q[1] & (uint64_t)0x2222222222222222)
-            | (q[2] & (uint64_t)0x4444444444444444)
-            | (q[3] & (uint64_t)0x8888888888888888);
-        comp_skey[j + 1] =
-            (q[4] & (uint64_t)0x1111111111111111)
-            | (q[5] & (uint64_t)0x2222222222222222)
-            | (q[6] & (uint64_t)0x4444444444444444)
-            | (q[7] & (uint64_t)0x8888888888888888);
-    }
-}
-
-static void br_aes_ct64_skey_expand(uint64_t *skey, const uint64_t *comp_skey, unsigned int nrounds) {
-    unsigned u, v, n;
-
-    n = (nrounds + 1) << 1;
-    for (u = 0, v = 0; u < n; u ++, v += 4) {
-        uint64_t x0, x1, x2, x3;
-
-        x0 = x1 = x2 = x3 = comp_skey[u];
-        x0 &= (uint64_t)0x1111111111111111;
-        x1 &= (uint64_t)0x2222222222222222;
-        x2 &= (uint64_t)0x4444444444444444;
-        x3 &= (uint64_t)0x8888888888888888;
-        x1 >>= 1;
-        x2 >>= 2;
-        x3 >>= 3;
-        skey[v + 0] = (x0 << 4) - x0;
-        skey[v + 1] = (x1 << 4) - x1;
-        skey[v + 2] = (x2 << 4) - x2;
-        skey[v + 3] = (x3 << 4) - x3;
-    }
-}
-
-
 static inline void add_round_key(uint64_t *q, const uint64_t *sk) {
     q[0] ^= sk[0];
     q[1] ^= sk[1];
@@ -529,27 +446,6 @@ static void aes_ctr4x(unsigned char out[64], uint32_t ivw[16], const uint64_t *s
     inc4_be(ivw + 15);
 }
 
-
-static void aes_ecb(unsigned char *out, const unsigned char *in, size_t nblocks, const uint64_t *rkeys, unsigned int nrounds) {
-    uint32_t blocks[16];
-    unsigned char t[64];
-
-    while (nblocks >= 4) {
-        br_range_dec32le(blocks, 16, in);
-        aes_ecb4x(out, blocks, rkeys, nrounds);
-        nblocks -= 4;
-        in += 64;
-        out += 64;
-    }
-
-    if (nblocks) {
-        br_range_dec32le(blocks, nblocks * 4, in);
-        aes_ecb4x(t, blocks, rkeys, nrounds);
-        memcpy(out, t, nblocks * 16);
-    }
-}
-
-
 static void aes_ctr(unsigned char *out, size_t outlen, const unsigned char *iv, const uint64_t *rkeys, unsigned int nrounds) {
     uint32_t ivw[16];
     size_t i;
@@ -599,10 +495,8 @@ void aes192_keyexp(aes192ctx *r, const unsigned char *key) {
     uint64_t t0 = hal_get_time();
 #endif
 
-    uint64_t skey[26];
-
-    br_aes_ct64_keysched(skey, key, 24);
-    br_aes_ct64_skey_expand(r->sk_exp, skey, 12);
+    memcpy((unsigned char *)r->sk_exp, key, AES192_KEYBYTES);
+    aes192_keyexp_asm(key, ((uint8_t *)r->sk_exp) + AES192_KEYBYTES);
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
@@ -616,10 +510,8 @@ void aes256_keyexp(aes256ctx *r, const unsigned char *key) {
     uint64_t t0 = hal_get_time();
 #endif
 
-    uint64_t skey[30];
-
-    br_aes_ct64_keysched(skey, key, 32);
-    br_aes_ct64_skey_expand(r->sk_exp, skey, 14);
+    memcpy((unsigned char *)r->sk_exp, key, AES256_KEYBYTES);
+    aes256_keyexp_asm(key, ((uint8_t *)r->sk_exp) + AES256_KEYBYTES);
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
@@ -664,7 +556,12 @@ void aes192_ecb(unsigned char *out, const unsigned char *in, size_t nblocks, con
     uint64_t t0 = hal_get_time();
 #endif
 
-    aes_ecb(out, in, nblocks, ctx->sk_exp, 12);
+    unsigned int i;
+    for (i = 0; i < nblocks; ++i) {
+        aes192_encrypt_asm((uint8_t *)ctx->sk_exp, in, out);
+        in += AES_BLOCKBYTES;
+        out += AES_BLOCKBYTES;
+    }
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
@@ -690,7 +587,12 @@ void aes256_ecb(unsigned char *out, const unsigned char *in, size_t nblocks, con
     uint64_t t0 = hal_get_time();
 #endif
 
-    aes_ecb(out, in, nblocks, ctx->sk_exp, 14);
+    unsigned int i;
+    for (i = 0; i < nblocks; ++i) {
+        aes256_encrypt_asm((uint8_t *)ctx->sk_exp, in, out);
+        in += AES_BLOCKBYTES;
+        out += AES_BLOCKBYTES;
+    }
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
