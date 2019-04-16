@@ -584,7 +584,8 @@ void aes128_keyexp(aes128ctx *r, const unsigned char *key) {
     uint64_t t0 = hal_get_time();
 #endif
 
-    aes128_keyexp_asm(key, (uint8_t *)r->sk_exp);
+    memcpy((unsigned char *)r->sk_exp, key, AES128_KEYBYTES);
+    aes128_keyexp_asm(key, ((uint8_t *)r->sk_exp) + AES128_KEYBYTES);
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
