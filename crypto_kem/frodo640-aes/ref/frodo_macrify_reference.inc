@@ -18,8 +18,8 @@ int frodo_mul_add_as_plus_e(uint16_t *out, const uint16_t *s, const uint16_t *e,
     }    
     
     int16_t a_row_temp[4*PARAMS_N] = {0};
-    uint8_t aes_key_schedule[16*11];
-    AES128_load_schedule(seed_A, aes_key_schedule);
+    aes128ctx roundkeys;
+    aes128_keyexp(&roundkeys, seed_A);
                                      
     for (j = 0; j < PARAMS_N; j += PARAMS_STRIPE_STEP) {
         a_row_temp[j + 1 + 0*PARAMS_N] = j;                     // Loading values in the little-endian order
@@ -36,7 +36,7 @@ int frodo_mul_add_as_plus_e(uint16_t *out, const uint16_t *s, const uint16_t *e,
             a_row_temp[j + 3*PARAMS_N] = i+3;
         }
 
-        AES128_ECB_enc_sch((uint8_t*)a_row_temp, 4*PARAMS_N*sizeof(int16_t), aes_key_schedule, (uint8_t*)a_row);
+        aes128_ecb((unsigned char *)a_row, (unsigned char *)a_row_temp, 4*PARAMS_N*sizeof(int16_t) / AES_BLOCKBYTES, &roundkeys);
 
         for (k = 0; k < PARAMS_NBAR; k++) {
             uint16_t sum[4] = {0};
@@ -74,8 +74,8 @@ int i, j, kk;
     uint16_t a_cols_t[PARAMS_N*PARAMS_STRIPE_STEP];
     uint16_t a_cols_temp[PARAMS_N*PARAMS_STRIPE_STEP] = {0};       
 
-    uint8_t aes_key_schedule[16*11];
-    AES128_load_schedule(seed_A, aes_key_schedule);  
+    aes128ctx roundkeys;
+    aes128_keyexp(&roundkeys, seed_A);
 
     for (i = 0, j = 0; i < PARAMS_N; i++, j += PARAMS_STRIPE_STEP) {
         a_cols_temp[j] = i;                                     // Loading values in the little-endian order
@@ -86,7 +86,7 @@ int i, j, kk;
             a_cols_temp[i + 1] = kk;                            // Loading values in the little-endian order
         }
         
-        AES128_ECB_enc_sch((uint8_t*)a_cols_temp, PARAMS_N*PARAMS_STRIPE_STEP*sizeof(int16_t), aes_key_schedule, (uint8_t*)a_cols);
+        aes128_ecb((unsigned char *)a_cols, (unsigned char *)a_cols_temp, PARAMS_N*PARAMS_STRIPE_STEP*sizeof(int16_t) / AES_BLOCKBYTES, &roundkeys);
 
         for (i = 0; i < PARAMS_N; i++) {                        // Transpose a_cols to have access to it in the column-major order.
             for (k = 0; k < PARAMS_STRIPE_STEP; k++) {
