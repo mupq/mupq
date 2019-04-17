@@ -10,6 +10,21 @@
 #include <string.h>
 
 #define NTESTS 2
+// https://stackoverflow.com/a/1489985/1711232
+#define PASTER(x, y) x####y
+#define EVALUATOR(x, y) PASTER(x, y)
+#define NAMESPACE(fun) EVALUATOR(MUPQ_NAMESPACE, fun)
+
+// use different names so we can have empty namespaces
+#define MUPQ_CRYPTO_BYTES           NAMESPACE(CRYPTO_BYTES)
+#define MUPQ_CRYPTO_PUBLICKEYBYTES  NAMESPACE(CRYPTO_PUBLICKEYBYTES)
+#define MUPQ_CRYPTO_SECRETKEYBYTES  NAMESPACE(CRYPTO_SECRETKEYBYTES)
+#define MUPQ_CRYPTO_CIPHERTEXTBYTES NAMESPACE(CRYPTO_CIPHERTEXTBYTES)
+#define MUPQ_CRYPTO_ALGNAME NAMESPACE(CRYPTO_ALGNAME)
+
+#define MUPQ_crypto_kem_keypair NAMESPACE(crypto_kem_keypair)
+#define MUPQ_crypto_kem_enc NAMESPACE(crypto_kem_enc)
+#define MUPQ_crypto_kem_dec NAMESPACE(crypto_kem_dec)
 
 typedef uint32_t uint32;
 
@@ -72,10 +87,10 @@ int randombytes(uint8_t *x, size_t xlen)
 
 int main(void)
 {
-  unsigned char key_a[CRYPTO_BYTES], key_b[CRYPTO_BYTES];
-  unsigned char pk[CRYPTO_PUBLICKEYBYTES];
-  unsigned char sendb[CRYPTO_CIPHERTEXTBYTES];
-  unsigned char sk_a[CRYPTO_SECRETKEYBYTES];
+  unsigned char key_a[MUPQ_CRYPTO_BYTES], key_b[MUPQ_CRYPTO_BYTES];
+  unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
+  unsigned char sendb[MUPQ_CRYPTO_CIPHERTEXTBYTES];
+  unsigned char sk_a[MUPQ_CRYPTO_SECRETKEYBYTES];
   int i,j;
 
   hal_setup(CLOCK_FAST);
@@ -85,23 +100,23 @@ int main(void)
   for(i=0;i<NTESTS;i++)
   {
     // Key-pair generation
-    crypto_kem_keypair(pk, sk_a);
+    MUPQ_crypto_kem_keypair(pk, sk_a);
 
-    printbytes(pk,CRYPTO_PUBLICKEYBYTES);
-    printbytes(sk_a,CRYPTO_SECRETKEYBYTES);
+    printbytes(pk,MUPQ_CRYPTO_PUBLICKEYBYTES);
+    printbytes(sk_a,MUPQ_CRYPTO_SECRETKEYBYTES);
 
     // Encapsulation
-    crypto_kem_enc(sendb, key_b, pk);
+    MUPQ_crypto_kem_enc(sendb, key_b, pk);
 
-    printbytes(sendb,CRYPTO_CIPHERTEXTBYTES);
-    printbytes(key_b,CRYPTO_BYTES);
+    printbytes(sendb,MUPQ_CRYPTO_CIPHERTEXTBYTES);
+    printbytes(key_b,MUPQ_CRYPTO_BYTES);
 
     // Decapsulation
-    crypto_kem_dec(key_a, sendb, sk_a);
+    MUPQ_crypto_kem_dec(key_a, sendb, sk_a);
 
-    printbytes(key_a,CRYPTO_BYTES);
+    printbytes(key_a,MUPQ_CRYPTO_BYTES);
 
-    for(j=0;j<CRYPTO_BYTES;j++)
+    for(j=0;j<MUPQ_CRYPTO_BYTES;j++)
     {
       if(key_a[j] != key_b[j])
       {

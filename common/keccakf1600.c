@@ -1,6 +1,6 @@
 /* Based on the public domain implementation in
  * crypto_hash/keccakc512/simple/ from http://bench.cr.yp.to/supercop.html
- * by Ronny Van Keer 
+ * by Ronny Van Keer
  * and the public domain "TweetFips202" implementation
  * from https://twitter.com/tweetfips202
  * by Gilles Van Assche, Daniel J. Bernstein, and Peter Schwabe */
@@ -12,7 +12,7 @@
 #define NROUNDS 24
 #define ROL(a, offset) ((a << offset) ^ (a >> (64-offset)))
 
-static const uint64_t KeccakF_RoundConstants[NROUNDS] = 
+static const uint64_t KeccakF_RoundConstants[NROUNDS] =
 {
     (uint64_t)0x0000000000000001ULL,
     (uint64_t)0x0000000000008082ULL,
@@ -40,40 +40,21 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] =
     (uint64_t)0x8000000080008008ULL
 };
 
-static uint64_t load64(const unsigned char *x)
-{
-  unsigned long long r = 0, i;
-
-  for (i = 0; i < 8; ++i) {
-    r |= (unsigned long long)x[i] << 8 * i;
-  }
-  return r;
-}
-
-static void store64(uint8_t *x, uint64_t u)
-{
-  unsigned int i;
-
-  for(i=0; i<8; ++i) {
-    x[i] = u;
-    u >>= 8;
-  }
-}
-
-void KeccakF1600_StateExtractBytes(uint64_t *state, unsigned char *data, unsigned int __attribute__ ((unused)) offset, unsigned int length)
+void KeccakF1600_StateExtractBytes(uint64_t *state, unsigned char *data, unsigned int offset, unsigned int length)
 {
     unsigned int i;
-    for(i=0;i<(length>>3);i++)
+    for(i=0;i<length;i++)
     {
-      store64(data+8*i, state[i]);
+        data[i] = state[(offset + i) >> 3] >> (8*((offset + i) & 0x07));
     }
 }
 
-void KeccakF1600_StateXORBytes(uint64_t *state, const unsigned char *data, unsigned int __attribute__ ((unused)) offset, unsigned int length)
+void KeccakF1600_StateXORBytes(uint64_t *state, const unsigned char *data, unsigned int offset, unsigned int length)
 {
     unsigned int i;
-    for (i = 0; i < length / 8; ++i) {
-        state[i] ^= load64(data + 8 * i);
+    for(i = 0; i < length; i++)
+    {
+        state[(offset + i) >> 3] ^= (uint64_t)data[i] << (8 * ((offset + i) & 0x07));
     }
 }
 

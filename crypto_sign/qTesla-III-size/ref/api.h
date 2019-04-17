@@ -6,6 +6,7 @@
 
 #include "params.h"
 #include <stdint.h>
+#include <stddef.h>
 
 
 #define CRYPTO_RANDOMBYTES 32
@@ -28,14 +29,14 @@ int crypto_sign_keypair(
     );
 
 int crypto_sign(
-    unsigned char *,unsigned long long *,
-    const unsigned char *,unsigned long long,
+    unsigned char *,size_t *,
+    const unsigned char *,size_t,
     const unsigned char *
     );
 
 int crypto_sign_open(
-    unsigned char *,unsigned long long *,
-    const unsigned char *,unsigned long long,
+    unsigned char *,size_t *,
+    const unsigned char *,size_t,
     const unsigned char *
     );
 

@@ -337,7 +337,7 @@ int crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
 *              - unsigned long long *smlen: signature length*
 * Returns:     0 for successful execution
 ***************************************************************/
-int crypto_sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen, const unsigned char* sk)
+int crypto_sign(unsigned char *sm, size_t *smlen, const unsigned char *m, size_t mlen, const unsigned char* sk)
 {
   poly y, v, Sc, Ec, z, a;
   unsigned char c[CRYPTO_C_BYTES], randomness[CRYPTO_SEEDBYTES], randomness_input[CRYPTO_RANDOMBYTES+CRYPTO_SEEDBYTES+mlen];
@@ -396,7 +396,7 @@ int crypto_sign(unsigned char *sm, unsigned long long *smlen, const unsigned cha
 * Returns:     0 for valid signature
 *              <0 for invalid signature
 ************************************************************/
-int crypto_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk)
+int crypto_sign_open(unsigned char *m, size_t *mlen, const unsigned char *sm, size_t smlen, const unsigned char *pk)
 {
   unsigned char c[CRYPTO_C_BYTES], c_sig[CRYPTO_C_BYTES], seed[CRYPTO_SEEDBYTES];
   uint32_t pos_list[PARAM_W];

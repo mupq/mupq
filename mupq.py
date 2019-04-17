@@ -7,6 +7,7 @@ import logging
 import subprocess
 import hashlib
 import time
+import statistics
 from datetime import datetime
 
 
@@ -23,7 +24,7 @@ class Implementation(object):
         r'(?P<scheme>\S+)/'
         r'(?P<implementation>\S+)/?$')
 
-    def __init__(self, project, primitive, scheme, implementation, path):
+    def __init__(self, project, primitive, scheme, implementation, path, namespace):
         """Sets up this scheme"""
         self.log = logging.getLogger(__class__.__name__)
         self.project = project
@@ -31,9 +32,13 @@ class Implementation(object):
         self.scheme = scheme
         self.implementation = implementation
         self.path = path
+        if namespace == '':
+            self.namespace = None
+        else:
+            self.namespace = f"{namespace}_{scheme.replace('-','').upper()}_{implementation.upper()}_"
 
     @classmethod
-    def from_path(cls, project, path):
+    def from_path(cls, project, path, namespace):
         """
         Construct a scheme implemenation from a path
 
@@ -46,17 +51,24 @@ class Implementation(object):
                    matches.group("type"),
                    matches.group("scheme"),
                    matches.group("implementation"),
-                   path)
+                   path, namespace)
 
     def get_binary_path(self, type_):
         return f'bin/{self.path.replace("/", "_")}_{type_}.bin'
 
     def build_binary(self, type_):
         self.log.info(f"Building {self} - {type_}")
-        subprocess.check_call(
-            ['make',
-             f"IMPLEMENTATION_PATH={self.path}",
-             self.get_binary_path(type_)])
+        if self.namespace != None:
+            subprocess.check_call(
+              ['make',
+              f"IMPLEMENTATION_PATH={self.path}",
+              f"MUPQ_NAMESPACE={self.namespace}",
+              self.get_binary_path(type_)])
+        else:
+            subprocess.check_call(
+                ['make',
+                f"IMPLEMENTATION_PATH={self.path}",
+                self.get_binary_path(type_)])
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -65,8 +77,8 @@ class Implementation(object):
 class PlatformSettings(object):
     """Contains the settings for a certain platform"""
     scheme_folders = [
-        ('pqclean', 'mupq/pqclean/crypto_kem'),
-        ('pqclean', 'mupq/pqclean/crypto_sign'),
+        ('pqclean', 'mupq/pqclean/crypto_kem', 'PQCLEAN'),
+        ('pqclean', 'mupq/pqclean/crypto_sign', 'PQCLEAN'),
     ]
     skip_list = []
     name = None
@@ -80,7 +92,7 @@ class PlatformSettings(object):
     def get_implementations(self, all=False):
         """Get the schemes"""
         try:
-            for (parent, scheme_folder) in self.scheme_folders:
+            for (parent, scheme_folder,namespace) in self.scheme_folders:
                 for scheme in os.listdir(scheme_folder):
                     scheme_path = os.path.join(scheme_folder, scheme)
                     if not os.path.isdir(scheme_path):
@@ -88,7 +100,9 @@ class PlatformSettings(object):
                     for implementation_path in os.listdir(scheme_path):
                         path = os.path.join(scheme_path,
                                             implementation_path)
-                        impl = Implementation.from_path(parent, path)
+                        if not os.path.isdir(path):
+                            continue
+                        impl = Implementation.from_path(parent, path, namespace)
                         if not all and self.should_skip(impl):
                             continue
                         yield impl
@@ -283,7 +297,13 @@ class TestVectors(BoardTestCase):
                 hostbin = (binpath
                            .replace('bin/', 'bin-host/')
                            .replace('.bin', ''))
-                subprocess.check_call(['make',
+                if impl.namespace != None:
+                    subprocess.check_call(['make',
+                                       f"IMPLEMENTATION_PATH={impl.path}",
+                                       f"MUPQ_NAMESPACE={impl.namespace}",
+                                       hostbin])
+                else: 
+                    subprocess.check_call(['make',
                                        f"IMPLEMENTATION_PATH={impl.path}",
                                        hostbin])
                 checksum = self.hash_output(
@@ -298,7 +318,7 @@ class TestVectors(BoardTestCase):
         self.schemes = defaultdict(list)
         for implementation in self.get_implementations(all=True):
             self.schemes[implementation.scheme].append(implementation)
-        
+
         exclude = "--exclude" in args
         self._prepare_testvectors(exclude, args)
 
@@ -318,3 +338,170 @@ class BuildAll(BoardTestCase):
     def run_test(self, implementation):
         for test_type in ('test', 'testvectors', 'speed', 'hashing', 'stack'):
             implementation.build_binary(test_type)
+
+class Converter(object):
+    def convert(self):
+        self._speed()
+        self._stack()
+        self._hashing()
+
+    def _speed(self):
+        self._header("Speed Evaluation")
+        self._subheader("Key Encapsulation Schemes")
+        self._tablehead(["scheme", "implementation", "key generation [cycles]",
+                         "encapsulation [cycles]", "decapsulation [cycles]"])
+        self._processPrimitives("benchmarks/speed/crypto_kem/", "speed")
+
+        self._subheader("Signature Schemes")
+        self._tablehead(["scheme", "implementation", "key generation [cycles]",
+                         "sign [cycles]", "verify [cycles]"])
+        self._processPrimitives("benchmarks/speed/crypto_sign/", "speed")
+
+    def _stack(self):
+        self._header("Memory Evaluation")
+        self._subheader("Key Encapsulation Schemes")
+        self._tablehead(["Scheme", "Implementation", "Key Generation [bytes]",
+                         "Encapsulation [bytes]", "Decapsulation [bytes]"])
+        self._processPrimitives("benchmarks/stack/crypto_kem/", "stack")
+
+        self._subheader("Signature Schemes")
+        self._tablehead(["Scheme", "Implementation", "Key Generation [bytes]",
+                         "Sign [bytes]", "Verify [bytes]"])
+        self._processPrimitives("benchmarks/stack/crypto_sign/", "stack")
+
+    def _hashing(self):
+        """ prints the cycles spent in hashing and the percentage of the total
+            runtime """
+        self._header("Hashing Evaluation")
+        self._subheader("Key Encapsulation Schemes")
+        self._tablehead(["Scheme", "Implementation", "Key Generation [%]",
+                         "Encapsulation [%]", "Decapsulation [%]"])
+        self._processPrimitives("benchmarks/hashing/crypto_kem/", "hashing")
+
+        self._subheader("Signature Schemes")
+        self._tablehead(["Scheme", "Implementation", "Key Generation [%]",
+                         "Sign [%]", "Verify [%]"])
+        self._processPrimitives("benchmarks/hashing/crypto_sign/", "hashing")
+
+
+    def _processPrimitives(self, path, type_):
+        if os.path.exists(path) == False:
+            return;
+        data = dict()
+        for scheme in sorted(os.listdir(path)):
+            data[scheme] = dict()
+            for implementation in sorted(os.listdir(path+"/"+scheme)):
+                measurements = []
+                for measurement in os.listdir(path+"/"+scheme+"/"+implementation):
+                    with open(path+"/"+scheme+"/"+implementation+"/"+measurement, "r") as f:
+                        d = self._parseData(f.read(), type_=="hashing")
+                        measurements.append(d)
+                self._formatData(scheme, implementation, measurements, type_)
+                data[scheme][implementation] = measurements
+        return data
+
+    def _stats(self, data):
+        return (int(statistics.mean(data)), min(data), max(data))
+
+    def _parseData(self, fileContents, isHashing):
+        parts = fileContents.split("\n")
+        if not isHashing:
+            keygen = int(parts[1])
+            encsign = int(parts[3])
+            decverify = int(parts[5])
+        else:
+            keygentotal    = int(parts[1])
+            keygen         = int(parts[3])/keygentotal
+            encsigntotal   = int(parts[5])
+            encsign        = int(parts[7])/encsigntotal
+            decverifytotal = int(parts[9])
+            decverify      = int(parts[11])/decverifytotal
+        return [keygen, encsign, decverify]
+
+    def _formatData(self, scheme, implementation, data, type_):
+        if type_ == "speed":
+            keygen    = self._formatStats([item[0] for item in data])
+            encsign   = self._formatStats([item[1] for item in data])
+            decverify = self._formatStats([item[2] for item in data])
+            self._row([f"{scheme} ({len(data)} executions)", implementation, keygen, encsign, decverify])
+        elif type_ == "stack":
+            keygen     = self._formatNumber(max([item[0] for item in data]))
+            encsign    = self._formatNumber(max([item[1] for item in data]))
+            decverify  = self._formatNumber(max([item[2] for item in data]))
+            self._row([scheme, implementation, keygen, encsign, decverify])
+        elif type_ == "hashing":
+            keygen     = self._formatPercentage(statistics.mean([item[0] for item in data]))
+            encsign    = self._formatPercentage(statistics.mean([item[1] for item in data]))
+            decverify  = self._formatPercentage(statistics.mean([item[2] for item in data]))
+            self._row([scheme, implementation, keygen, encsign, decverify])
+
+class MarkdownConverter(Converter):
+    def _header(self, headline):
+        print(f"# {headline}")
+
+    def _subheader(self, headline):
+        print(f"## {headline}")
+
+    def _tablehead(self, columns):
+      print("| "+ " | ".join(columns)+" |")
+      print("| "+ " | ".join(["-"*(len(c)) for c in columns]) + " |")
+
+    def _row(self, data):
+        print("| "+ " | ".join(data)+" |")
+
+    def _formatStats(self, l):
+        mean, minimum, maximum = self._stats(l)
+        return "AVG: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(mean, minimum, maximum)
+
+    def _formatNumber(self, num):
+        return f"{num:,}"
+
+    def _formatPercentage(self, perc):
+        return f"{perc*100:.1f}%"
+
+class CsvConverter(Converter):
+    def _header(self, headline):
+        # always pad to 11 columns, so that github can nicely render it
+        print(headline+","*10)
+
+    def _subheader(self, headline):
+        # always pad to 11 columns, so that github can nicely render it
+        print(headline+","*10)
+
+    def _tablehead(self, columns):
+        # always pad to 11 columns, so that github can nicely render it
+        print(",".join(columns)+(","*(11-len(columns))))
+
+    def _speed(self):
+        """ overwrite this here to we can can have three columns for mean, min, max """
+        self._header("Speed Evaluation")
+        self._subheader("Key Encapsulation Schemes")
+        self._tablehead(["Scheme", "Implementation"] +
+                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Encapsulation [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Decapsulation [cycles] ({x})" for x in ["mean", "min", "max"]])
+
+        cyclesKem = self._processPrimitives("benchmarks/speed/crypto_kem/", "speed")
+
+        self._subheader("Signature Schemes")
+        self._tablehead(["Scheme", "Implementation"]+
+                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Sign [cycles] ({x})" for x in ["mean", "min", "max"]] +
+                        [f"Verify [cycles] ({x})" for x in ["mean", "min", "max"]])
+        cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", "speed")
+        return (cyclesKem, cyclesSign)
+
+    def _row(self, data):
+        # always pad to 11 columns, so that github can nicely render it
+        row = ",".join(data)
+        print(row+(","*(10-row.count(","))))
+
+    def _formatStats(self, l):
+        mean, minimum, maximum = self._stats(l)
+        return f"{mean},{minimum},{maximum}"
+
+    def _formatNumber(self, num):
+        return str(num)
+
+    def _formatPercentage(self, perc):
+        return f"{perc*100:.1f}"
