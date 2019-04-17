@@ -24,6 +24,9 @@ class Implementation(object):
         r'(?P<scheme>\S+)/'
         r'(?P<implementation>\S+)/?$')
 
+    #: regex to find source files
+    _source_regex = re.compile(r'.*\.(c|s|S)$')
+
     def __init__(self, project, primitive, scheme, implementation, path, namespace):
         """Sets up this scheme"""
         self.log = logging.getLogger(__class__.__name__)
@@ -69,6 +72,27 @@ class Implementation(object):
                 ['make',
                 f"IMPLEMENTATION_PATH={self.path}",
                 self.get_binary_path(type_)])
+
+    def get_object_path(self, source):
+        return f'obj/{self.path.replace("/", "_")}_{source}'
+
+    def build_objects(self, type_):
+        self.log.info(f"Building {self} - {type_}")
+        for source_file in os.listdir(self.path):
+            if Implementation._source_regex.match(source_file) == None:
+                continue
+            object_file = self.get_object_path(source_file[:-1] + 'o')
+            if self.namespace != None:
+                subprocess.check_call(
+                  ['make',
+                  f"IMPLEMENTATION_PATH={self.path}",
+                  f"MUPQ_NAMESPACE={self.namespace}",
+                  object_file])
+            else:
+                subprocess.check_call(
+                    ['make',
+                    f"IMPLEMENTATION_PATH={self.path}",
+                    object_file])
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -242,11 +266,7 @@ class SimpleTest(BoardTestCase):
 class StackBenchmark(BoardTestCase):
     test_type = 'stack'
 
-    def run_test(self, implementation):
-        self.log.info("Benchmarking %s", implementation)
-        output = super().run_test(implementation)
-        assert 'ERROR KEYS' not in output
-
+    def write_result(self, implementation, result):
         timestamp = datetime.fromtimestamp(
             time.time()).strftime('%Y%m%d%H%M%S')
         filename = os.path.join(
@@ -256,8 +276,14 @@ class StackBenchmark(BoardTestCase):
             timestamp)
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, 'w') as f:
-            f.write(output.strip())
+            f.write(result)
         self.log.info("Wrote benchmark!")
+
+    def run_test(self, implementation):
+        self.log.info("Benchmarking %s", implementation)
+        output = super().run_test(implementation)
+        assert 'ERROR KEYS' not in output
+        self.write_result(implementation, output)
 
 
 class SpeedBenchmark(StackBenchmark):
@@ -265,6 +291,26 @@ class SpeedBenchmark(StackBenchmark):
 
 class HashingBenchmark(StackBenchmark):
     test_type = 'hashing'
+
+class SizeBenchmark(StackBenchmark):
+    test_type = 'size'
+
+    def run_test(self, implementation):
+        self.log.info("Measuring %s", implementation)
+        implementation.build_objects(self.test_type)
+        glob = f'obj/{implementation.path.replace("/", "_")}_*.o'
+        output = subprocess.check_output(
+                'arm-none-eabi-size -t ' + glob,
+                shell=True,
+                stderr=subprocess.DEVNULL,
+                text=True)
+        sizes = output.splitlines()[-1].split('\t')
+        fsizes = (f'.text bytes:\n{sizes[0].strip()}\n'
+                  f'.data bytes:\n{sizes[1].strip()}\n'
+                  f'.bss bytes:\n{sizes[2].strip()}\n'
+                  f'.total bytes:\n{sizes[3].strip()}\n')
+        super().write_result(implementation, fsizes)
+
 
 class TestVectors(BoardTestCase):
     test_type = 'testvectors'
@@ -302,7 +348,7 @@ class TestVectors(BoardTestCase):
                                        f"IMPLEMENTATION_PATH={impl.path}",
                                        f"MUPQ_NAMESPACE={impl.namespace}",
                                        hostbin])
-                else: 
+                else:
                     subprocess.check_call(['make',
                                        f"IMPLEMENTATION_PATH={impl.path}",
                                        hostbin])
@@ -344,6 +390,7 @@ class Converter(object):
         self._speed()
         self._stack()
         self._hashing()
+        self._size()
 
     def _speed(self):
         self._header("Speed Evaluation")
@@ -383,6 +430,20 @@ class Converter(object):
                          "Sign [%]", "Verify [%]"])
         self._processPrimitives("benchmarks/hashing/crypto_sign/", "hashing")
 
+    def _size(self):
+        """ prints the total number of bytes in the text, data, and bss sections
+            of the scheme-specific code (i.e., excluding FIPS202, etc) """
+        self._header("Size Evaluation")
+        self._subheader("Key Encapsulation Schemes")
+        self._tablehead(["Scheme", "Implementation", ".text [bytes]",
+                         ".data [bytes]", ".bss [bytes]", "Total [bytes]"])
+        self._processPrimitives("benchmarks/size/crypto_kem/", "size")
+
+        self._subheader("Signature Schemes")
+        self._tablehead(["Scheme", "Implementation", ".text [bytes]",
+                         ".data [bytes]", ".bss [bytes]", "Total [bytes]"])
+        self._processPrimitives("benchmarks/size/crypto_sign/", "size")
+
 
     def _processPrimitives(self, path, type_):
         if os.path.exists(path) == False:
@@ -394,7 +455,7 @@ class Converter(object):
                 measurements = []
                 for measurement in os.listdir(path+"/"+scheme+"/"+implementation):
                     with open(path+"/"+scheme+"/"+implementation+"/"+measurement, "r") as f:
-                        d = self._parseData(f.read(), type_=="hashing")
+                        d = self._parseData(f.read(), type_)
                         measurements.append(d)
                 self._formatData(scheme, implementation, measurements, type_)
                 data[scheme][implementation] = measurements
@@ -403,19 +464,25 @@ class Converter(object):
     def _stats(self, data):
         return (int(statistics.mean(data)), min(data), max(data))
 
-    def _parseData(self, fileContents, isHashing):
+    def _parseData(self, fileContents, type_):
         parts = fileContents.split("\n")
-        if not isHashing:
-            keygen = int(parts[1])
-            encsign = int(parts[3])
-            decverify = int(parts[5])
-        else:
+        if type_ == 'size':
+            text  = int(parts[1])
+            data  = int(parts[3])
+            bss   = int(parts[5])
+            total = int(parts[7])
+            return [text, data, bss, total]
+        elif type_ == 'hashing':
             keygentotal    = int(parts[1])
             keygen         = int(parts[3])/keygentotal
             encsigntotal   = int(parts[5])
             encsign        = int(parts[7])/encsigntotal
             decverifytotal = int(parts[9])
             decverify      = int(parts[11])/decverifytotal
+        else:
+            keygen    = int(parts[1])
+            encsign   = int(parts[3])
+            decverify = int(parts[5])
         return [keygen, encsign, decverify]
 
     def _formatData(self, scheme, implementation, data, type_):
@@ -434,6 +501,12 @@ class Converter(object):
             encsign    = self._formatPercentage(statistics.mean([item[1] for item in data]))
             decverify  = self._formatPercentage(statistics.mean([item[2] for item in data]))
             self._row([scheme, implementation, keygen, encsign, decverify])
+        elif type_ == "size":
+            textsec = self._formatNumber(max([item[0] for item in data]))
+            datasec = self._formatNumber(max([item[1] for item in data]))
+            bsssec  = self._formatNumber(max([item[2] for item in data]))
+            total   = self._formatNumber(max([item[3] for item in data]))
+            self._row([scheme, implementation, textsec, datasec, bsssec, total])
 
 class MarkdownConverter(Converter):
     def _header(self, headline):
