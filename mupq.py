@@ -249,7 +249,8 @@ class BoardTestCase(abc.ABC):
                 continue
             if not exclude and len(args) > 0 and implementation.scheme not in args:
                 continue
-            self.run_test(implementation)
+            if self.run_test(implementation) == -1:
+                return -1
 
 
 class SimpleTest(BoardTestCase):
@@ -259,8 +260,10 @@ class SimpleTest(BoardTestCase):
         output = super().run_test(*args, **kwargs).strip()
         if output.count("ERROR") or output.count("OK") != 30:
             self.log.error("Failed!")
+            return -1
         else:
             self.log.info("Success")
+            return 0
 
 
 class StackBenchmark(BoardTestCase):
