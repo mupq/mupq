@@ -10,28 +10,6 @@
 #define N_SB (SABER_N >> 2)
 #define N_SB_RES (2*N_SB-1)
 
-void pol_mul(uint16_t* a, uint16_t* b, uint16_t* res, uint16_t p, uint32_t n)
-{
-	// Polynomial multiplication using the schoolbook method, c[x] = a[x]*b[x]
-	// SECURITY NOTE: TO BE USED FOR TESTING ONLY.
-
-	uint32_t i;
-
-//-------------------normal multiplication-----------------
-
-	uint16_t c[512];
-
-	for (i = 0; i < 512; i++) c[i] = 0;
-
-	toom_cook_4way(a, b, c);
-
-	//---------------reduction-------
-	for(i=n;i<2*n;i++){
-		res[i-n]=(c[i-n]-c[i])&(p-1);
-	}
-
-
-}
 static void karatsuba_simple(const uint16_t* a_1,const uint16_t* b_1, uint16_t* result_final){//uses 10 registers
 
 	uint16_t N=64;
@@ -230,4 +208,27 @@ static void toom_cook_4way (const uint16_t* a1,const uint16_t* b1, uint16_t* res
 		C[i+320] += r1;
 		C[i+384] += r0;
 	}
+}
+
+void pol_mul(uint16_t* a, uint16_t* b, uint16_t* res, uint16_t p, uint32_t n)
+{
+	// Polynomial multiplication using the schoolbook method, c[x] = a[x]*b[x]
+	// SECURITY NOTE: TO BE USED FOR TESTING ONLY.
+
+	uint32_t i;
+
+//-------------------normal multiplication-----------------
+
+	uint16_t c[512];
+
+	for (i = 0; i < 512; i++) c[i] = 0;
+
+	toom_cook_4way(a, b, c);
+
+	//---------------reduction-------
+	for(i=n;i<2*n;i++){
+		res[i-n]=(c[i-n]-c[i])&(p-1);
+	}
+
+
 }
