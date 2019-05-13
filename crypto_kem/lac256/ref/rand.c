@@ -3,7 +3,7 @@
 #include "sha2.h"
 #include "lac_param.h"
 #include "rand.h"
-#include "rng.h"
+#include "randombytes.h"
 
 //random bytes
 int random_bytes(unsigned char *r, unsigned int len)
@@ -15,7 +15,7 @@ int random_bytes(unsigned char *r, unsigned int len)
 	}
 	// call the random function
 //	RAND_bytes(r,len);
-	lacrandombytes(r,len);
+	randombytes(r,len);
 	return 0;
 }
 
