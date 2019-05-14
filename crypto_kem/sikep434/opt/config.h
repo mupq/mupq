@@ -2,7 +2,7 @@
 * Supersingular Isogeny Key Encapsulation Library
 *
 * Abstract: configuration file and platform-dependent macros
-*********************************************************************************************/  
+*********************************************************************************************/
 
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
@@ -12,16 +12,23 @@
 #include <stddef.h>
 
 
+// Definition of operating system
+
+#define OS_WIN       1
+#define OS_LINUX     2
+
+#define OS_TARGET OS_LINUX
+
 // Definition of compiler
 
-#define COMPILER_GCC     1
-#define COMPILER_CLANG   2
+#define COMPILER_VC      1
+#define COMPILER_GCC     2
+#define COMPILER_CLANG   3
 
-#define COMPILER COMPILER_GCC   
-
+#define COMPILER COMPILER_GCC
 
 // Definition of the targeted architecture and basic data types
-    
+
 #define TARGET_AMD64        1
 #define TARGET_x86          2
 #define TARGET_ARM          3
@@ -29,23 +36,21 @@
 
 #define TARGET TARGET_ARM
 #define RADIX           32
-#define LOG2RADIX       5  
+#define LOG2RADIX       5
 typedef uint32_t        digit_t;        // Unsigned 32-bit digit
 
 #define RADIX64             64
 
 
-// Selection of implementation: optimized_generic
+// Selection of generic, portable implementation
 
-#if defined(_OPTIMIZED_GENERIC_)                      
-    #define OPTIMIZED_GENERIC_IMPLEMENTATION
-#endif
+#define GENERIC_IMPLEMENTATION
 
 
 // Extended datatype support
-                     
+
 typedef uint64_t uint128_t[2];
-    
+
 
 // Macro definitions
 
@@ -73,7 +78,7 @@ static __inline unsigned int is_digit_zero_ct(digit_t x)
 
 static __inline unsigned int is_digit_lessthan_ct(digit_t x, digit_t y)
 { // Is x < y?
-    return (unsigned int)((x ^ ((x ^ y) | ((x - y) ^ y))) >> (RADIX-1)); 
+    return (unsigned int)((x ^ ((x ^ y) | ((x - y) ^ y))) >> (RADIX-1));
 }
 
 
@@ -82,7 +87,7 @@ static __inline unsigned int is_digit_lessthan_ct(digit_t x, digit_t y)
 // Digit multiplication
 #define MUL(multiplier, multiplicand, hi, lo)                                                     \
     digit_x_digit((multiplier), (multiplicand), &(lo));
-    
+
 // Digit addition with carry
 #define ADDC(carryIn, addend1, addend2, carryOut, sumOut)                                         \
     { digit_t tempReg = (addend1) + (digit_t)(carryIn);                                           \
@@ -95,11 +100,11 @@ static __inline unsigned int is_digit_lessthan_ct(digit_t x, digit_t y)
     unsigned int borrowReg = (is_digit_lessthan_ct((minuend), (subtrahend)) | ((borrowIn) & is_digit_zero_ct(tempReg)));  \
     (differenceOut) = tempReg - (digit_t)(borrowIn);                                              \
     (borrowOut) = borrowReg; }
-    
+
 // Shift right with flexible datatype
 #define SHIFTR(highIn, lowIn, shift, shiftOut, DigitSize)                                         \
     (shiftOut) = ((lowIn) >> (shift)) ^ ((highIn) << (DigitSize - (shift)));
-    
+
 // Shift left with flexible datatype
 #define SHIFTL(highIn, lowIn, shift, shiftOut, DigitSize)                                         \
     (shiftOut) = ((highIn) << (shift)) ^ ((lowIn) >> (DigitSize - (shift)));
@@ -115,6 +120,5 @@ static __inline unsigned int is_digit_lessthan_ct(digit_t x, digit_t y)
 // 128-bit addition with output carry
 #define ADC128(addend1, addend2, carry, addition)                                                 \
     (carry) = mp_add((digit_t*)(addend1), (digit_t*)(addend2), (digit_t*)(addition), NWORDS_FIELD);
-
 
 #endif

@@ -1,22 +1,22 @@
 /********************************************************************************************
 * Supersingular Isogeny Key Encapsulation Library
 *
-* Abstract: portable modular arithmetic for P751
+* Abstract: portable modular arithmetic for P610
 *********************************************************************************************/
 
-#include "P751_internal.h"
+#include "P610_internal.h"
 
 
 // Global constants
-extern const uint64_t p751[NWORDS_FIELD];
-extern const uint64_t p751p1[NWORDS_FIELD];
-extern const uint64_t p751x2[NWORDS_FIELD];
+extern const uint64_t p610[NWORDS_FIELD];
+extern const uint64_t p610p1[NWORDS_FIELD];
+extern const uint64_t p610x2[NWORDS_FIELD];
 
 
-__inline void fpadd751(const digit_t* a, const digit_t* b, digit_t* c)
-{ // Modular addition, c = a+b mod p751.
-  // Inputs: a, b in [0, 2*p751-1]
-  // Output: c in [0, 2*p751-1]
+__inline void fpadd610(const digit_t* a, const digit_t* b, digit_t* c)
+{ // Modular addition, c = a+b mod p610.
+  // Inputs: a, b in [0, 2*p610-1]
+  // Output: c in [0, 2*p610-1]
     unsigned int i, carry = 0;
     digit_t mask;
 
@@ -26,21 +26,21 @@ __inline void fpadd751(const digit_t* a, const digit_t* b, digit_t* c)
 
     carry = 0;
     for (i = 0; i < NWORDS_FIELD; i++) {
-        SUBC(carry, c[i], ((digit_t*)p751x2)[i], carry, c[i]);
+        SUBC(carry, c[i], ((digit_t*)p610x2)[i], carry, c[i]);
     }
     mask = 0 - (digit_t)carry;
 
     carry = 0;
     for (i = 0; i < NWORDS_FIELD; i++) {
-        ADDC(carry, c[i], ((digit_t*)p751x2)[i] & mask, carry, c[i]);
+        ADDC(carry, c[i], ((digit_t*)p610x2)[i] & mask, carry, c[i]);
     }
 }
 
 
-__inline void fpsub751(const digit_t* a, const digit_t* b, digit_t* c)
-{ // Modular subtraction, c = a-b mod p751.
-  // Inputs: a, b in [0, 2*p751-1]
-  // Output: c in [0, 2*p751-1]
+__inline void fpsub610(const digit_t* a, const digit_t* b, digit_t* c)
+{ // Modular subtraction, c = a-b mod p610.
+  // Inputs: a, b in [0, 2*p610-1]
+  // Output: c in [0, 2*p610-1]
     unsigned int i, borrow = 0;
     digit_t mask;
 
@@ -51,51 +51,51 @@ __inline void fpsub751(const digit_t* a, const digit_t* b, digit_t* c)
 
     borrow = 0;
     for (i = 0; i < NWORDS_FIELD; i++) {
-        ADDC(borrow, c[i], ((digit_t*)p751x2)[i] & mask, borrow, c[i]);
+        ADDC(borrow, c[i], ((digit_t*)p610x2)[i] & mask, borrow, c[i]);
     }
 }
 
 
-__inline void fpneg751(digit_t* a)
-{ // Modular negation, a = -a mod p751.
-  // Input/output: a in [0, 2*p751-1]
+__inline void fpneg610(digit_t* a)
+{ // Modular negation, a = -a mod p610.
+  // Input/output: a in [0, 2*p610-1]
     unsigned int i, borrow = 0;
 
     for (i = 0; i < NWORDS_FIELD; i++) {
-        SUBC(borrow, ((digit_t*)p751x2)[i], a[i], borrow, a[i]);
+        SUBC(borrow, ((digit_t*)p610x2)[i], a[i], borrow, a[i]);
     }
 }
 
 
-void fpdiv2_751(const digit_t* a, digit_t* c)
-{ // Modular division by two, c = a/2 mod p751.
-  // Input : a in [0, 2*p751-1]
-  // Output: c in [0, 2*p751-1]
+void fpdiv2_610(const digit_t* a, digit_t* c)
+{ // Modular division by two, c = a/2 mod p610.
+  // Input : a in [0, 2*p610-1]
+  // Output: c in [0, 2*p610-1]
     unsigned int i, carry = 0;
     digit_t mask;
 
-    mask = 0 - (digit_t)(a[0] & 1);    // If a is odd compute a+p751
+    mask = 0 - (digit_t)(a[0] & 1);    // If a is odd compute a+p610
     for (i = 0; i < NWORDS_FIELD; i++) {
-        ADDC(carry, a[i], ((digit_t*)p751)[i] & mask, carry, c[i]);
+        ADDC(carry, a[i], ((digit_t*)p610)[i] & mask, carry, c[i]);
     }
 
     mp_shiftr1(c, NWORDS_FIELD);
 }
 
 
-void fpcorrection751(digit_t* a)
-{ // Modular correction to reduce field element a in [0, 2*p751-1] to [0, p751-1].
+void fpcorrection610(digit_t* a)
+{ // Modular correction to reduce field element a in [0, 2*p610-1] to [0, p610-1].
     unsigned int i, borrow = 0;
     digit_t mask;
 
     for (i = 0; i < NWORDS_FIELD; i++) {
-        SUBC(borrow, a[i], ((digit_t*)p751)[i], borrow, a[i]);
+        SUBC(borrow, a[i], ((digit_t*)p610)[i], borrow, a[i]);
     }
     mask = 0 - (digit_t)borrow;
 
     borrow = 0;
     for (i = 0; i < NWORDS_FIELD; i++) {
-        ADDC(borrow, a[i], ((digit_t*)p751)[i] & mask, borrow, a[i]);
+        ADDC(borrow, a[i], ((digit_t*)p610)[i] & mask, borrow, a[i]);
     }
 }
 
@@ -169,12 +169,12 @@ void mp_mul(const digit_t* a, const digit_t* b, digit_t* c, const unsigned int n
 }
 
 
-void rdc_mont(const dfelm_t ma, felm_t mc)
-{ // Efficient Montgomery reduction using comba and exploiting the special form of the prime p751.
-  // mc = ma*R^-1 mod p751x2, where R = 2^768.
-  // If ma < 2^768*p751, the output mc is in the range [0, 2*p751-1].
+void rdc_mont(const digit_t* ma, digit_t* mc)
+{ // Efficient Montgomery reduction using comba and exploiting the special form of the prime p610.
+  // mc = ma*R^-1 mod p610x2, where R = 2^768.
+  // If ma < 2^768*p610, the output mc is in the range [0, 2*p610-1].
   // ma is assumed to be in Montgomery representation.
-    unsigned int i, j, carry, count = p751_ZERO_WORDS;
+    unsigned int i, j, carry, count = p610_ZERO_WORDS;
     digit_t UV[2], t = 0, u = 0, v = 0;
 
     for (i = 0; i < NWORDS_FIELD; i++) {
@@ -183,8 +183,8 @@ void rdc_mont(const dfelm_t ma, felm_t mc)
 
     for (i = 0; i < NWORDS_FIELD; i++) {
         for (j = 0; j < i; j++) {
-            if (j < (i-p751_ZERO_WORDS+1)) {
-                MUL(mc[j], ((digit_t*)p751p1)[i-j], UV+1, UV[0]);
+            if (j < (i-p610_ZERO_WORDS+1)) {
+                MUL(mc[j], ((digit_t*)p610p1)[i-j], UV+1, UV[0]);
                 ADDC(0, UV[0], v, carry, v);
                 ADDC(carry, UV[1], u, carry, u);
                 t += carry;
@@ -205,7 +205,7 @@ void rdc_mont(const dfelm_t ma, felm_t mc)
         }
         for (j = i-NWORDS_FIELD+1; j < NWORDS_FIELD; j++) {
             if (j < (NWORDS_FIELD-count)) {
-                MUL(mc[j], ((digit_t*)p751p1)[i-j], UV+1, UV[0]);
+                MUL(mc[j], ((digit_t*)p610p1)[i-j], UV+1, UV[0]);
                 ADDC(0, UV[0], v, carry, v);
                 ADDC(carry, UV[1], u, carry, u);
                 t += carry;
