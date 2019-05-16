@@ -285,7 +285,7 @@ class StackBenchmark(BoardTestCase):
     def run_test(self, implementation):
         self.log.info("Benchmarking %s", implementation)
         output = super().run_test(implementation)
-        assert 'ERROR KEYS' not in output
+        assert 'ERROR' not in output
         self.write_result(implementation, output)
 
 
