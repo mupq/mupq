@@ -27,7 +27,7 @@ class Implementation(object):
     #: regex to find source files
     _source_regex = re.compile(r'.*\.(c|s|S)$')
 
-    def __init__(self, project, primitive, scheme, implementation, path, namespace):
+    def __init__(self, project, primitive, scheme, implementation, path, namespace, extraflags=[]):
         """Sets up this scheme"""
         self.log = logging.getLogger(__class__.__name__)
         self.project = project
@@ -39,9 +39,10 @@ class Implementation(object):
             self.namespace = None
         else:
             self.namespace = f"{namespace}_{scheme.replace('-','').upper()}_{implementation.upper()}_"
+        self.extraflags = extraflags
 
     @classmethod
-    def from_path(cls, project, path, namespace):
+    def from_path(cls, project, path, namespace, extraflags=[]):
         """
         Construct a scheme implemenation from a path
 
@@ -54,24 +55,23 @@ class Implementation(object):
                    matches.group("type"),
                    matches.group("scheme"),
                    matches.group("implementation"),
-                   path, namespace)
+                   path, namespace, extraflags)
+
+    def run_make(self, target):
+        makeflags = ["make",
+                     f"IMPLEMENTATION_PATH={self.path}"]
+        if self.namespace is not None:
+            makeflags.append(f"MUPQ_NAMESPACE={self.namespace}")
+        makeflags.extend(self.extraflags)
+        makeflags.append(target)
+        return subprocess.check_call(makeflags)
 
     def get_binary_path(self, type_):
         return f'bin/{self.path.replace("/", "_")}_{type_}.bin'
 
     def build_binary(self, type_):
         self.log.info(f"Building {self} - {type_}")
-        if self.namespace != None:
-            subprocess.check_call(
-              ['make',
-              f"IMPLEMENTATION_PATH={self.path}",
-              f"MUPQ_NAMESPACE={self.namespace}",
-              self.get_binary_path(type_)])
-        else:
-            subprocess.check_call(
-                ['make',
-                f"IMPLEMENTATION_PATH={self.path}",
-                self.get_binary_path(type_)])
+        self.run_make(self.get_binary_path(type_))
 
     def get_object_path(self, source):
         return f'obj/{self.path.replace("/", "_")}_{source}'
@@ -82,17 +82,7 @@ class Implementation(object):
             if Implementation._source_regex.match(source_file) == None:
                 continue
             object_file = self.get_object_path(source_file[:-1] + 'o')
-            if self.namespace != None:
-                subprocess.check_call(
-                  ['make',
-                  f"IMPLEMENTATION_PATH={self.path}",
-                  f"MUPQ_NAMESPACE={self.namespace}",
-                  object_file])
-            else:
-                subprocess.check_call(
-                    ['make',
-                    f"IMPLEMENTATION_PATH={self.path}",
-                    object_file])
+            self.run_make(object_file)
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -106,6 +96,7 @@ class PlatformSettings(object):
     ]
     skip_list = []
     name = None
+    makeflags = []
 
     def __init__(self):
         self.log = logging.getLogger(__class__.__name__)
@@ -116,7 +107,7 @@ class PlatformSettings(object):
     def get_implementations(self, all=False):
         """Get the schemes"""
         try:
-            for (parent, scheme_folder,namespace) in self.scheme_folders:
+            for (parent, scheme_folder, namespace) in self.scheme_folders:
                 for scheme in os.listdir(scheme_folder):
                     scheme_path = os.path.join(scheme_folder, scheme)
                     if not os.path.isdir(scheme_path):
@@ -126,7 +117,7 @@ class PlatformSettings(object):
                                             implementation_path)
                         if not os.path.isdir(path):
                             continue
-                        impl = Implementation.from_path(parent, path, namespace)
+                        impl = Implementation.from_path(parent, path, namespace, self.makeflags)
                         if not all and self.should_skip(impl):
                             continue
                         yield impl
@@ -331,6 +322,16 @@ class TestVectors(BoardTestCase):
             super().run_test(implementation).encode('utf-8'))
         assert self.testvectorhash[implementation.scheme] == checksum
 
+    def run_make(self, target, path, namespace):
+        makeflags = ["make",
+                     f"IMPLEMENTATION_PATH={path}"]
+        if namespace is not None:
+            makeflags.append(f"MUPQ_NAMESPACE={namespace}")
+        makeflags.extend(self.platform_settings.makeflags)
+        makeflags.append(target)
+        return subprocess.check_call(makeflags)
+
+
     def _prepare_testvectors(self, exclude, args):
         for scheme, implementations in self.schemes.items():
             for impl in implementations:
@@ -346,20 +347,12 @@ class TestVectors(BoardTestCase):
                 hostbin = (binpath
                            .replace('bin/', 'bin-host/')
                            .replace('.bin', ''))
-                if impl.namespace != None:
-                    subprocess.check_call(['make',
-                                       f"IMPLEMENTATION_PATH={impl.path}",
-                                       f"MUPQ_NAMESPACE={impl.namespace}",
-                                       hostbin])
-                else:
-                    subprocess.check_call(['make',
-                                       f"IMPLEMENTATION_PATH={impl.path}",
-                                       hostbin])
+                self.run_make(hostbin, impl.path, impl.namespace)
                 checksum = self.hash_output(
-                        subprocess.check_output(
-                            [hostbin],
-                            stderr=subprocess.DEVNULL,
-                        ))
+                    subprocess.check_output(
+                        [hostbin],
+                        stderr=subprocess.DEVNULL,
+                    ))
                 self.testvectorhash[scheme] = checksum
                 break
 
