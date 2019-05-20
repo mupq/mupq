@@ -144,8 +144,8 @@ static int test_invalid_ciphertext(void)
     //Bob derives a secret key and creates a response
     MUPQ_crypto_kem_enc(sendb, key_b, pk);
 
-    //Change some byte in the ciphertext (i.e., encapsulated key)
-    sendb[pos % MUPQ_CRYPTO_CIPHERTEXTBYTES] ^= 23;
+    // Change ciphertext to random value
+    randombytes(sendb, sizeof(sendb));
 
     //Alice uses Bobs response to get her secret key
     MUPQ_crypto_kem_dec(key_a, sendb, sk_a);
