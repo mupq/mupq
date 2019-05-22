@@ -5,15 +5,14 @@
  * from https://twitter.com/tweetfips202
  * by Gilles Van Assche, Daniel J. Bernstein, and Peter Schwabe */
 
+#include <stddef.h>
 #include <stdint.h>
-#include <string.h>
+
 #include "fips202.h"
 #include "keccakf1600.h"
 
 #define NROUNDS 24
-#define ROL(a, offset) ((a << offset) ^ (a >> (64-offset)))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
+#define ROL(a, offset) (((a) << (offset)) ^ ((a) >> (64 - (offset))))
 
 #ifdef PROFILE_HASHING
 #include "hal.h"
@@ -27,19 +26,19 @@ extern unsigned long long hash_cycles;
  * Description: Absorb step of Keccak;
  *              non-incremental, starts by zeroeing the state.
  *
- * Arguments:   - uint64_t *s:             pointer to (uninitialized) output Keccak state
- *              - unsigned int r:          rate in bytes (e.g., 168 for SHAKE128)
- *              - const unsigned char *m:  pointer to input to be absorbed into s
- *              - unsigned long long mlen: length of input in bytes
- *              - unsigned char p:         domain-separation byte for different Keccak-derived functions
+ * Arguments:   - uint64_t *s:       pointer to (uninitialized) output Keccak state
+ *              - uint32_t r:        rate in bytes (e.g., 168 for SHAKE128)
+ *              - const uint8_t *m:  pointer to input to be absorbed into s
+ *              - size_t mlen:       length of input in bytes
+ *              - uint8_t p:         domain-separation byte for different Keccak-derived functions
  **************************************************/
 static void keccak_absorb(uint64_t *s,
-    unsigned int r,
-    const unsigned char *m, unsigned long long int mlen,
-    unsigned char p)
+    uint32_t r,
+    const uint8_t *m, size_t mlen,
+    uint8_t p)
 {
-  unsigned long long i;
-  unsigned char t[200];
+  size_t i;
+  uint8_t t[200];
 
   while (mlen >= r)
   {
@@ -67,14 +66,14 @@ static void keccak_absorb(uint64_t *s,
  *              Modifies the state. Can be called multiple times to keep squeezing,
  *              i.e., is incremental.
  *
- * Arguments:   - unsigned char *h:               pointer to output blocks
- *              - unsigned long long int nblocks: number of blocks to be squeezed (written to h)
- *              - uint64_t *s:                    pointer to in/output Keccak state
- *              - unsigned int r:                 rate in bytes (e.g., 168 for SHAKE128)
+ * Arguments:   - uint8_t *h:     pointer to output blocks
+ *              - size_t nblocks: number of blocks to be squeezed (written to h)
+ *              - uint64_t *s:    pointer to in/output Keccak state
+ *              - uint32_t r:     rate in bytes (e.g., 168 for SHAKE128)
  **************************************************/
-static void keccak_squeezeblocks(unsigned char *h, unsigned long long int nblocks,
+static void keccak_squeezeblocks(uint8_t *h, size_t nblocks,
     uint64_t *s,
-    unsigned int r)
+    uint32_t r)
 {
   while(nblocks > 0)
   {
@@ -114,7 +113,7 @@ static void keccak_inc_init(uint64_t *s_inc) {
  *                26th value represents either the number of absorbed bytes
  *                that have not been permuted, or not-yet-squeezed bytes.
  *              - uint32_t r: rate in bytes (e.g., 168 for SHAKE128)
- *              - const uint8_t *m: pointer to input to be absorbed into s
+ *              - const uint8_t *m: pointer to input to be absorbed into s_inc
  *              - size_t mlen: length of input in bytes
  **************************************************/
 static void keccak_inc_absorb(uint64_t *s_inc, uint32_t r, const uint8_t *m,
@@ -151,7 +150,7 @@ static void keccak_inc_finalize(uint64_t *s_inc, uint32_t r, uint8_t p) {
     /* After keccak_inc_absorb, we are guaranteed that s_inc[25] < r,
        so we can always use one more byte for p in the current state. */
     size_t i;
-    unsigned char t[200];
+    uint8_t t[200];
     for (i = 0; i < r; ++i)
       t[i] = 0;
     t[s_inc[25]] = p;
@@ -209,88 +208,88 @@ static void keccak_inc_squeeze(uint8_t *h, size_t outlen,
     }
 }
 
-void shake128_inc_init(uint64_t *s_inc) {
+void shake128_inc_init(shake128incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_init(s_inc);
+    keccak_inc_init(state->ctx);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake128_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen) {
+void shake128_inc_absorb(shake128incctx *state, const uint8_t *input, size_t inlen) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_absorb(s_inc, SHAKE128_RATE, input, inlen);
+    keccak_inc_absorb(state->ctx, SHAKE128_RATE, input, inlen);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake128_inc_finalize(uint64_t *s_inc) {
+void shake128_inc_finalize(shake128incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_finalize(s_inc, SHAKE128_RATE, 0x1F);
+    keccak_inc_finalize(state->ctx, SHAKE128_RATE, 0x1F);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake128_inc_squeeze(uint8_t *output, size_t outlen, uint64_t *s_inc) {
+void shake128_inc_squeeze(uint8_t *output, size_t outlen, shake128incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_squeeze(output, outlen, s_inc, SHAKE128_RATE);
+    keccak_inc_squeeze(output, outlen, state->ctx, SHAKE128_RATE);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake256_inc_init(uint64_t *s_inc) {
+void shake256_inc_init(shake256incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_init(s_inc);
+    keccak_inc_init(state->ctx);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake256_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen) {
+void shake256_inc_absorb(shake256incctx *state, const uint8_t *input, size_t inlen) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_absorb(s_inc, SHAKE256_RATE, input, inlen);
+    keccak_inc_absorb(state->ctx, SHAKE256_RATE, input, inlen);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake256_inc_finalize(uint64_t *s_inc) {
+void shake256_inc_finalize(shake256incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_finalize(s_inc, SHAKE256_RATE, 0x1F);
+    keccak_inc_finalize(state->ctx, SHAKE256_RATE, 0x1F);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake256_inc_squeeze(uint8_t *output, size_t outlen, uint64_t *s_inc) {
+void shake256_inc_squeeze(uint8_t *output, size_t outlen, shake256incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_squeeze(output, outlen, s_inc, SHAKE256_RATE);
+    keccak_inc_squeeze(output, outlen, state->ctx, SHAKE256_RATE);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -299,18 +298,18 @@ void shake256_inc_squeeze(uint8_t *output, size_t outlen, uint64_t *s_inc) {
 
 /********** cSHAKE128 ***********/
 
-void cshake128_simple_absorb(uint64_t s[25], uint16_t cstm, const unsigned char *in, unsigned long long inlen)
+void cshake128_simple_absorb(shake128ctx *state, uint16_t cstm, const uint8_t *in, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
 
 
-  unsigned char sep[8];
-  unsigned int i;
+  uint8_t sep[8];
+  size_t i;
 
   for (i = 0; i < 25; i++)
-    s[i] = 0;
+    state->ctx[i] = 0;
 
   /* Absorb customization (domain-separation) string */
   sep[0] = 0x01;
@@ -322,11 +321,11 @@ void cshake128_simple_absorb(uint64_t s[25], uint16_t cstm, const unsigned char 
   sep[6] = cstm & 0xff;
   sep[7] = cstm >> 8;
 
-  KeccakF1600_StateXORBytes(s, sep, 0, 8);
-  KeccakF1600_StatePermute(s);
+  KeccakF1600_StateXORBytes(state->ctx, sep, 0, 8);
+  KeccakF1600_StatePermute(state->ctx);
 
   /* Absorb input */
-  keccak_absorb(s, SHAKE128_RATE, in, inlen, 0x04);
+  keccak_absorb(state->ctx, SHAKE128_RATE, in, inlen, 0x04);
 
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
@@ -336,12 +335,12 @@ void cshake128_simple_absorb(uint64_t s[25], uint16_t cstm, const unsigned char 
 }
 
 
-void cshake128_simple_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
+void cshake128_simple_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
+  keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE128_RATE);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -349,25 +348,25 @@ void cshake128_simple_squeezeblocks(unsigned char *output, unsigned long long nb
 }
 
 
-void cshake128_simple(unsigned char *output, unsigned long long outlen, uint16_t cstm, const unsigned char *in, unsigned long long inlen)
+void cshake128_simple(uint8_t *output, size_t outlen, uint16_t cstm, const uint8_t *in, size_t inlen)
 {
-  uint64_t s[25];
-  unsigned char t[SHAKE128_RATE];
-  unsigned int i;
+  shake128ctx state;
+  uint8_t t[SHAKE128_RATE];
+  size_t i;
 
-  cshake128_simple_absorb(s, cstm, in, inlen);
+  cshake128_simple_absorb(&state, cstm, in, inlen);
 
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
 
   /* Squeeze output */
-  keccak_squeezeblocks(output, outlen/SHAKE128_RATE, s, SHAKE128_RATE);
+  keccak_squeezeblocks(output, outlen/SHAKE128_RATE, state.ctx, SHAKE128_RATE);
   output += (outlen/SHAKE128_RATE)*SHAKE128_RATE;
 
   if (outlen%SHAKE128_RATE)
   {
-    keccak_squeezeblocks(t, 1, s, SHAKE128_RATE);
+    keccak_squeezeblocks(t, 1, state.ctx, SHAKE128_RATE);
     for (i = 0; i < outlen%SHAKE128_RATE; i++)
       output[i] = t[i];
   }
@@ -385,20 +384,20 @@ void cshake128_simple(unsigned char *output, unsigned long long outlen, uint16_t
  * Description: Absorb step of the SHAKE128 XOF.
  *              non-incremental, starts by zeroeing the state.
  *
- * Arguments:   - uint64_t *s:                     pointer to (uninitialized) output Keccak state
- *              - const unsigned char *input:      pointer to input to be absorbed into s
- *              - unsigned long long inputByteLen: length of input in bytes
+ * Arguments:   - uint64_t *state:      pointer to (uninitialized) output Keccak state
+ *              - const uint8_t *input: pointer to input to be absorbed into state
+ *              - size_t inlen:         length of input in bytes
  **************************************************/
-void shake128_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen)
+void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
   int i;
   for (i = 0; i < 25; i++)
-    s[i] = 0;
+    state->ctx[i] = 0;
 
-  keccak_absorb(s, SHAKE128_RATE, input, inputByteLen, 0x1F);
+  keccak_absorb(state->ctx, SHAKE128_RATE, input, inlen, 0x1F);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -412,44 +411,48 @@ void shake128_absorb(uint64_t *s, const unsigned char *input, unsigned int input
  *              Modifies the state. Can be called multiple times to keep squeezing,
  *              i.e., is incremental.
  *
- * Arguments:   - unsigned char *output:      pointer to output blocks
- *              - unsigned long long nblocks: number of blocks to be squeezed (written to output)
- *              - uint64_t *s:                pointer to in/output Keccak state
+ * Arguments:   - uint8_t *output:     pointer to output blocks
+ *              - size_t nblocks:      number of blocks to be squeezed (written to output)
+ *              - shake128ctx *state:  pointer to in/output Keccak state
  **************************************************/
-void shake128_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
+void shake128_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
+  keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE128_RATE);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void shake128(unsigned char *output, unsigned long long outlen, const unsigned char *input, unsigned long long inlen)
+void shake128(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  uint64_t s[25] = {0};
-  unsigned char t[SHAKE128_RATE];
-  unsigned long long nblocks = outlen/SHAKE128_RATE;
+  shake128ctx state;
+  uint8_t t[SHAKE128_RATE];
+  size_t nblocks = outlen/SHAKE128_RATE;
   size_t i;
 
+  for (i = 0; i < 25; ++i) {
+    state.ctx[i] = 0;
+  }
+
   /* Absorb input */
-  keccak_absorb(s, SHAKE128_RATE, input, inlen, 0x1F);
+  keccak_absorb((uint64_t*)state.ctx, SHAKE128_RATE, input, inlen, 0x1F);
 
   /* Squeeze output */
-  keccak_squeezeblocks(output, nblocks, s, SHAKE128_RATE);
+  keccak_squeezeblocks(output, nblocks, (uint64_t*)state.ctx, SHAKE128_RATE);
 
   output += nblocks*SHAKE128_RATE;
   outlen -= nblocks*SHAKE128_RATE;
 
   if (outlen)
   {
-    keccak_squeezeblocks(t, 1, s, SHAKE128_RATE);
+    keccak_squeezeblocks(t, 1, (uint64_t*)state.ctx, SHAKE128_RATE);
     for (i = 0; i < outlen; i++)
       output[i] = t[i];
   }
@@ -460,16 +463,16 @@ void shake128(unsigned char *output, unsigned long long outlen, const unsigned c
 }
 
 
-void shake256_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen)
+void shake256_absorb(shake256ctx *state, const uint8_t *input, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
   int i;
   for (i = 0; i < 25; i++)
-    s[i] = 0;
+    state->ctx[i] = 0;
 
-  keccak_absorb(s, SHAKE256_RATE, input, inputByteLen, 0x1F);
+  keccak_absorb(state->ctx, SHAKE256_RATE, input, inlen, 0x1F);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -477,12 +480,12 @@ void shake256_absorb(uint64_t *s, const unsigned char *input, unsigned int input
 }
 
 
-void shake256_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
+void shake256_squeezeblocks(uint8_t *output, size_t nblocks, shake256ctx *state)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
+  keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE256_RATE);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -494,34 +497,38 @@ void shake256_squeezeblocks(unsigned char *output, unsigned long long nblocks, u
  *
  * Description: SHAKE256 XOF with non-incremental API
  *
- * Arguments:   - unsigned char *output:      pointer to output
- *              - unsigned long long outlen:  requested output length in bytes
- - const unsigned char *input: pointer to input
- - unsigned long long inlen:   length of input in bytes
+ * Arguments:   - uint8_t *output:      pointer to output
+ *              - size_t outlen:        requested output length in bytes
+ *              - const uint8_t *input: pointer to input
+ *              - size_t inlen:         length of input in bytes
  **************************************************/
-void shake256(unsigned char *output, unsigned long long outlen,
-    const unsigned char *input, unsigned long long inlen)
+void shake256(uint8_t *output, size_t outlen,
+    const uint8_t *input, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  uint64_t s[25] = {0};
-  unsigned char t[SHAKE256_RATE];
-  unsigned long long nblocks = outlen/SHAKE256_RATE;
+  shake256ctx state;
+  uint8_t t[SHAKE256_RATE];
+  size_t nblocks = outlen/SHAKE256_RATE;
   size_t i;
 
+  for (i = 0; i < 25; ++i) {
+    state.ctx[i] = 0;
+  }
+
   /* Absorb input */
-  keccak_absorb(s, SHAKE256_RATE, input, inlen, 0x1F);
+  keccak_absorb((uint64_t*)state.ctx, SHAKE256_RATE, input, inlen, 0x1F);
 
   /* Squeeze output */
-  keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
+  keccak_squeezeblocks(output, nblocks, (uint64_t*)state.ctx, SHAKE256_RATE);
 
   output+=nblocks*SHAKE256_RATE;
   outlen-=nblocks*SHAKE256_RATE;
 
   if(outlen)
   {
-    keccak_squeezeblocks(t, 1, s, SHAKE256_RATE);
+    keccak_squeezeblocks(t, 1, (uint64_t*)state.ctx, SHAKE256_RATE);
     for(i=0;i<outlen;i++)
       output[i] = t[i];
   }
@@ -536,17 +543,17 @@ void shake256(unsigned char *output, unsigned long long outlen,
  *
  * Description: SHA3-256 with non-incremental API
  *
- * Arguments:   - unsigned char *output:      pointer to output
- *              - const unsigned char *input: pointer to input
- *              - unsigned long long inlen:   length of input in bytes
+ * Arguments:   - uint8_t *output:      pointer to output
+ *              - const uint8_t *input: pointer to input
+ *              - size_t inlen:         length of input in bytes
  **************************************************/
-void sha3_256(unsigned char *output, const unsigned char *input, unsigned long long inlen)
+void sha3_256(uint8_t *output, const uint8_t *input, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
   uint64_t s[25] = {0};
-  unsigned char t[SHA3_256_RATE];
+  uint8_t t[SHA3_256_RATE];
   size_t i;
 
   /* Absorb input */
@@ -562,36 +569,36 @@ void sha3_256(unsigned char *output, const unsigned char *input, unsigned long l
   hash_cycles += (t1-t0);
 #endif
 }
-void sha3_256_inc_init(uint64_t *s_inc) {
+void sha3_256_inc_init(sha3_256incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_init(s_inc);
+    keccak_inc_init(state->ctx);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void sha3_256_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen) {
+void sha3_256_inc_absorb(sha3_256incctx *state, const uint8_t *input, size_t inlen) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_absorb(s_inc, SHA3_256_RATE, input, inlen);
+    keccak_inc_absorb(state->ctx, SHA3_256_RATE, input, inlen);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void sha3_256_inc_finalize(uint8_t *output, uint64_t *s_inc) {
+void sha3_256_inc_finalize(uint8_t *output, sha3_256incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
     uint8_t t[SHA3_256_RATE];
-    keccak_inc_finalize(s_inc, SHA3_256_RATE, 0x06);
+    keccak_inc_finalize(state->ctx, SHA3_256_RATE, 0x06);
 
-    keccak_squeezeblocks(t, 1, s_inc, SHA3_256_RATE);
+    keccak_squeezeblocks(t, 1, state->ctx, SHA3_256_RATE);
 
     for (size_t i = 0; i < 32; i++) {
         output[i] = t[i];
@@ -607,17 +614,17 @@ void sha3_256_inc_finalize(uint8_t *output, uint64_t *s_inc) {
  *
  * Description: SHA3-512 with non-incremental API
  *
- * Arguments:   - unsigned char *output:      pointer to output
- *              - const unsigned char *input: pointer to input
- *              - unsigned long long inlen:   length of input in bytes
+ * Arguments:   - uint8_t *output:      pointer to output
+ *              - const uint8_t *input: pointer to input
+ *              - size_t inlen:         length of input in bytes
  **************************************************/
-void sha3_512(unsigned char *output, const unsigned char *input, unsigned long long inlen)
+void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
   uint64_t s[25] = {0};
-  unsigned char t[SHA3_512_RATE];
+  uint8_t t[SHA3_512_RATE];
   size_t i;
 
   /* Absorb input */
@@ -633,36 +640,36 @@ void sha3_512(unsigned char *output, const unsigned char *input, unsigned long l
   hash_cycles += (t1-t0);
 #endif
 }
-void sha3_512_inc_init(uint64_t *s_inc) {
+void sha3_512_inc_init(sha3_512incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_init(s_inc);
+    keccak_inc_init(state->ctx);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void sha3_512_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen) {
+void sha3_512_inc_absorb(sha3_512incctx *state, const uint8_t *input, size_t inlen) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-    keccak_inc_absorb(s_inc, SHA3_512_RATE, input, inlen);
+    keccak_inc_absorb(state->ctx, SHA3_512_RATE, input, inlen);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
 }
 
-void sha3_512_inc_finalize(uint8_t *output, uint64_t *s_inc) {
+void sha3_512_inc_finalize(uint8_t *output, sha3_512incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
     uint8_t t[SHA3_512_RATE];
-    keccak_inc_finalize(s_inc, SHA3_512_RATE, 0x06);
+    keccak_inc_finalize(state->ctx, SHA3_512_RATE, 0x06);
 
-    keccak_squeezeblocks(t, 1, s_inc, SHA3_512_RATE);
+    keccak_squeezeblocks(t, 1, state->ctx, SHA3_512_RATE);
 
     for (size_t i = 0; i < 32; i++) {
         output[i] = t[i];
@@ -675,16 +682,16 @@ void sha3_512_inc_finalize(uint8_t *output, uint64_t *s_inc) {
 
 /********** cSHAKE256 ***********/
 
-void cshake256_simple_absorb(uint64_t s[25], uint16_t cstm, const unsigned char *in, unsigned long long inlen)
+void cshake256_simple_absorb(shake256ctx *state, uint16_t cstm, const uint8_t *in, size_t inlen)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  unsigned char sep[8];
-  unsigned int i;
+  uint8_t sep[8];
+  size_t i;
 
   for (i = 0; i < 25; i++)
-    s[i] = 0;
+    state->ctx[i] = 0;
 
   /* Absorb customization (domain-separation) string */
   sep[0] = 0x01;
@@ -696,11 +703,11 @@ void cshake256_simple_absorb(uint64_t s[25], uint16_t cstm, const unsigned char 
   sep[6] = cstm & 0xff;
   sep[7] = cstm >> 8;
 
-  KeccakF1600_StateXORBytes(s, sep, 0, 8);
-  KeccakF1600_StatePermute(s);
+  KeccakF1600_StateXORBytes(state->ctx, sep, 0, 8);
+  KeccakF1600_StatePermute(state->ctx);
 
   /* Absorb input */
-  keccak_absorb(s, SHAKE256_RATE, in, inlen, 0x04);
+  keccak_absorb(state->ctx, SHAKE256_RATE, in, inlen, 0x04);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -708,12 +715,12 @@ void cshake256_simple_absorb(uint64_t s[25], uint16_t cstm, const unsigned char 
 }
 
 
-void cshake256_simple_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s)
+void cshake256_simple_squeezeblocks(uint8_t *output, size_t nblocks, shake256ctx *state)
 {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
-  keccak_squeezeblocks(output, nblocks, s, SHAKE256_RATE);
+  keccak_squeezeblocks(output, nblocks, state->ctx, SHAKE256_RATE);
 #ifdef PROFILE_HASHING
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
@@ -721,25 +728,25 @@ void cshake256_simple_squeezeblocks(unsigned char *output, unsigned long long nb
 }
 
 
-void cshake256_simple(unsigned char *output, unsigned long long outlen, uint16_t cstm, const unsigned char *in, unsigned long long inlen)
+void cshake256_simple(uint8_t *output, size_t outlen, uint16_t cstm, const uint8_t *in, size_t inlen)
 {
-  uint64_t s[25];
-  unsigned char t[SHAKE256_RATE];
-  unsigned int i;
+  shake256ctx state;
+  uint8_t t[SHAKE256_RATE];
+  size_t i;
 
-  cshake256_simple_absorb(s, cstm, in, inlen);
+  cshake256_simple_absorb(&state, cstm, in, inlen);
 
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
 #endif
 
   /* Squeeze output */
-  keccak_squeezeblocks(output, outlen/SHAKE256_RATE, s, SHAKE256_RATE);
+  keccak_squeezeblocks(output, outlen/SHAKE256_RATE, state.ctx, SHAKE256_RATE);
   output += (outlen/SHAKE256_RATE)*SHAKE256_RATE;
 
   if(outlen%SHAKE256_RATE)
   {
-    keccak_squeezeblocks(t, 1, s, SHAKE256_RATE);
+    keccak_squeezeblocks(t, 1, state.ctx, SHAKE256_RATE);
     for (i = 0; i < outlen%SHAKE256_RATE; i++)
       output[i] = t[i];
   }

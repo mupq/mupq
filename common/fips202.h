@@ -1,51 +1,80 @@
 #ifndef FIPS202_H
 #define FIPS202_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #define SHAKE128_RATE 168
 #define SHAKE256_RATE 136
 #define SHA3_256_RATE 136
-#define SHA3_512_RATE  72
+#define SHA3_512_RATE 72
 
-void shake128_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen);
-void shake128_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s);
-void shake128(unsigned char *output, unsigned long long outlen, const unsigned char *input, unsigned long long inlen);
+// Context for incremental API
+typedef struct {
+    uint64_t ctx[26];
+} shake128incctx;
 
-void shake128_inc_init(uint64_t *s_inc);
-void shake128_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen);
-void shake128_inc_finalize(uint64_t *s_inc);
-void shake128_inc_squeeze(uint8_t *output, size_t outlen, uint64_t *s_inc);
+// Context for non-incremental API
+typedef struct {
+    uint64_t ctx[25];
+} shake128ctx;
 
-void cshake128_simple_absorb(uint64_t *s, uint16_t cstm, const unsigned char *in, unsigned long long inlen);
-void cshake128_simple_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s);
-void cshake128_simple(unsigned char *output, unsigned long long outlen, uint16_t cstm, const unsigned char *in, unsigned long long inlen);
+// Context for incremental API
+typedef struct {
+    uint64_t ctx[26];
+} shake256incctx;
 
-void shake256_absorb(uint64_t *s, const unsigned char *input, unsigned int inputByteLen);
-void shake256_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s);
-void shake256(unsigned char *output, unsigned long long outlen, const unsigned char *input, unsigned long long inlen);
+// Context for non-incremental API
+typedef struct {
+    uint64_t ctx[25];
+} shake256ctx;
 
-void shake256_inc_init(uint64_t *s_inc);
-void shake256_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen);
-void shake256_inc_finalize(uint64_t *s_inc);
-void shake256_inc_squeeze(uint8_t *output, size_t outlen, uint64_t *s_inc);
+// Context for incremental API
+typedef struct {
+    uint64_t ctx[26];
+} sha3_256incctx;
 
-void cshake256_simple_absorb(uint64_t *s, uint16_t cstm, const unsigned char *in, unsigned long long inlen);
-void cshake256_simple_squeezeblocks(unsigned char *output, unsigned long long nblocks, uint64_t *s);
-void cshake256_simple(unsigned char *output, unsigned long long outlen, uint16_t cstm, const unsigned char *in, unsigned long long inlen);
+// Context for incremental API
+typedef struct {
+    uint64_t ctx[26];
+} sha3_512incctx;
 
-void sha3_256_inc_init(uint64_t *s_inc);
-void sha3_256_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen);
-void sha3_256_inc_finalize(uint8_t *output, uint64_t *s_inc);
+void shake128_absorb(shake128ctx *state, const uint8_t *input, size_t inlen);
+void shake128_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state);
+void shake128(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen);
 
-void sha3_256(unsigned char *output, const unsigned char *input, unsigned long long inlen);
+void shake128_inc_init(shake128incctx *state);
+void shake128_inc_absorb(shake128incctx *state, const uint8_t *input, size_t inlen);
+void shake128_inc_finalize(shake128incctx *state);
+void shake128_inc_squeeze(uint8_t *output, size_t outlen, shake128incctx *state);
 
-void sha3_512_inc_init(uint64_t *s_inc);
-void sha3_512_inc_absorb(uint64_t *s_inc, const uint8_t *input, size_t inlen);
-void sha3_512_inc_finalize(uint8_t *output, uint64_t *s_inc);
+void cshake128_simple_absorb(shake128ctx *state, uint16_t cstm, const uint8_t *input, size_t inlen);
+void cshake128_simple_squeezeblocks(uint8_t *output, size_t nblocks, shake128ctx *state);
+void cshake128_simple(uint8_t *output, size_t outlen, uint16_t cstm, const uint8_t *input, size_t inlen);
 
-void sha3_512(unsigned char *output, const unsigned char *input, unsigned long long inlen);
+void shake256_absorb(shake256ctx *state, const uint8_t *input, size_t inlen);
+void shake256_squeezeblocks(uint8_t *output, size_t nblocks, shake256ctx *state);
+void shake256(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen);
 
+void shake256_inc_init(shake256incctx *state);
+void shake256_inc_absorb(shake256incctx *state, const uint8_t *input, size_t inlen);
+void shake256_inc_finalize(shake256incctx *state);
+void shake256_inc_squeeze(uint8_t *output, size_t outlen, shake256incctx *state);
+
+void cshake256_simple_absorb(shake256ctx *state, uint16_t cstm, const uint8_t *input, size_t inlen);
+void cshake256_simple_squeezeblocks(uint8_t *output, size_t nblocks, shake256ctx *state);
+void cshake256_simple(uint8_t *output, size_t outlen, uint16_t cstm, const uint8_t *input, size_t inlen);
+
+void sha3_256_inc_init(sha3_256incctx *state);
+void sha3_256_inc_absorb(sha3_256incctx *state, const uint8_t *input, size_t inlen);
+void sha3_256_inc_finalize(uint8_t *output, sha3_256incctx *state);
+
+void sha3_256(uint8_t *output, const uint8_t *input, size_t inlen);
+
+void sha3_512_inc_init(sha3_512incctx *state);
+void sha3_512_inc_absorb(sha3_512incctx *state, const uint8_t *input, size_t inlen);
+void sha3_512_inc_finalize(uint8_t *output, sha3_512incctx *state);
+
+void sha3_512(uint8_t *output, const uint8_t *input, size_t inlen);
 
 #endif

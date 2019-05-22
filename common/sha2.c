@@ -497,16 +497,16 @@ static const uint8_t iv_512[64] = {
     0x6b, 0x5b, 0xe0, 0xcd, 0x19, 0x13, 0x7e, 0x21, 0x79
 };
 
-void sha224_inc_init(uint8_t *state) {
+void sha224_inc_init(sha224ctx *state) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
     for (size_t i = 0; i < 32; ++i) {
-        state[i] = iv_224[i];
+        state->ctx[i] = iv_224[i];
     }
     for (size_t i = 32; i < 40; ++i) {
-        state[i] = 0;
+        state->ctx[i] = 0;
     }
 
 #ifdef PROFILE_HASHING
@@ -515,16 +515,16 @@ void sha224_inc_init(uint8_t *state) {
 #endif
 }
 
-void sha256_inc_init(uint8_t *state) {
+void sha256_inc_init(sha256ctx *state) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
     for (size_t i = 0; i < 32; ++i) {
-        state[i] = iv_256[i];
+        state->ctx[i] = iv_256[i];
     }
     for (size_t i = 32; i < 40; ++i) {
-        state[i] = 0;
+        state->ctx[i] = 0;
     }
 
 #ifdef PROFILE_HASHING
@@ -533,16 +533,16 @@ void sha256_inc_init(uint8_t *state) {
 #endif
 }
 
-void sha384_inc_init(uint8_t *state) {
+void sha384_inc_init(sha384ctx *state) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
     for (size_t i = 0; i < 64; ++i) {
-        state[i] = iv_384[i];
+        state->ctx[i] = iv_384[i];
     }
     for (size_t i = 64; i < 72; ++i) {
-        state[i] = 0;
+        state->ctx[i] = 0;
     }
 
 #ifdef PROFILE_HASHING
@@ -551,16 +551,16 @@ void sha384_inc_init(uint8_t *state) {
 #endif
 }
 
-void sha512_inc_init(uint8_t *state) {
+void sha512_inc_init(sha512ctx *state) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
     for (size_t i = 0; i < 64; ++i) {
-        state[i] = iv_512[i];
+        state->ctx[i] = iv_512[i];
     }
     for (size_t i = 64; i < 72; ++i) {
-        state[i] = 0;
+        state->ctx[i] = 0;
     }
 
 #ifdef PROFILE_HASHING
@@ -569,17 +569,17 @@ void sha512_inc_init(uint8_t *state) {
 #endif
 }
 
-void sha256_inc_blocks(uint8_t *state, const uint8_t *in, size_t inblocks) {
+void sha256_inc_blocks(sha256ctx *state, const uint8_t *in, size_t inblocks) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
-    uint64_t bytes = load_bigendian_64(state + 32);
+    uint64_t bytes = load_bigendian_64(state->ctx + 32);
 
-    crypto_hashblocks_sha256(state, in, 64 * inblocks);
+    crypto_hashblocks_sha256(state->ctx, in, 64 * inblocks);
     bytes += 64 * inblocks;
 
-    store_bigendian_64(state + 32, bytes);
+    store_bigendian_64(state->ctx + 32, bytes);
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
@@ -587,21 +587,21 @@ void sha256_inc_blocks(uint8_t *state, const uint8_t *in, size_t inblocks) {
 #endif
 }
 
-void sha224_inc_blocks(uint8_t *state, const uint8_t *in, size_t inblocks) {
-    sha256_inc_blocks(state, in, inblocks);
+void sha224_inc_blocks(sha224ctx *state, const uint8_t *in, size_t inblocks) {
+    sha256_inc_blocks((sha256ctx*) state, in, inblocks);
 }
 
-void sha512_inc_blocks(uint8_t *state, const uint8_t *in, size_t inblocks) {
+void sha512_inc_blocks(sha512ctx *state, const uint8_t *in, size_t inblocks) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
-    uint64_t bytes = load_bigendian_64(state + 64);
+    uint64_t bytes = load_bigendian_64(state->ctx + 64);
 
-    crypto_hashblocks_sha256(state, in, 128 * inblocks);
+    crypto_hashblocks_sha256(state->ctx, in, 128 * inblocks);
     bytes += 128 * inblocks;
 
-    store_bigendian_64(state + 64, bytes);
+    store_bigendian_64(state->ctx + 64, bytes);
 
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
@@ -609,19 +609,19 @@ void sha512_inc_blocks(uint8_t *state, const uint8_t *in, size_t inblocks) {
 #endif
 }
 
-void sha384_inc_blocks(uint8_t *state, const uint8_t *in, size_t inblocks) {
-    sha512_inc_blocks(state, in, inblocks);
+void sha384_inc_blocks(sha384ctx *state, const uint8_t *in, size_t inblocks) {
+    sha512_inc_blocks((sha512ctx*) state, in, inblocks);
 }
 
-void sha256_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t inlen) {
+void sha256_inc_finalize(uint8_t *out, sha256ctx *state, const uint8_t *in, size_t inlen) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
     uint8_t padded[128];
-    uint64_t bytes = load_bigendian_64(state + 32) + inlen;
+    uint64_t bytes = load_bigendian_64(state->ctx + 32) + inlen;
 
-    crypto_hashblocks_sha256(state, in, inlen);
+    crypto_hashblocks_sha256(state->ctx, in, inlen);
     in += inlen;
     inlen &= 63;
     in -= inlen;
@@ -643,7 +643,7 @@ void sha256_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t
         padded[61] = (uint8_t) (bytes >> 13);
         padded[62] = (uint8_t) (bytes >> 5);
         padded[63] = (uint8_t) (bytes << 3);
-        crypto_hashblocks_sha256(state, padded, 64);
+        crypto_hashblocks_sha256(state->ctx, padded, 64);
     } else {
         for (size_t i = inlen + 1; i < 120; ++i) {
             padded[i] = 0;
@@ -656,11 +656,11 @@ void sha256_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t
         padded[125] = (uint8_t) (bytes >> 13);
         padded[126] = (uint8_t) (bytes >> 5);
         padded[127] = (uint8_t) (bytes << 3);
-        crypto_hashblocks_sha256(state, padded, 128);
+        crypto_hashblocks_sha256(state->ctx, padded, 128);
     }
 
     for (size_t i = 0; i < 32; ++i) {
-        out[i] = state[i];
+        out[i] = state->ctx[i];
     }
 
 #ifdef PROFILE_HASHING
@@ -669,23 +669,23 @@ void sha256_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t
 #endif
 }
 
-void sha224_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t inlen) {
-    sha256_inc_finalize(state, state, in, inlen);
+void sha224_inc_finalize(uint8_t *out, sha224ctx *state, const uint8_t *in, size_t inlen) {
+    sha256_inc_finalize(state->ctx, (sha256ctx*)state, in, inlen);
 
     for (size_t i = 0; i < 28; ++i) {
-        out[i] = state[i];
+        out[i] = state->ctx[i];
     }
 }
 
-void sha512_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t inlen) {
+void sha512_inc_finalize(uint8_t *out, sha512ctx *state, const uint8_t *in, size_t inlen) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
 
     uint8_t padded[256];
-    uint64_t bytes = load_bigendian_64(state + 64) + inlen;
+    uint64_t bytes = load_bigendian_64(state->ctx + 64) + inlen;
 
-    crypto_hashblocks_sha512(state, in, inlen);
+    crypto_hashblocks_sha512(state->ctx, in, inlen);
     in += inlen;
     inlen &= 127;
     in -= inlen;
@@ -708,7 +708,7 @@ void sha512_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t
         padded[125] = (uint8_t) (bytes >> 13);
         padded[126] = (uint8_t) (bytes >> 5);
         padded[127] = (uint8_t) (bytes << 3);
-        crypto_hashblocks_sha512(state, padded, 128);
+        crypto_hashblocks_sha512(state->ctx, padded, 128);
     } else {
         for (size_t i = inlen + 1; i < 247; ++i) {
             padded[i] = 0;
@@ -722,11 +722,11 @@ void sha512_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t
         padded[253] = (uint8_t) (bytes >> 13);
         padded[254] = (uint8_t) (bytes >> 5);
         padded[255] = (uint8_t) (bytes << 3);
-        crypto_hashblocks_sha512(state, padded, 256);
+        crypto_hashblocks_sha512(state->ctx, padded, 256);
     }
 
     for (size_t i = 0; i < 64; ++i) {
-        out[i] = state[i];
+        out[i] = state->ctx[i];
     }
 
 #ifdef PROFILE_HASHING
@@ -735,38 +735,38 @@ void sha512_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t
 #endif
 }
 
-void sha384_inc_finalize(uint8_t *out, uint8_t *state, const uint8_t *in, size_t inlen) {
-    sha512_inc_finalize(state, state, in, inlen);
+void sha384_inc_finalize(uint8_t *out, sha384ctx *state, const uint8_t *in, size_t inlen) {
+    sha512_inc_finalize(state->ctx, (sha512ctx*)state, in, inlen);
 
     for (size_t i = 0; i < 48; ++i) {
-        out[i] = state[i];
+        out[i] = state->ctx[i];
     }
 }
 
 void sha224(uint8_t *out, const uint8_t *in, size_t inlen) {
-    uint8_t state[40];
+    sha224ctx state;
 
-    sha224_inc_init(state);
-    sha224_inc_finalize(out, state, in, inlen);
+    sha224_inc_init(&state);
+    sha224_inc_finalize(out, &state, in, inlen);
 }
 
 void sha256(uint8_t *out, const uint8_t *in, size_t inlen) {
-    uint8_t state[40];
+    sha256ctx state;
 
-    sha256_inc_init(state);
-    sha256_inc_finalize(out, state, in, inlen);
+    sha256_inc_init(&state);
+    sha256_inc_finalize(out, &state, in, inlen);
 }
 
 void sha384(uint8_t *out, const uint8_t *in, size_t inlen) {
-    uint8_t state[72];
+    sha384ctx state;
 
-    sha384_inc_init(state);
-    sha384_inc_finalize(out, state, in, inlen);
+    sha384_inc_init(&state);
+    sha384_inc_finalize(out, &state, in, inlen);
 }
 
 void sha512(uint8_t *out, const uint8_t *in, size_t inlen) {
-    uint8_t state[72];
+    sha512ctx state;
 
-    sha512_inc_init(state);
-    sha512_inc_finalize(out, state, in, inlen);
+    sha512_inc_init(&state);
+    sha512_inc_finalize(out, &state, in, inlen);
 }
