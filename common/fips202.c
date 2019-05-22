@@ -437,18 +437,22 @@ void shake128(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen
   size_t nblocks = outlen/SHAKE128_RATE;
   size_t i;
 
+  for (i = 0; i < 25; ++i) {
+    state.ctx[i] = 0;
+  }
+
   /* Absorb input */
-  keccak_absorb(state.ctx, SHAKE128_RATE, input, inlen, 0x1F);
+  keccak_absorb((uint64_t*)state.ctx, SHAKE128_RATE, input, inlen, 0x1F);
 
   /* Squeeze output */
-  keccak_squeezeblocks(output, nblocks, state.ctx, SHAKE128_RATE);
+  keccak_squeezeblocks(output, nblocks, (uint64_t*)state.ctx, SHAKE128_RATE);
 
   output += nblocks*SHAKE128_RATE;
   outlen -= nblocks*SHAKE128_RATE;
 
   if (outlen)
   {
-    keccak_squeezeblocks(t, 1, state.ctx, SHAKE128_RATE);
+    keccak_squeezeblocks(t, 1, (uint64_t*)state.ctx, SHAKE128_RATE);
     for (i = 0; i < outlen; i++)
       output[i] = t[i];
   }
@@ -509,18 +513,22 @@ void shake256(uint8_t *output, size_t outlen,
   size_t nblocks = outlen/SHAKE256_RATE;
   size_t i;
 
+  for (i = 0; i < 25; ++i) {
+    state.ctx[i] = 0;
+  }
+
   /* Absorb input */
-  keccak_absorb(state.ctx, SHAKE256_RATE, input, inlen, 0x1F);
+  keccak_absorb((uint64_t*)state.ctx, SHAKE256_RATE, input, inlen, 0x1F);
 
   /* Squeeze output */
-  keccak_squeezeblocks(output, nblocks, state.ctx, SHAKE256_RATE);
+  keccak_squeezeblocks(output, nblocks, (uint64_t*)state.ctx, SHAKE256_RATE);
 
   output+=nblocks*SHAKE256_RATE;
   outlen-=nblocks*SHAKE256_RATE;
 
   if(outlen)
   {
-    keccak_squeezeblocks(t, 1, state.ctx, SHAKE256_RATE);
+    keccak_squeezeblocks(t, 1, (uint64_t*)state.ctx, SHAKE256_RATE);
     for(i=0;i<outlen;i++)
       output[i] = t[i];
   }
