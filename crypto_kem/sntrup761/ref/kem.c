@@ -467,7 +467,17 @@ static const unsigned char aes_nonce[16] = {0};
 static void Expand(uint32 *L,const unsigned char *k)
 {
   aes256ctx ctx;
-  aes256_keyexp(&ctx, k);
+  /* FIXME: this is a hack.
+   * aes256_keyexp fails when the address of k is not word-aligned,
+   * as is the case for ntrulpr761 and ntrulpr857.
+   * This copying guarantees that the address will be aligned.
+   */
+  volatile uint8_t kcopy[32];
+  size_t i;
+  for (i = 0; i < 32; ++i) {
+    kcopy[i] = k[i];
+  }
+  aes256_keyexp(&ctx, kcopy);
   aes256_ctr((unsigned char *) L, 4*p, aes_nonce, &ctx);
 }
 
