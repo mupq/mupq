@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "keccakf1600.h"
 #include "sp800-185.h"
 
 #ifdef PROFILE_HASHING
@@ -8,10 +9,11 @@
 extern unsigned long long hash_cycles;
 #endif
 
-static size_t left_encode(uint8_t *encbuf, size_t value) {
-    size_t n, i, v;
+static size_t left_encode(uint8_t *encbuf, uint64_t value) {
+    uint64_t v;
+    size_t n, i;
 
-    for (v = value, n = 0; v && (n < sizeof(size_t)); n++, v >>= 8) {
+    for (v = value, n = 0; v && (n < sizeof(uint64_t)); n++, v >>= 8) {
         ; /* empty */
     }
     if (n == 0) {
@@ -25,7 +27,7 @@ static size_t left_encode(uint8_t *encbuf, size_t value) {
 }
 
 void cshake128_inc_init(shake128incctx *state, const uint8_t *name, size_t namelen, const uint8_t *cstm, size_t cstmlen) {
-    uint8_t encbuf[sizeof(size_t)+1];
+    uint8_t encbuf[sizeof(uint64_t)+1];
 
     shake128_inc_init(state);
 
@@ -52,9 +54,15 @@ void cshake128_inc_finalize(shake128incctx *state) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
-    state->ctx[state->ctx[25] >> 3] ^= (uint64_t)0x04 << (8 * (state->ctx[25] & 0x07));
-    state->ctx[(SHAKE128_RATE - 1) >> 3] ^= (uint64_t)128 << (8 * ((SHAKE128_RATE - 1) & 0x07));
-    state->ctx[25] = 0;
+    size_t i;
+    uint8_t t[200];
+    for (i = 0; i < SHAKE128_RATE; ++i) {
+        t[i] = 0;
+    }
+    t[state->ctx[25]] = 0x04;
+    t[SHAKE128_RATE - 1] |= 128;
+
+    KeccakF1600_StateXORBytes(state->ctx, t, 0, SHAKE128_RATE);
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
     hash_cycles += (t1-t0);
@@ -66,7 +74,7 @@ void cshake128_inc_squeeze(uint8_t *output, size_t outlen, shake128incctx *state
 }
 
 void cshake256_inc_init(shake256incctx *state, const uint8_t *name, size_t namelen, const uint8_t *cstm, size_t cstmlen) {
-    uint8_t encbuf[sizeof(size_t)+1];
+    uint8_t encbuf[sizeof(uint64_t)+1];
 
     shake256_inc_init(state);
 
@@ -93,9 +101,15 @@ void cshake256_inc_finalize(shake256incctx *state) {
 #ifdef PROFILE_HASHING
     uint64_t t0 = hal_get_time();
 #endif
-    state->ctx[state->ctx[25] >> 3] ^= (uint64_t)0x04 << (8 * (state->ctx[25] & 0x07));
-    state->ctx[(SHAKE256_RATE - 1) >> 3] ^= (uint64_t)128 << (8 * ((SHAKE256_RATE - 1) & 0x07));
-    state->ctx[25] = 0;
+    size_t i;
+    uint8_t t[200];
+    for (i = 0; i < SHAKE256_RATE; ++i) {
+        t[i] = 0;
+    }
+    t[state->ctx[25]] = 0x04;
+    t[SHAKE256_RATE - 1] |= 128;
+
+    KeccakF1600_StateXORBytes(state->ctx, t, 0, SHAKE256_RATE);
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
     hash_cycles += (t1-t0);
