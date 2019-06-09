@@ -1,6 +1,6 @@
 /** Optimized ThreeBears implementation */
 #include "common.h"
-#include "shake.h"
+#include "sp800-185.h"
 #include "params.h"
 #include "ring.h"
 #include "threebears.h"
@@ -21,15 +21,35 @@ void WEAK __attribute__((noinline)) secure_bzero (void *s,size_t size) { memset(
 enum { HASH_PURPOSE_UNIFORM=0, HASH_PURPOSE_KEYGEN=1, HASH_PURPOSE_ENCAPS=2, HASH_PURPOSE_PRF=3 };
 
 /** Initialize the hash function with a given purpose */
-static void threebears_hash_init(hash_ctx_t ctx, uint8_t purpose) {
-    threebears_cshake_init(ctx);
+static void threebears_hash_init(shake256incctx *ctx, uint8_t purpose) {
+    const char S[] = "ThreeBears";
+    cshake256_inc_init(ctx,NULL,0,(const uint8_t *)S,strlen(S));
     const uint8_t pblock[15] ={
          VERSION, PRIVATE_KEY_BYTES, MATRIX_SEED_BYTES, ENC_SEED_BYTES,
          IV_BYTES, SHARED_SECRET_BYTES, LGX, DIGITS&0xFF, DIGITS>>8, DIM,
          VAR_TIMES_128-1, LPR_BITS, FEC_BITS, CCA, 0 /* padding */
     };
-    hash_update(ctx,(const uint8_t*)pblock,sizeof(pblock));
-    hash_update(ctx,&purpose,1);
+    cshake256_inc_absorb(ctx,(const uint8_t*)pblock,sizeof(pblock));
+    cshake256_inc_absorb(ctx,&purpose,1);
+}
+
+static void hash_times_n (
+    uint8_t *output,
+    unsigned outlen,
+    unsigned stride,
+    const shake256incctx *ctx0,
+    uint8_t iv,
+    unsigned n
+) {
+    for (unsigned i=0; i<n; i++) {
+        uint8_t ivi = iv + i;
+        shake256incctx ctx;
+        memcpy(&ctx,ctx0,sizeof(ctx));
+        cshake256_inc_absorb(&ctx,&ivi,1);
+        cshake256_inc_finalize(&ctx);
+        cshake256_inc_squeeze(output+i*stride,outlen,&ctx);
+        secure_bzero(&ctx,sizeof(ctx));
+    }
 }
 
 /** Return at least 8 bits of a starting at the b'th bit */
@@ -47,11 +67,11 @@ static void uniform(
     uint8_t iv,
     unsigned n
 ) {
-    hash_ctx_t ctx;
-    threebears_hash_init(ctx,HASH_PURPOSE_UNIFORM);
-    hash_update(ctx,seed,MATRIX_SEED_BYTES);
+    shake256incctx ctx;
+    threebears_hash_init(&ctx,HASH_PURPOSE_UNIFORM);
+    cshake256_inc_absorb(&ctx,seed,MATRIX_SEED_BYTES);
     uint8_t *c = (uint8_t *) (&matrix[0][NLIMBS]) - GF_BYTES;
-    hash_times_n(c,GF_BYTES,sizeof(gf_t),ctx,iv,n);
+    hash_times_n(c,GF_BYTES,sizeof(gf_t),&ctx,iv,n);
     for (unsigned i=0; i<n; i++) {
         expand(matrix[i],(uint8_t *)(&matrix[i][NLIMBS]) - GF_BYTES);
     }
@@ -69,7 +89,7 @@ static slimb_t psi(uint8_t ci) {
 /** Sample a vector of n noise elements */
 static void noise(
     gf_t *vector,
-    const hash_ctx_t ctx,
+    const shake256incctx *ctx,
     unsigned iv,
     uint8_t n
 ) {
@@ -96,21 +116,21 @@ static void noise(
 }
 
 void get_pubkey(uint8_t *pk, const uint8_t *seed) {
-    hash_ctx_t ctx;
-    threebears_hash_init(ctx,HASH_PURPOSE_KEYGEN);
-    hash_update(ctx,seed,PRIVATE_KEY_BYTES);
-    
+    shake256incctx ctx, ctx2;
+    threebears_hash_init(&ctx,HASH_PURPOSE_KEYGEN);
+    cshake256_inc_absorb(&ctx,seed,PRIVATE_KEY_BYTES);
+
     {
-        hash_ctx_t ctx2;
-        memcpy(ctx2,ctx,sizeof(ctx2));
-        hash_output(ctx2,pk,MATRIX_SEED_BYTES);
-        hash_destroy(ctx2);
+        memcpy(&ctx2,&ctx,sizeof(ctx2));
+        cshake256_inc_finalize(&ctx2);
+        cshake256_inc_squeeze(pk,MATRIX_SEED_BYTES,&ctx2);
+        secure_bzero(&ctx2,sizeof(ctx2));
     }
-    
+
     {
     #if VECLEN > 1
         gf_t sk_expanded[DIM*2],matrix[DIM*DIM];
-        noise(sk_expanded,ctx,0,2*DIM);
+        noise(sk_expanded,&ctx,0,2*DIM);
         uniform(matrix,pk,0,DIM*DIM);
         for (unsigned i=0; i<DIM; i++) {
             for (unsigned j=0; j<DIM; j++) {
@@ -118,21 +138,20 @@ void get_pubkey(uint8_t *pk, const uint8_t *seed) {
             }
             contract(&pk[MATRIX_SEED_BYTES+i*GF_BYTES], sk_expanded[DIM+i]);
         }
-        hash_destroy(ctx);
     #else
         gf_t sk_expanded[DIM],b,c;
         for (unsigned i=0; i<DIM; i++) {
-            noise(&sk_expanded[i],ctx,i,1);
+            noise(&sk_expanded[i],&ctx,i,1);
         }
         for (unsigned i=0; i<DIM; i++) {
-            noise(&c,ctx,i+DIM,1);
+            noise(&c,&ctx,i+DIM,1);
             for (unsigned j=0; j<DIM; j++) {
                 uniform(&b,pk,i+DIM*j,1);
                 mac(c,b,sk_expanded[j]);
             }
             contract(&pk[MATRIX_SEED_BYTES+i*GF_BYTES], c);
         }
-        hash_destroy(ctx);
+        secure_bzero(&ctx,sizeof(ctx));
         secure_bzero(b,sizeof(b));
         secure_bzero(c,sizeof(c));
     #endif
@@ -150,16 +169,16 @@ void encapsulate(
     uint8_t *iv = &lpr[(ENC_BITS*LPR_BITS+7)/8];
     memcpy(iv,&seed[ENC_SEED_BYTES],IV_BYTES);
 #endif
-    
-    hash_ctx_t ctx;
-    threebears_hash_init(ctx,HASH_PURPOSE_ENCAPS);
-    hash_update(ctx,pk,MATRIX_SEED_BYTES);
-    hash_update(ctx,seed,ENC_SEED_BYTES + IV_BYTES);
-    
+
+    shake256incctx ctx;
+    threebears_hash_init(&ctx,HASH_PURPOSE_ENCAPS);
+    cshake256_inc_absorb(&ctx,pk,MATRIX_SEED_BYTES);
+    cshake256_inc_absorb(&ctx,seed,ENC_SEED_BYTES + IV_BYTES);
+
 #if VECLEN > 1
     gf_t sk_expanded[2*DIM+1],matrix[DIM*DIM];
     limb_t *b=sk_expanded[2*DIM-1], *c=sk_expanded[2*DIM];
-    noise(sk_expanded,ctx,0,2*DIM+1);
+    noise(sk_expanded,&ctx,0,2*DIM+1);
     uniform(matrix,pk,0,DIM*DIM);
     for (unsigned i=0; i<DIM; i++) {
         for (unsigned j=0; j<DIM; j++) {
@@ -170,35 +189,36 @@ void encapsulate(
 #else
     gf_t sk_expanded[DIM],b,c;
     for (unsigned i=0; i<DIM; i++) {
-        noise(&sk_expanded[i],ctx,i,1);
+        noise(&sk_expanded[i],&ctx,i,1);
     }
     for (unsigned i=0; i<DIM; i++) {
-        noise(&c,ctx,i+DIM,1);
+        noise(&c,&ctx,i+DIM,1);
         for (unsigned j=0; j<DIM; j++) {
             uniform(&b,pk,j+DIM*i,1);
             mac(c,b,sk_expanded[j]);
         }
         contract(&capsule[i*GF_BYTES], c);
     }
-    noise(&c,ctx,2*DIM,1);
+    noise(&c,&ctx,2*DIM,1);
 #endif
-    
+
     /* Calculate approximate shared secret */
     for (unsigned i=0; i<DIM; i++) {
         expand(b, &pk[MATRIX_SEED_BYTES+i*GF_BYTES]);
         mac(c,b,sk_expanded[i]);
     }
     canon(c);
-    
+
 #if !CCA
     uint8_t *seed1 = &lpr[(ENC_BITS*LPR_BITS+7)/8-ENC_SEED_BYTES];
-    hash_output(ctx,seed1,ENC_SEED_BYTES);
+    cshake256_inc_finalize(&ctx);
+    cshake256_inc_squeeze(seed1,ENC_SEED_BYTES,&ctx);
     seed = seed1;
-    threebears_hash_init(ctx,HASH_PURPOSE_ENCAPS);
-    hash_update(ctx,pk,MATRIX_SEED_BYTES);
-    hash_update(ctx,seed,ENC_SEED_BYTES);
+    threebears_hash_init(&ctx,HASH_PURPOSE_ENCAPS);
+    cshake256_inc_absorb(&ctx,pk,MATRIX_SEED_BYTES);
+    cshake256_inc_absorb(&ctx,seed,ENC_SEED_BYTES);
 #if IV_BYTES
-    hash_update(ctx,iv,IV_BYTES);
+    cshake256_inc_absorb(&ctx,iv,IV_BYTES);
 #endif
 #endif
 
@@ -206,7 +226,7 @@ void encapsulate(
     uint8_t fec[MELAS_FEC_BYTES];
     melas_fec_set(fec,seed,ENC_SEED_BYTES);
 #endif
-    
+
     /* Export with rounding */
     for (unsigned i=0; i<ENC_BITS; i+=2) {
 #if FEC_BITS
@@ -219,10 +239,11 @@ void encapsulate(
         lpr[i/2] = (rlimb0 & 0xF) | rlimb1<<4;
     }
 
-    hash_output(ctx,shared_secret,SHARED_SECRET_BYTES);
-    
+    cshake256_inc_finalize(&ctx);
+    cshake256_inc_squeeze(shared_secret,SHARED_SECRET_BYTES,&ctx);
+
     /* Clean up */
-    hash_destroy(ctx);
+    secure_bzero(&ctx,sizeof(ctx));
     secure_bzero(sk_expanded,sizeof(sk_expanded));
 #if VECLEN == 1
     secure_bzero(b,sizeof(b));
@@ -280,20 +301,20 @@ int decapsulate(
     uint8_t *shared_secret,
     const uint8_t *capsule,
     const uint8_t *sk
-) { 
+) {
     const uint8_t *lpr = &capsule[GF_BYTES*DIM];
-    
+
     /* Calculate approximate shared secret */
-    hash_ctx_t ctx, ctx2;
-    threebears_hash_init(ctx,HASH_PURPOSE_KEYGEN);
-    hash_update(ctx,sk,PRIVATE_KEY_BYTES);
-    
+    shake256incctx ctx, ctx2;
+    threebears_hash_init(&ctx,HASH_PURPOSE_KEYGEN);
+    cshake256_inc_absorb(&ctx,sk,PRIVATE_KEY_BYTES);
+
     union { gf_t gf; uint8_t buf[GF_BYTES]; } a;
 #if VECLEN>1
     gf_t ska[(DIM+1)*DIM],skb[2*DIM+1],*matrix = &ska[DIM];
     limb_t *b=skb[2*DIM-1], *d = skb[2*DIM], *c=d;
     memset(d,0,sizeof(gf_t));
-    noise(ska,ctx,0,2*DIM);
+    noise(ska,&ctx,0,2*DIM);
     for (unsigned i=0; i<DIM; i++) {
         expand(b,&capsule[i*GF_BYTES]);
         mac(d,ska[i],b);
@@ -301,7 +322,7 @@ int decapsulate(
 #else
     gf_t ska[DIM],skb[DIM],b,c,d;
     memset(c,0,sizeof(gf_t));
-    noise(ska,ctx,0,DIM);
+    noise(ska,&ctx,0,DIM);
     for (unsigned i=0; i<DIM; i++) {
         expand(b,&capsule[i*GF_BYTES]);
         mac(c,ska[i],b);
@@ -312,21 +333,22 @@ int decapsulate(
     uint8_t *seed = shared_secret;
     decrypt_seed(seed,c,lpr);
     unsigned ok=-(unsigned)1;
-    
+
     /* Derive the matrix seed */
     uint8_t ms[MATRIX_SEED_BYTES];
-    memcpy(ctx2,ctx,sizeof(ctx));
-    hash_output(ctx,ms,sizeof(ms));
-    threebears_hash_init(ctx,HASH_PURPOSE_ENCAPS);
-    hash_update(ctx,ms,sizeof(ms));
-    hash_update(ctx,seed,ENC_SEED_BYTES);
+    memcpy(&ctx2,&ctx,sizeof(ctx));
+    cshake256_inc_finalize(&ctx);
+    cshake256_inc_squeeze(ms,sizeof(ms),&ctx);
+    threebears_hash_init(&ctx,HASH_PURPOSE_ENCAPS);
+    cshake256_inc_absorb(&ctx,ms,sizeof(ms));
+    cshake256_inc_absorb(&ctx,seed,ENC_SEED_BYTES);
 #if IV_BYTES
     const uint8_t *iv = &lpr[(ENC_BITS*LPR_BITS+7)/8];
-    hash_update(ctx,iv,IV_BYTES);
+    cshake256_inc_absorb(&ctx,iv,IV_BYTES);
 #endif
 
 #if VECLEN > 1
-    noise(skb,ctx,0,2*DIM+1);
+    noise(skb,&ctx,0,2*DIM+1);
     for (unsigned j=0; j<DIM; j++) {
         mac(d,ska[DIM+j],skb[j]);
     }
@@ -343,10 +365,10 @@ int decapsulate(
         ok &= memeq(a.buf,&capsule[i*GF_BYTES],GF_BYTES);
     }
 #else
-    noise(&d,ctx,2*DIM,1);
-    noise(skb,ctx,0,DIM);
+    noise(&d,&ctx,2*DIM,1);
+    noise(skb,&ctx,0,DIM);
     for (unsigned j=0; j<DIM; j++) {
-        noise(&b,ctx2,j+DIM,1);
+        noise(&b,&ctx2,j+DIM,1);
         mac(d,b,skb[j]);
     }
     for (unsigned i=0; i<DIM; i++) {
@@ -356,7 +378,7 @@ int decapsulate(
             mac(a.gf,b,skb[j]);
         }
         mac(d,ska[i],a.gf);
-        noise(&b,ctx,i+DIM,1);
+        noise(&b,&ctx,i+DIM,1);
         for (unsigned j=0; j<NLIMBS; j++) a.gf[j] += b[j];
         contract(a.buf,a.gf);
         ok &= memeq(a.buf,&capsule[i*GF_BYTES],GF_BYTES);
@@ -389,14 +411,16 @@ int decapsulate(
      */
     if (~ok) {
         uint8_t sep = 0xFF;
-        hash_update(ctx2,&sep,1);
-        hash_output(ctx2,a.buf,PRIVATE_KEY_BYTES);
-        threebears_hash_init(ctx,HASH_PURPOSE_PRF);
-        hash_update(ctx,a.buf,PRIVATE_KEY_BYTES);
-        hash_update(ctx,capsule,CAPSULE_BYTES);
+        cshake256_inc_absorb(&ctx2,&sep,1);
+        cshake256_inc_finalize(&ctx2);
+        cshake256_inc_squeeze(a.buf,PRIVATE_KEY_BYTES,&ctx2);
+        threebears_hash_init(&ctx,HASH_PURPOSE_PRF);
+        cshake256_inc_absorb(&ctx,a.buf,PRIVATE_KEY_BYTES);
+        cshake256_inc_absorb(&ctx,capsule,CAPSULE_BYTES);
     }
-    hash_output(ctx,shared_secret,SHARED_SECRET_BYTES);
-    
+    cshake256_inc_finalize(&ctx);
+    cshake256_inc_squeeze(shared_secret,SHARED_SECRET_BYTES,&ctx);
+
     /* Clean up */
     secure_bzero(&a,sizeof(a));
 #if VECLEN>1
@@ -409,8 +433,8 @@ int decapsulate(
     secure_bzero(c,sizeof(c));
     secure_bzero(d,sizeof(d));
 #endif
-    hash_destroy(ctx);
-    hash_destroy(ctx2);
+    secure_bzero(&ctx,sizeof(ctx));
+    secure_bzero(&ctx2,sizeof(ctx2));
     return (int)(~ok);
 }
 #else /* !CCA */
@@ -420,24 +444,24 @@ int decapsulate(
     const uint8_t *sk
 ) {
     const uint8_t *lpr = &capsule[GF_BYTES*DIM];
-    
+
     /* Calculate approximate shared secret */
-    hash_ctx_t ctx;
-    threebears_hash_init(ctx,HASH_PURPOSE_KEYGEN);
-    hash_update(ctx,sk,PRIVATE_KEY_BYTES);
-    
+    shake256incctx ctx;
+    threebears_hash_init(&ctx,HASH_PURPOSE_KEYGEN);
+    cshake256_inc_absorb(&ctx,sk,PRIVATE_KEY_BYTES);
+
     gf_t c={0};
     {
 #if VECLEN == 1
         gf_t ska,b;
         for (unsigned i=0; i<DIM; i++) {
             expand(b,&capsule[i*GF_BYTES]);
-            noise(&ska,ctx,i,1);
+            noise(&ska,&ctx,i,1);
             mac(c,ska,b);
         }
 #else
         gf_t ska[DIM],b;
-        noise(ska,ctx,0,DIM);
+        noise(ska,&ctx,0,DIM);
         for (unsigned i=0; i<DIM; i++) {
             expand(b,&capsule[i*GF_BYTES]);
             mac(c,ska[i],b);
@@ -449,19 +473,21 @@ int decapsulate(
 
     assert(MATRIX_SEED_BYTES <= SHARED_SECRET_BYTES);
     uint8_t *seed = shared_secret;
-    hash_output(ctx,seed,MATRIX_SEED_BYTES);
-    threebears_hash_init(ctx,HASH_PURPOSE_ENCAPS);
-    hash_update(ctx,seed,MATRIX_SEED_BYTES);
+    cshake256_inc_finalize(&ctx);
+    cshake256_inc_squeeze(seed,MATRIX_SEED_BYTES,&ctx);
+    threebears_hash_init(&ctx,HASH_PURPOSE_ENCAPS);
+    cshake256_inc_absorb(&ctx,seed,MATRIX_SEED_BYTES);
 
     assert(ENC_SEED_BYTES <= SHARED_SECRET_BYTES);
     decrypt_seed(seed,c,lpr);
-    hash_update(ctx,seed,ENC_SEED_BYTES); 
+    cshake256_inc_absorb(&ctx,seed,ENC_SEED_BYTES);
 #if IV_BYTES
-    hash_update(ctx,&lpr[(ENC_BITS*LPR_BITS+7)/8],IV_BYTES);
+    cshake256_inc_absorb(&ctx,&lpr[(ENC_BITS*LPR_BITS+7)/8],IV_BYTES);
 #endif
-    hash_output(ctx,shared_secret,SHARED_SECRET_BYTES);
+    cshake256_inc_finalize(&ctx);
+    cshake256_inc_squeeze(shared_secret,SHARED_SECRET_BYTES,&ctx);
 
-    hash_destroy(ctx);
+    secure_bzero(&ctx,sizeof(ctx));
     secure_bzero(c,sizeof(c));
     return 0;
 }
