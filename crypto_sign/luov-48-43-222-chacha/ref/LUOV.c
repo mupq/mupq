@@ -264,20 +264,12 @@ static void computeTarget(const unsigned char* document , uint64_t len, FELT *ta
 	Sponge sponge;
 	unsigned char pad = 0;
 
-    /*
-	Keccak_HashInitialize_SHAKE(&sponge);
-	Keccak_HashUpdate(&sponge, document, len*8);
-	Keccak_HashUpdate(&sponge, &pad, 8);
-	Keccak_HashUpdate(&sponge, salt, SALT_BYTES*8);
-	Keccak_HashFinal(&sponge, 0);
-	Keccak_HashSqueeze(&sponge, (unsigned char *) target ,sizeof(FELT)*OIL_VARS*8);
-    */
-    shake128_inc_init(&sponge);
-    shake128_inc_absorb(&sponge, document, len);
-    shake128_inc_absorb(&sponge, &pad, 1);
-    shake128_inc_absorb(&sponge, salt, SALT_BYTES);
-    shake128_inc_finalize(&sponge);
-    shake128_inc_squeeze((unsigned char *)target, sizeof(FELT)*OIL_VARS, &sponge);
+    shake_inc_init(&sponge);
+    shake_inc_absorb(&sponge, document, len);
+    shake_inc_absorb(&sponge, &pad, 1);
+    shake_inc_absorb(&sponge, salt, SALT_BYTES);
+    shake_inc_finalize(&sponge);
+    shake_inc_squeeze((unsigned char *)target, sizeof(FELT)*OIL_VARS, &sponge);
 }
 #else
 
@@ -299,20 +291,11 @@ void computeTarget(const unsigned char* document , uint64_t len, FELT *target, c
 	unsigned char pad = 1;
 
 	// Compute first part of the target and put in the first part of the buffer
-    /*
-	Keccak_HashInitialize_SHAKE(&sponge);
-	Keccak_HashUpdate(&sponge,document , len*8);
-	Keccak_HashUpdate(&sponge,&pad , 8);
-	Keccak_HashUpdate(&sponge, salt, SALT_BYTES*8);
-	Keccak_HashFinal(&sponge , 0);
-	squeezeBytes(&sponge  , buf , FIRST_PART_TARGET );
-    */
-
-    shake128_inc_init(&sponge);
-    shake128_inc_absorb(&sponge, document, len);
-    shake128_inc_absorb(&sponge, &pad, 1);
-    shake128_inc_absorb(&sponge, salt, SALT_BYTES);
-    shake128_inc_finalize(&sponge);
+    shake_inc_init(&sponge);
+    shake_inc_absorb(&sponge, document, len);
+    shake_inc_absorb(&sponge, &pad, 1);
+    shake_inc_absorb(&sponge, salt, SALT_BYTES);
+    shake_inc_finalize(&sponge);
 	squeezeBytes(&sponge  , buf , FIRST_PART_TARGET );
 
 	// Absorb first part of target into a Sponge object and squeeze into the second part of the buffer

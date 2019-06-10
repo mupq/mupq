@@ -7,11 +7,24 @@
 #include "LinearAlgebra.h"
 #include "fips202.h"
 
-//#define Sponge Keccak_HashInstance
-#define Sponge shake128incctx
+#define __Sponge(NUM) shake##NUM##incctx
+#define _Sponge(NUM) __Sponge(NUM)
+#define Sponge _Sponge(SHAKENUM)
 
-//#define squeezeBytes(S,D,L) Keccak_HashSqueeze (S,D,L * 8)
-#define squeezeBytes(S,D,L) shake128_inc_squeeze(D,L,S);
+#define __shake_inc_init(NUM) shake##NUM##_inc_init
+#define _shake_inc_init(NUM) __shake_inc_init(NUM)
+#define shake_inc_init _shake_inc_init(SHAKENUM)
+#define __shake_inc_absorb(NUM) shake##NUM##_inc_absorb
+#define _shake_inc_absorb(NUM) __shake_inc_absorb(NUM)
+#define shake_inc_absorb _shake_inc_absorb(SHAKENUM)
+#define __shake_inc_finalize(NUM) shake##NUM##_inc_finalize
+#define _shake_inc_finalize(NUM) __shake_inc_finalize(NUM)
+#define shake_inc_finalize _shake_inc_finalize(SHAKENUM)
+#define __shake_inc_squeeze(NUM) shake##NUM##_inc_squeeze
+#define _shake_inc_squeeze(NUM) __shake_inc_squeeze(NUM)
+#define shake_inc_squeeze _shake_inc_squeeze(SHAKENUM)
+
+#define squeezeBytes(S,D,L) shake_inc_squeeze(D,L,S)
 
 void initializeAndAbsorb(Sponge *sponge, const unsigned char * seed, int len);
 uint64_t squeezeuint64_t(Sponge *sponge, int bytes);
@@ -20,8 +33,8 @@ uint64_t squeezeuint64_t(Sponge *sponge, int bytes);
 
 #define BLOCK_SIZE 64
 #define PRNG_STATE Sponge
-#define PRNG_INIT(S,K,I) Keccak_HashInitialize_SHAKE128(S); Keccak_HashUpdate(S, K, 32*8 ); Keccak_HashUpdate(S, I, 8); Keccak_HashFinal(S,0);
-#define PRNG_GET_BLOCK(S,O) Keccak_HashSqueeze(S, O, BLOCK_SIZE*8);
+#define PRNG_INIT(S,K,I) shake_inc_init(S); shake_inc_absorb(S, K, 32); shake_inc_absorb(S, I, 1); shake_inc_finalize(S);
+#define PRNG_GET_BLOCK(S,O) shake_inc_squeeze(O, BLOCK_SIZE, S);
 
 #endif
 

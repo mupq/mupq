@@ -7,7 +7,7 @@
 We define the size of the finite field to use (options are 8, 16, 32, 48, 64 and 80 ),
 OIL_VARS, the number oil variables and the number of equations in the UOV system,
 VINEGAR_VARS, the number of vinegar variables,
-SHAKEVENUM, the version of the shake XOF that is used (either 128 or 256)
+SHAKENUM, the version of the shake XOF that is used (either 128 or 256)
 and Wherther or not we are using Message Recovery or not
 */
 
@@ -83,10 +83,5 @@ and Wherther or not we are using Message Recovery or not
 	#define SECOND_PART_TARGET 0
 	#define RECOVERED_PART_MESSAGE 0
 #endif
-
-// Defines the appropriate Keccak_HashInitialize function based on the value of SHAKENUM
-#define _Keccak_HashInitialize_SHAKE(NUM) Keccak_HashInitialize_SHAKE##NUM
-#define __Keccak_HashInitialize_SHAKE(NUM) _Keccak_HashInitialize_SHAKE(NUM)
-#define Keccak_HashInitialize_SHAKE __Keccak_HashInitialize_SHAKE(SHAKENUM)
 
 #endif
