@@ -6,7 +6,7 @@
 /*
 	Makes a new field element, given its coeficients
 */
-f48FELT newF48FELT(f16FELT c0, f16FELT c1, f16FELT c2) {
+static f48FELT newF48FELT(f16FELT c0, f16FELT c1, f16FELT c2) {
 	f48FELT new;
 	new.coef[0] = c0;
 	new.coef[1] = c1;

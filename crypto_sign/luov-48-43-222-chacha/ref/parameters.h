@@ -20,51 +20,51 @@ and Wherther or not we are using Message Recovery or not
 	/* SMALL PK */
 		#define FIELD_SIZE 48
 		#define OIL_VARS 43
-		#define VINEGAR_VARS 222 
-		#define SHAKENUM 128 
+		#define VINEGAR_VARS 222
+		#define SHAKENUM 128
 
-	/* SMALL SIG 
+	/* SMALL SIG
 		#define FIELD_SIZE 8
 		#define OIL_VARS 58
-		#define VINEGAR_VARS 237 
+		#define VINEGAR_VARS 237
 		#define SHAKENUM 128 */
 
 /* SECURITY LEVEL 4 */
-	/* SMALL PK 
+	/* SMALL PK
 		#define FIELD_SIZE 64
 		#define OIL_VARS 61
-		#define VINEGAR_VARS 302 
-		#define SHAKENUM 256 
+		#define VINEGAR_VARS 302
+		#define SHAKENUM 256 */
 
-	/* SMALL SIG 
+	/* SMALL SIG
 		#define FIELD_SIZE 8
 		#define OIL_VARS 82
-		#define VINEGAR_VARS 323 
+		#define VINEGAR_VARS 323
 		#define SHAKENUM 256 */
 
 /* SECURITY LEVEL 5 */
-	/* SMALL PK 
+	/* SMALL PK
 		#define FIELD_SIZE 80
 		#define OIL_VARS 76
-		#define VINEGAR_VARS 363 
+		#define VINEGAR_VARS 363
 		#define SHAKENUM 256 */
 
-	/* SMALL SIG 
+	/* SMALL SIG
 		#define FIELD_SIZE 8
 		#define OIL_VARS 107
-		#define VINEGAR_VARS 371 
+		#define VINEGAR_VARS 371
 		#define SHAKENUM 256  */
 
 /* Custom parameter set */
  /*
-	#define FIELD_SIZE 
-	#define OIL_VARS 
-	#define VINEGAR_VARS  
-	#define SHAKENUM 
+	#define FIELD_SIZE
+	#define OIL_VARS
+	#define VINEGAR_VARS
+	#define SHAKENUM
  */
 
 #define SALT_BYTES 16
-//#define PRNG_KECCAK 
+//#define PRNG_KECCAK
 #define PRNG_CHACHA
 
 /* derived parameters */

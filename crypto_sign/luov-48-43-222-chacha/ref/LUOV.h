@@ -20,7 +20,7 @@
 #define SIG_SALT(sig) (sig+ VARS*(FIELD_SIZE/8) )
 
 int luov_keygen(unsigned char *pk, unsigned char *sk);
-int luov_sign(unsigned char *sig, unsigned long long * smlen, const unsigned char* document, uint64_t len, const unsigned char *sk);
-int luov_verify(unsigned char* m, unsigned long long *mlen, const unsigned char* sm, unsigned long long smlen, const unsigned char *pk);
+int luov_sign(unsigned char *sig, size_t *smlen, const unsigned char* document, size_t len, const unsigned char *sk);
+int luov_verify(unsigned char* m, size_t *mlen, const unsigned char* sm, size_t smlen, const unsigned char *pk);
 
 #endif

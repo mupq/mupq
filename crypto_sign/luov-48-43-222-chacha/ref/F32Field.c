@@ -6,7 +6,7 @@
 /*
 	Makes a new field element, given its coeficients
 */
-f32FELT newF32FELT(f16FELT c0, f16FELT c1) {
+static f32FELT newF32FELT(f16FELT c0, f16FELT c1) {
 	f32FELT new;
 	new.c0 = c0;
 	new.c1 = c1;
@@ -56,7 +56,7 @@ f32FELT f32add(f32FELT a, f32FELT b) {
 
 	return : the product of a and b
 */
-f32FELT f32multiplyOld(f32FELT a, f32FELT b) {
+static f32FELT f32multiplyOld(f32FELT a, f32FELT b) {
 	f16FELT c0 = f16multiply(a.c0, b.c0);
 	f16FELT c1 = f16multiply(a.c1, b.c0) ^ f16multiply(a.c0, b.c1);
 	f16FELT c2 = f16multiply(a.c1, b.c1);

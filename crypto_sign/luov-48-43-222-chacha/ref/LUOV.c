@@ -7,7 +7,7 @@
 	T : the secret linear map
 	pk : the public key
 */
-void calculateQ2(column *T , unsigned char *pk) {
+static void calculateQ2(column *T , unsigned char *pk) {
 	int i, j, k;
 	column *TempMat = malloc(sizeof(column) * OIL_VARS);
 	column r;
@@ -122,7 +122,7 @@ int luov_keygen(unsigned char *pk, unsigned char *sk) {
 	T                 : The V-by-M matrix that determines the secret linear transformation T
 	publicseed            : The public seed that is used to generate the first part of the secret key
 */
-void BuildAugmentedMatrix(Matrix A, const FELT *vinegar_variables , const FELT *target, const column *T, const unsigned char *publicseed){ //Sponge *sponge) {
+static void BuildAugmentedMatrix(Matrix A, const FELT *vinegar_variables , const FELT *target, const column *T, const unsigned char *publicseed){ //Sponge *sponge) {
 	int i, j, k, x;
 	column **F2;
 	uint16_t r;
@@ -218,7 +218,7 @@ void BuildAugmentedMatrix(Matrix A, const FELT *vinegar_variables , const FELT *
 	target : The target vector to find a solution for
 	solution : receives a solution
 */
-void solvePrivateUOVSystem(const unsigned char *publicseed, column *T, FELT *target , FELT *solution) {
+static void solvePrivateUOVSystem(const unsigned char *publicseed, column *T, FELT *target , FELT *solution) {
 	Matrix A;
 	int solution_found = 0;
 
@@ -260,7 +260,7 @@ void solvePrivateUOVSystem(const unsigned char *publicseed, column *T, FELT *tar
 	target : receives the target vector
 	salt : The 16-byte salt
  */
-void computeTarget(const unsigned char* document , uint64_t len, FELT *target, const unsigned char* salt){
+static void computeTarget(const unsigned char* document , uint64_t len, FELT *target, const unsigned char* salt){
 	Sponge sponge;
 	unsigned char pad = 0;
 
@@ -336,6 +336,7 @@ void computeTarget(const unsigned char* document , uint64_t len, FELT *target, c
 }
 #endif
 
+#ifdef MESSAGE_RECOVERY
 /*
 	If message recovery is enabled, this function extracts the last part of the document from the evaluated signature and appends it to the first part of document
 
@@ -343,8 +344,7 @@ void computeTarget(const unsigned char* document , uint64_t len, FELT *target, c
 	len      : pointer to the length of document, which is altered appropriately
 	evaluation : The evaluation of the public map in the signature
 */
-void extractMessage(unsigned char *document ,unsigned long long *len , FELT *evaluation){
-	#ifdef MESSAGE_RECOVERY
+static void extractMessage(unsigned char *document ,unsigned long long *len , FELT *evaluation){
 	int i, reading;
 	unsigned char buf2[SECOND_PART_TARGET];
 	Sponge sponge;
@@ -376,9 +376,8 @@ void extractMessage(unsigned char *document ,unsigned long long *len , FELT *eva
 			}
 		}
 	}
-
-	#endif
 }
+#endif
 
 /*
 	Generates a signature for a document
@@ -389,7 +388,7 @@ void extractMessage(unsigned char *document ,unsigned long long *len , FELT *eva
 	mlen : the length oth the message to be signed
 	sk : the secret key
 */
-int luov_sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m , uint64_t mlen,  const unsigned char *sk) {
+int luov_sign(unsigned char *sm, size_t *smlen, const unsigned char *m , size_t mlen,  const unsigned char *sk) {
 	int i, j;
 	FELT target[OIL_VARS];
 
@@ -455,8 +454,8 @@ int luov_sign(unsigned char *sm, unsigned long long *smlen, const unsigned char 
 	sig : The point that P is evaluated in
 	evaluation : Receives the vector P(signature)
 */
-void evaluatePublicMap(const unsigned char *pk, const unsigned char *sig , FELT* evaluation){
-	int i,j,k,col;
+static void evaluatePublicMap(const unsigned char *pk, const unsigned char *sig , FELT* evaluation){
+	int i,j,k;
 	FELT prod;
 	column r;
 
@@ -519,7 +518,7 @@ void evaluatePublicMap(const unsigned char *pk, const unsigned char *sig , FELT*
 
 	returns : 0 if the signature is valid, -1 otherwise
 */
-int luov_verify(unsigned char *m , unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen , const unsigned char *pk ) {
+int luov_verify(unsigned char *m , size_t *mlen, const unsigned char *sm, size_t smlen , const unsigned char *pk ) {
 	int i;
 	FELT evaluation[OIL_VARS];
 	FELT target[OIL_VARS];
@@ -538,8 +537,10 @@ int luov_verify(unsigned char *m , unsigned long long *mlen, const unsigned char
 	// Evaluate the public map P at the signature
 	evaluatePublicMap(pk, sig , evaluation);
 
+	#ifdef MESSAGE_RECOVERY
 	// If we are in message recovery mode, we extracts a part of the document from the signature
 	extractMessage(m , mlen , evaluation);
+	#endif
 
 	// We compute the target based on the full document
 	computeTarget(m, *mlen, target, SIG_SALT(sig));

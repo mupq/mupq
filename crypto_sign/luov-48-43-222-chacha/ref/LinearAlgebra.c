@@ -12,7 +12,7 @@
 
 	returns : The new matrix
 */
-Matrix newMatrix(unsigned int rows, unsigned int cols) {
+static Matrix newMatrix(unsigned int rows, unsigned int cols) {
 	unsigned int i;
 	Matrix new;
 	new.rows = rows;
@@ -62,7 +62,7 @@ void destroy_matrix(Matrix mat) {
 	A : A matrix
 	row1 , row2 : The rows of A that have to be swapped
 */
-void swapRows(Matrix A, int row1, int row2) {
+static void swapRows(Matrix A, int row1, int row2) {
 	FELT *temp = A.array[row1];
 	A.array[row1] = A.array[row2];
 	A.array[row2] = temp;
@@ -75,7 +75,7 @@ void swapRows(Matrix A, int row1, int row2) {
 	row : the index of the row that has to be rescaled
 	a : A field element
 */
-void scaleRow(Matrix A, int row, FELT a) {
+static void scaleRow(Matrix A, int row, FELT a) {
 	int i;
 	for (i = 0; i < A.cols; i++) {
 		A.array[row][i] = multiply(A.array[row][i], a);
@@ -91,7 +91,7 @@ void scaleRow(Matrix A, int row, FELT a) {
 	constant : The contant that sourcerow is multiplied with
 	offset : Only the entries in columns with index larger than or equal to offset are affected
 */
-void rowOp(Matrix A, int destrow, int sourcerow, FELT constant, int offset)
+static void rowOp(Matrix A, int destrow, int sourcerow, FELT constant, int offset)
 {
 	int j;
 	FELT T;
@@ -112,7 +112,7 @@ void rowOp(Matrix A, int destrow, int sourcerow, FELT constant, int offset)
 
 	returns : The rank ok the first part of the row echelon form of A
 */
-int rowEchelonAugmented(Matrix A)
+static int rowEchelonAugmented(Matrix A)
 {
 	int i,col;
 	int row = 0;

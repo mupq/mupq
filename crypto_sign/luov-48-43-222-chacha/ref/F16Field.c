@@ -61,7 +61,7 @@ f16FELT f16inverse(f16FELT a) {
 	q : quotient
 	r : remainder
 */
-void f16EucildeanDivision(f16FELT *a, f16FELT *b, f16FELT *q, f16FELT *r) {
+static void f16EuclideanDivision(f16FELT *a, f16FELT *b, f16FELT *q, f16FELT *r) {
 	int i,j;
 	f16FELT LCBinv;
 	int degB = 0;
@@ -91,7 +91,7 @@ void f16EucildeanDivision(f16FELT *a, f16FELT *b, f16FELT *q, f16FELT *r) {
 /*
 	Checks if a is the zero polynomial
 */
-int isArrayOfZeros(f16FELT *a) {
+static int isArrayOfZeros(f16FELT *a) {
 	int i;
 	for (i = 0; i < 6; i++) {
 		if (a[i] != 0)
@@ -106,7 +106,7 @@ int isArrayOfZeros(f16FELT *a) {
 	a,b : two polynomials
 	ans : is set to a*b mod (X^6)
 */
-void f16polyMult(f16FELT *a, f16FELT *b, f16FELT *ans) {
+static void f16polyMult(f16FELT *a, f16FELT *b, f16FELT *ans) {
 	int i,j;
 	for (i = 0; i < 6; i++) {
 		ans[i] = 0;
@@ -122,7 +122,7 @@ void f16polyMult(f16FELT *a, f16FELT *b, f16FELT *ans) {
 	a,b : two polynomials
 	ans : is set to a+b
 */
-void f16polyAdd(f16FELT *a, f16FELT *b, f16FELT *ans) {
+static void f16polyAdd(f16FELT *a, f16FELT *b, f16FELT *ans) {
 	int i;
 	for (i = 0; i < 6; i++) {
 		ans[i] = f16add(a[i], b[i]);
@@ -132,7 +132,7 @@ void f16polyAdd(f16FELT *a, f16FELT *b, f16FELT *ans) {
 /*
 	Sets a polynomial to the zero polynomial
 */
-void f16polyZero(f16FELT *a) {
+static void f16polyZero(f16FELT *a) {
 	int i;
 	for (i = 0; i < 6; i++) {
 		a[i] = 0;
@@ -142,7 +142,7 @@ void f16polyZero(f16FELT *a) {
 /*
 	Sets a polynomial to the identity
 */
-void f16polyOne(f16FELT *a) {
+static void f16polyOne(f16FELT *a) {
 	int i;
 	a[0] = 1;
 	for (i = 1; i < 6; i++) {
@@ -156,7 +156,7 @@ void f16polyOne(f16FELT *a) {
 	a : a polynomial to copy
 	copy : is set to a
 */
-void f16polyCopy(f16FELT *a, f16FELT *copy) {
+static void f16polyCopy(f16FELT *a, f16FELT *copy) {
 	int i;
 	for (i = 0; i < 6; i++) {
 		copy[i] = a[i];
@@ -169,11 +169,13 @@ Scalar multiplication
 	a : an element in the field, which is muliplied by 2^b
 	b : an integer
 */
-void f16scalarMultiply(f16FELT *a, uint16_t b) {
+/*
+static void f16scalarMultiply(f16FELT *a, uint16_t b) {
 	if (*a != 0) {
 		*a = f16antilog((f16log(*a) + b) % f16units);
 	}
 }
+*/
 
 /*
 	Extended Euclidean Algorithm
@@ -197,7 +199,7 @@ void f16ExtendedEuclideanAlgorithm(f16FELT *a, f16FELT *b, f16FELT *x, f16FELT *
 		f16FELT uq[6];
 		f16FELT vq[6];
 
-		f16EucildeanDivision(B, A, q, r);
+		f16EuclideanDivision(B, A, q, r);
 
 		f16polyMult(u, q, uq);
 		f16polyAdd(x, uq, m);

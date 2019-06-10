@@ -6,7 +6,7 @@
 /*
 	Makes a new field element, given its coeficients
 */
-f80FELT newF80FELT(f16FELT c0, f16FELT c1, f16FELT c2, f16FELT c3 , f16FELT c4) {
+static f80FELT newF80FELT(f16FELT c0, f16FELT c1, f16FELT c2, f16FELT c3 , f16FELT c4) {
 	f80FELT new;
 	new.coef[0] = c0;
 	new.coef[1] = c1;
@@ -60,7 +60,7 @@ f80FELT f80multiply(f80FELT a, f80FELT b) {
 	a : an element in the field extension, which is muliplied by 2^b
 	b : an integer
 */
-void f80Scalarmultiply(f80FELT* a, f16FELT b) {
+void f80scalarMultiply(f80FELT* a, f16FELT b) {
 	if (a->coef[0] != 0) {
 		a->coef[0] = f16antilog((f16log(a->coef[0]) + b) % f16units);
 	}
