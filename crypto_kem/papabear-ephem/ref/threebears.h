@@ -22,7 +22,7 @@ void PapaBearEphem_get_pubkey (
     uint8_t pk[PAPABEAREPHEM_PUBLIC_KEY_BYTES],
     const uint8_t sk[PAPABEAREPHEM_PRIVATE_KEY_BYTES]
 );
-    
+
 /**
  * Create a shared secret using a random seed and another party's public key.
  *
@@ -52,13 +52,11 @@ void PapaBearEphem_encapsulate (
  * @return -1 on failure, 0 on success.
  * @warning The value of shared_secret must not be used on failure
  */
-int PapaBearEphem_decapsulate ( 
+int PapaBearEphem_decapsulate (
     uint8_t shared_secret[PAPABEAREPHEM_SHARED_SECRET_BYTES],
     const uint8_t capsule[PAPABEAREPHEM_CAPSULE_BYTES],
     const uint8_t sk[PAPABEAREPHEM_PRIVATE_KEY_BYTES]
 );
-
-void secure_bzero (void *s,size_t size);
 
 #endif /*__THREE_BEARS_PAPABEAREPHEM_H__*/
 

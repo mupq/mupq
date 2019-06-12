@@ -22,7 +22,7 @@ void MamaBear_get_pubkey (
     uint8_t pk[MAMABEAR_PUBLIC_KEY_BYTES],
     const uint8_t sk[MAMABEAR_PRIVATE_KEY_BYTES]
 );
-    
+
 /**
  * Create a shared secret using a random seed and another party's public key.
  *
@@ -52,13 +52,11 @@ void MamaBear_encapsulate (
  * @return -1 on failure, 0 on success.
  * @warning The value of shared_secret must not be used on failure
  */
-int __attribute__((warn_unused_result)) MamaBear_decapsulate ( 
+int __attribute__((warn_unused_result)) MamaBear_decapsulate (
     uint8_t shared_secret[MAMABEAR_SHARED_SECRET_BYTES],
     const uint8_t capsule[MAMABEAR_CAPSULE_BYTES],
     const uint8_t sk[MAMABEAR_PRIVATE_KEY_BYTES]
 );
-
-void secure_bzero (void *s,size_t size);
 
 #endif /*__THREE_BEARS_MAMABEAR_H__*/
 
