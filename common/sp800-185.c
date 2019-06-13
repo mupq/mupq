@@ -63,6 +63,7 @@ void cshake128_inc_finalize(shake128incctx *state) {
     t[SHAKE128_RATE - 1] |= 128;
 
     KeccakF1600_StateXORBytes(state->ctx, t, 0, SHAKE128_RATE);
+    state->ctx[25] = 0;
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
     hash_cycles += (t1-t0);
@@ -110,6 +111,7 @@ void cshake256_inc_finalize(shake256incctx *state) {
     t[SHAKE256_RATE - 1] |= 128;
 
     KeccakF1600_StateXORBytes(state->ctx, t, 0, SHAKE256_RATE);
+    state->ctx[25] = 0;
 #ifdef PROFILE_HASHING
     uint64_t t1 = hal_get_time();
     hash_cycles += (t1-t0);
