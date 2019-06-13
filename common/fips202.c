@@ -157,6 +157,7 @@ static void keccak_inc_finalize(uint64_t *s_inc, uint32_t r, uint8_t p) {
     t[r - 1] |= 128;
 
     KeccakF1600_StateXORBytes(s_inc, t, 0, r);
+    s_inc[25] = 0;
 }
 
 /*************************************************
