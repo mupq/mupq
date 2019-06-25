@@ -2,9 +2,10 @@
 //  2019-03-26  Markku-Juhani O. Saarinen <mjos@pqshield.com>
 //  Copyright (c) 2019, PQShield Ltd.
 
+#include "r5_xof.h"
+
 #ifndef BLNK2
 
-#include "r5_xof.h"
 #include "sp800-185.h"
 
 #include <assert.h>
@@ -43,7 +44,6 @@ void r5_xof(void *out, size_t out_len,
     shake128(out, out_len, in, in_len);
 #endif
 }
-
 
 void r5_xof_s_input(r5_xof_ctx_t *ctx,
     const void *in, size_t in_len,

@@ -4,6 +4,8 @@
 
 //  The BLNK2 "core" state manipulation functions.
 
+#include "round5_variant_setting.h"
+
 #ifdef BLNK2
 
 #include "blnk.h"

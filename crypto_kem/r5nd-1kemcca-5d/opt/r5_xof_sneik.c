@@ -2,12 +2,13 @@
 //  2019-03-26  Markku-Juhani O. Saarinen <mjos@pqshield.com>
 //  Copyright (c) 2019, PQShield Ltd.
 
+#include "r5_xof.h"
+
 #ifdef BLNK2
 
 //  For XOF we use the SNEIGEN entropy expansion function
 //  The hash used in CCA transform is SNEIKHA
 
-#include "r5_xof.h"
 #include "blnk.h"
 
 //  Initialize and absorb a message

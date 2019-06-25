@@ -2,11 +2,14 @@
 //  2019-02-18  Markku-Juhani O. Saarinen <mjos@pqshield.com>
 //  Copyright (C) 2019, PQShield Ltd. Please see LICENSE.
 
+#include "round5_variant_setting.h"
+
 #if !defined(ARMV7_ASM) && defined(BLNK2)
 
 //  SNEIK f512 v1.1 implementation for a generic 32-bit C99 target.
 
 #include <stdint.h>
+#include "sneik_param.h"
 
 #ifndef ROR32
 #define ROR32(x, y) (((x) >> (y)) | ((x) << (32 - (y))))
