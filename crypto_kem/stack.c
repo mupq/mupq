@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_SIZE 0x16000
+#define MAX_SIZE 0x1B000
 
 // https://stackoverflow.com/a/1489985/1711232
 #define PASTER(x, y) x####y
@@ -92,10 +92,10 @@ int main(void) {
 
   // marker for automated benchmarks
   hal_send_str("==========================");
-  canary_size = MAX_SIZE;
+  canary_size = 0x1000;
   while(test_keys()){
-    canary_size -= 0x1000;
-    if(canary_size == 0) {
+    canary_size += 0x1000;
+    if(canary_size >= MAX_SIZE) {
       hal_send_str("failed to measure stack usage.\n");
       break;
     }
