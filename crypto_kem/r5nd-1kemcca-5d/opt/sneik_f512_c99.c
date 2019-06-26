@@ -4,7 +4,7 @@
 
 #include "round5_variant_setting.h"
 
-#if !defined(ARMV7_ASM) && defined(BLNK2)
+#ifdef BLNK2
 
 //  SNEIK f512 v1.1 implementation for a generic 32-bit C99 target.
 
@@ -78,5 +78,5 @@ void sneik_f512(void *state, uint8_t dom, uint8_t rounds)
     }
 }
 
-#endif /* !ARMV7_ASM && BLNK2 */
+#endif /* BLNK2 */
 
