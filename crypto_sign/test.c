@@ -25,21 +25,29 @@
 #define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
 #define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
 
+const uint8_t canary[8] = {
+  0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF
+};
+
 /* allocate a bit more for all keys and messages and
  * make sure it is not touched by the implementations.
  */
-static void write_canary(unsigned char *d)
-{
-  *((uint64_t *) d)= 0x0123456789ABCDEF;
+static void write_canary(uint8_t *d) {
+  for (size_t i = 0; i < 8; i++) {
+    d[i] = canary[i];
+  }
 }
 
-static int check_canary(unsigned char *d)
-{
-  if(*(uint64_t *) d !=  0x0123456789ABCDEF)
-    return -1;
-  else
-    return 0;
+static int check_canary(const uint8_t *d) {
+  for (size_t i = 0; i < 8; i++) {
+    if (d[i] != canary[i]) {
+      return -1;
+    }
+  }
+  return 0;
 }
+
+
 static int test_sign(void)
 {
     unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES+16];
