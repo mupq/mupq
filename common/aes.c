@@ -212,3 +212,24 @@ void aes256_ctr(unsigned char *out, size_t outlen, const unsigned char *iv, cons
 #endif
 }
 
+void aes128_ctx_release(aes128ctx *r) {
+    // no-op for mupq's basic AES operation
+    // this is required for compatibility with code from PQClean
+    // see https://github.com/PQClean/PQClean/pull/198
+    (void) r;
+}
+
+void aes192_ctx_release(aes192ctx *r) {
+    // no-op for mupq's basic AES operation
+    // this is required for compatibility with code from PQClean
+    // see https://github.com/PQClean/PQClean/pull/198
+    (void) r;
+}
+
+void aes256_ctx_release(aes256ctx *r) {
+    // no-op for mupq's basic AES operation
+    // this is required for compatibility with code from PQClean
+    // see https://github.com/PQClean/PQClean/pull/198
+    (void) r;
+}
+
