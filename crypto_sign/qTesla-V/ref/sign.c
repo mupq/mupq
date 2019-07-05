@@ -22,17 +22,17 @@ void hash_H(unsigned char *c_bin, poly v, const unsigned char *hm)
   unsigned char t[PARAM_N+HM_BYTES];
   int32_t mask, cL;
 
-  for (int i=0; i<PARAM_N; i++) { 
+  for (int i=0; i<PARAM_N; i++) {
     // If v[i] > PARAM_Q/2 then v[i] -= PARAM_Q
-    mask = (PARAM_Q/2 - v[i]) >> (RADIX32-1);                    
+    mask = (PARAM_Q/2 - v[i]) >> (RADIX32-1);
     v[i] = ((v[i]-PARAM_Q) & mask) | (v[i] & ~mask);
-    
+
     cL = v[i] & ((1<<PARAM_D)-1);
     // If cL > 2^(d-1) then cL -= 2^d
-    mask = ((1<<(PARAM_D-1)) - cL) >> (RADIX32-1);                    
-    cL = ((cL-(1<<PARAM_D)) & mask) | (cL & ~mask);  
-    t[i] = (unsigned char)((v[i] - cL) >> PARAM_D);      
-  }  
+    mask = ((1<<(PARAM_D-1)) - cL) >> (RADIX32-1);
+    cL = ((cL-(1<<PARAM_D)) & mask) | (cL & ~mask);
+    t[i] = (unsigned char)((v[i] - cL) >> PARAM_D);
+  }
   memcpy(&t[PARAM_N], hm, HM_BYTES);
   SHAKE(c_bin, CRYPTO_C_BYTES, t, PARAM_N+HM_BYTES);
 }
@@ -60,23 +60,23 @@ static int test_rejection(poly z)
 
 static int test_correctness(poly v)
 { // Check bounds for w = v - ec during signature verification. Returns 0 if valid, otherwise outputs 1 if invalid (rejected).
-  // This function leaks the position of the coefficient that fails the test (but this is independent of the secret data). 
+  // This function leaks the position of the coefficient that fails the test (but this is independent of the secret data).
   // It does not leak the sign of the coefficients.
   int32_t mask, left, val;
   uint32_t t0, t1;
-  
-  for (int i=0; i<PARAM_N; i++) {      
+
+  for (int i=0; i<PARAM_N; i++) {
     // If v[i] > PARAM_Q/2 then v[i] -= PARAM_Q
     mask = (PARAM_Q/2 - v[i]) >> (RADIX32-1);
     val = ((v[i]-PARAM_Q) & mask) | (v[i] & ~mask);
     // If (Abs(val) < PARAM_Q/2 - PARAM_E) then t0 = 0, else t0 = 1
     t0 = (uint32_t)(~(Abs(val) - (PARAM_Q/2 - PARAM_E))) >> (RADIX32-1);
-                     
+
     left = val;
-    val = (val + (1<<(PARAM_D-1))-1) >> PARAM_D; 
+    val = (val + (1<<(PARAM_D-1))-1) >> PARAM_D;
     val = left - (val << PARAM_D);
-    // If (Abs(val) < (1<<(PARAM_D-1))-PARAM_E) then t1 = 0, else t1 = 1 
-    t1 = (uint32_t)(~(Abs(val) - ((1<<(PARAM_D-1))-PARAM_E))) >> (RADIX32-1); 
+    // If (Abs(val) < (1<<(PARAM_D-1))-PARAM_E) then t1 = 0, else t1 = 1
+    t1 = (uint32_t)(~(Abs(val) - ((1<<(PARAM_D-1))-PARAM_E))) >> (RADIX32-1);
 
     if ((t0 | t1) == 1)  // Returns 1 if any of the two tests failed
       return 1;
@@ -88,8 +88,8 @@ static int test_correctness(poly v)
 static int test_z(poly z)
 { // Check bounds for signature vector z during signature verification
   // Returns 0 if valid, otherwise outputs 1 if invalid (rejected)
-  
-  for (int i=0; i<PARAM_N; i++) {                                  
+
+  for (int i=0; i<PARAM_N; i++) {
     if (z[i] < -(PARAM_B-PARAM_S) || z[i] > (PARAM_B-PARAM_S))
       return 1;
   }
@@ -103,13 +103,13 @@ static int check_ES(poly p, unsigned int bound)
   unsigned int i, j, sum = 0, limit = PARAM_N;
   int32_t temp, mask, list[PARAM_N];
 
-  for (j=0; j<PARAM_N; j++)    
+  for (j=0; j<PARAM_N; j++)
     list[j] = Abs(p[j]);
 
   for (j=0; j<PARAM_H; j++) {
     for (i=0; i<limit-1; i++) {
       // If list[i+1] > list[i] then exchange contents
-      mask = (list[i+1] - list[i]) >> (RADIX32-1);  
+      mask = (list[i+1] - list[i]) >> (RADIX32-1);
       temp = (list[i+1] & mask) | (list[i] & ~mask);
       list[i+1] = (list[i] & mask) | (list[i+1] & ~mask);
       list[i] = temp;
@@ -144,20 +144,20 @@ int crypto_sign_keypair(unsigned char *pk, unsigned char *sk)
   SHAKE(randomness_extended, 4*CRYPTO_SEEDBYTES, randomness, CRYPTO_RANDOMBYTES);
 
   do {  // Sample the error polynomial
-    sample_gauss_poly(e, randomness_extended, ++nonce);        
-  } while(check_ES(e, PARAM_KEYGEN_BOUND_E) != 0);  
- 
+    sample_gauss_poly(e, randomness_extended, ++nonce);
+  } while(check_ES(e, PARAM_KEYGEN_BOUND_E) != 0);
+
   do {  // Sample the secret polynomial
     sample_gauss_poly(s, &randomness_extended[CRYPTO_SEEDBYTES], ++nonce);
   } while(check_ES(s, PARAM_KEYGEN_BOUND_S) != 0);
 
   // Generate uniform polynomial "a"
   poly_uniform(a, &randomness_extended[2*CRYPTO_SEEDBYTES]);
-  
+
   // Compute the public key t = as+e
   poly_mul(t, a, s);
   poly_add_correct(t, t, e);
-    
+
   // Pack public and private keys
   encode_sk(sk, s, e, &randomness_extended[2*CRYPTO_SEEDBYTES]);
   encode_pk(pk, t, &randomness_extended[2*CRYPTO_SEEDBYTES]);
@@ -184,9 +184,9 @@ int crypto_sign(unsigned char *sm, size_t *smlen, const unsigned char *m, size_t
   uint32_t pos_list[PARAM_H];
   int16_t sign_list[PARAM_H], s[PARAM_N], e[PARAM_N];
   poly y, v, Sc, Ec, z, a;
-  int nonce = 0;  // Initialize domain separator for sampling y   
-  
-  // Get {seed_a, seed_y}, s and e 
+  int nonce = 0;  // Initialize domain separator for sampling y
+
+  // Get {seed_a, seed_y}, s and e
   decode_sk(seeds, s, e, sk);
 
   // Get H(seed_y, r, H(m)) to sample y
@@ -194,32 +194,32 @@ int crypto_sign(unsigned char *sm, size_t *smlen, const unsigned char *m, size_t
   memcpy(randomness_input, &seeds[CRYPTO_SEEDBYTES], CRYPTO_SEEDBYTES);
   SHAKE(randomness_input+CRYPTO_RANDOMBYTES+CRYPTO_SEEDBYTES, HM_BYTES, m, mlen);
   SHAKE(randomness, CRYPTO_SEEDBYTES, randomness_input, CRYPTO_RANDOMBYTES+CRYPTO_SEEDBYTES+HM_BYTES);
-  
+
   poly_uniform(a, seeds);
 
   while (1) {
     sample_y(y, randomness, ++nonce);           // Sample y uniformly at random from [-B,B]
-    poly_mul(v, a, y); 
+    poly_mul(v, a, y);
     hash_H(c, v, randomness_input+CRYPTO_RANDOMBYTES+CRYPTO_SEEDBYTES);
     encode_c(pos_list, sign_list, c);           // Generate c = Enc(c'), where c' is the hashing of v together with m
     sparse_mul16(Sc, s, pos_list, sign_list);
     poly_add(z, y, Sc);                         // Compute z = y + sc
-    
+
     if (test_rejection(z) != 0) {               // Rejection sampling
       continue;
     }
- 
+
     sparse_mul16(Ec, e, pos_list, sign_list);
-    poly_sub_correct(v, v, Ec);                       
-    
+    poly_sub_correct(v, v, Ec);
+
     if (test_correctness(v) != 0) {
       continue;
-    }    
+    }
 
     // Copy message to signature package, and pack signature
     for (size_t i = 0; i < mlen; i++)
       sm[CRYPTO_BYTES+i] = m[i];
-    *smlen = CRYPTO_BYTES + mlen; 
+    *smlen = CRYPTO_BYTES + mlen;
     encode_sig(sm, c, z);
 
     return 0;
@@ -244,26 +244,26 @@ int crypto_sign_open(unsigned char *m, size_t *mlen, const unsigned char *sm, si
 {
   unsigned char c[CRYPTO_C_BYTES], c_sig[CRYPTO_C_BYTES], seed[CRYPTO_SEEDBYTES], hm[HM_BYTES];
   uint32_t pos_list[PARAM_H];
-  int16_t sign_list[PARAM_H]; 
+  int16_t sign_list[PARAM_H];
   int32_t pk_t[PARAM_N];
   poly w, z, a, Tc;
 
   if (smlen < CRYPTO_BYTES) return -1;
 
-  decode_sig(c, z, sm);  
+  decode_sig(c, z, sm);
   if (test_z(z) != 0) return -2;                 // Check norm of z
   decode_pk(pk_t, seed, pk);
   poly_uniform(a, seed);
-  encode_c(pos_list, sign_list, c);              
-  sparse_mul32(Tc, pk_t, pos_list, sign_list);    
-  poly_mul(w, a, z);          
+  encode_c(pos_list, sign_list, c);
+  sparse_mul32(Tc, pk_t, pos_list, sign_list);
+  poly_mul(w, a, z);
   poly_sub_reduce(w, w, Tc);                     // Compute w = az - tc
   SHAKE(hm, HM_BYTES, sm+CRYPTO_BYTES, smlen-CRYPTO_BYTES);
   hash_H(c_sig, w, hm);
 
   // Check if the calculated c matches c from the signature
   if (memcmp(c, c_sig, CRYPTO_C_BYTES)) return -3;
-  
+
   *mlen = smlen-CRYPTO_BYTES;
   for (size_t i = 0; i < *mlen; i++)
     m[i] = sm[CRYPTO_BYTES+i];
