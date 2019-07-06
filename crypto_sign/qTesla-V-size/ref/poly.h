@@ -7,10 +7,10 @@
 
 typedef int32_t poly[PARAM_N];
 
-int32_t reduce(int64_t a);
+//int32_t reduce(int64_t a);
 int32_t barr_reduce(int32_t a);
-void ntt(poly a, const poly w);
-void nttinv(poly a, const poly w);
+void ntt(poly a);
+void nttinv(poly a);
 void poly_mul(poly result, const poly x, const poly y);
 void poly_add(poly result, const poly x, const poly y);
 void poly_add_correct(poly result, const poly x, const poly y);
