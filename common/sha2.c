@@ -598,7 +598,7 @@ void sha512_inc_blocks(sha512ctx *state, const uint8_t *in, size_t inblocks) {
 
     uint64_t bytes = load_bigendian_64(state->ctx + 64);
 
-    crypto_hashblocks_sha256(state->ctx, in, 128 * inblocks);
+    crypto_hashblocks_sha512(state->ctx, in, 128 * inblocks);
     bytes += 128 * inblocks;
 
     store_bigendian_64(state->ctx + 64, bytes);
