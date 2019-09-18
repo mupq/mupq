@@ -297,7 +297,7 @@ class SizeBenchmark(StackBenchmark):
                 'arm-none-eabi-size -t ' + glob,
                 shell=True,
                 stderr=subprocess.DEVNULL,
-                text=True)
+                universal_newlines=True)
         sizes = output.splitlines()[-1].split('\t')
         fsizes = (f'.text bytes:\n{sizes[0].strip()}\n'
                   f'.data bytes:\n{sizes[1].strip()}\n'
