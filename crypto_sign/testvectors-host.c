@@ -31,13 +31,13 @@ typedef uint32_t uint32;
 
 static void printbytes(const unsigned char *x, unsigned long long xlen)
 {
-  char out[3];
+  char outs[2*xlen+1];
   unsigned long long i;
   for(i=0;i<xlen;i++) {
-    sprintf(out, "%02x", x[i]);
-    printf(out, 2);
+    sprintf(outs+2*i, "%02x", x[i]);
   }
-  printf("\n");
+  outs[2*xlen] = 0;
+  puts(outs);
 }
 
 static uint32 seed[32] = { 3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4,6,2,6,4,3,3,8,3,2,7,9,5 } ;
@@ -114,14 +114,14 @@ int main(void)
 
     if(r)
     {
-      printf("ERROR: signature verification failed\n");
+      puts("ERROR: signature verification failed");
       return -1;
     }
     for(k=0;k<i;k++)
     {
       if(sm[k]!=mi[k])
       {
-        printf("ERROR: message recovery failed\n");
+        puts("ERROR: message recovery failed");
         return -1;
       }
     }

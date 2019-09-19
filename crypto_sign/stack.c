@@ -27,7 +27,7 @@
 static void send_stack_usage(const char *s, unsigned int c) {
   char outs[120];
   hal_send_str(s);
-  sprintf(outs, "%u\n", c);
+  snprintf(outs, sizeof(outs), "%u\n", c);
   hal_send_str(outs);
 }
 
