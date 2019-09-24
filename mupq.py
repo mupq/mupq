@@ -339,7 +339,7 @@ class TestVectors(BoardTestCase):
                     continue
                 if not exclude and len(args)>0 and impl.scheme not in args:
                     continue
-                if impl.implementation not in ('ref', 'clean', 'opt'):
+                if impl.implementation not in ('ref', 'clean', 'opt', 'opt-ct'):
                     continue
                 # Build host version
                 self.log.info("Running %s on host", impl)
