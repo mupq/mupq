@@ -4,6 +4,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "sha2.h"
 
@@ -567,6 +568,22 @@ void sha512_inc_init(sha512ctx *state) {
     uint64_t t1 = hal_get_time();
     hash_cycles += (t1-t0);
 #endif
+}
+
+void sha224_inc_clone_state(sha224ctx *stateout, const sha224ctx *statein) {
+    memcpy(stateout, statein, sizeof(sha224ctx));
+}
+
+void sha256_inc_clone_state(sha256ctx *stateout, const sha256ctx *statein) {
+    memcpy(stateout, statein, sizeof(sha256ctx));
+}
+
+void sha384_inc_clone_state(sha384ctx *stateout, const sha384ctx *statein) {
+    memcpy(stateout, statein, sizeof(sha384ctx));
+}
+
+void sha512_inc_clone_state(sha512ctx *stateout, const sha512ctx *statein) {
+    memcpy(stateout, statein, sizeof(sha512ctx));
 }
 
 void sha256_inc_blocks(sha256ctx *state, const uint8_t *in, size_t inblocks) {
