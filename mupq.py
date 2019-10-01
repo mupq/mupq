@@ -113,6 +113,8 @@ class PlatformSettings(object):
                     if not os.path.isdir(scheme_path):
                         continue
                     for implementation_path in os.listdir(scheme_path):
+                        if implementation_path == "avx2":
+                            continue
                         path = os.path.join(scheme_path,
                                             implementation_path)
                         if not os.path.isdir(path):
