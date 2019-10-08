@@ -155,6 +155,12 @@ int crypto_kem_dec(unsigned char* ss, const unsigned char* ct, const unsigned ch
 
   if(abort == 1) {
     memset(ss, 0, SHARED_SECRET_BYTES);
+    ffi_vec_clear(m, PARAM_K);
+    ffi_qre_clear(u);
+    ffi_qre_clear(v);
+    ffi_qre_clear(u2);
+    ffi_qre_clear(v2);
+    ffi_qre_clear_modulus();
     return -1;
   }
 
