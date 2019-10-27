@@ -1,8 +1,8 @@
 #include "api.h"
 #include "randombytes.h"
 #include "hal.h"
+#include "sendfn.h"
 
-#include <stdio.h>
 #include <string.h>
 
 #define MAX_SIZE 0x1B000
@@ -23,12 +23,7 @@
 #define MUPQ_crypto_kem_enc NAMESPACE(crypto_kem_enc)
 #define MUPQ_crypto_kem_dec NAMESPACE(crypto_kem_dec)
 
-static void send_stack_usage(const char *s, unsigned int c) {
-  char outs[120];
-  hal_send_str(s);
-  snprintf(outs, sizeof(outs), "%u\n", c);
-  hal_send_str(outs);
-}
+#define send_stack_usage(S, U) send_unsigned((S), (U))
 
 unsigned int canary_size = MAX_SIZE;
 volatile unsigned char *p;
