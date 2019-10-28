@@ -1,7 +1,7 @@
 #include "api.h"
 #include "hal.h"
+#include "sendfn.h"
 
-#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -21,13 +21,7 @@
 #define MUPQ_crypto_kem_enc NAMESPACE(crypto_kem_enc)
 #define MUPQ_crypto_kem_dec NAMESPACE(crypto_kem_dec)
 
-static void printcycles(const char *s, unsigned long long c)
-{
-  char outs[32];
-  hal_send_str(s);
-  snprintf(outs,sizeof(outs),"%llu\n",c);
-  hal_send_str(outs);
-}
+#define printcycles(S, U) send_unsignedll((S), (U))
 
 unsigned long long hash_cycles;
 

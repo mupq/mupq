@@ -1,6 +1,7 @@
 #include "api.h"
 #include "randombytes.h"
 #include "hal.h"
+#include "sendfn.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -24,12 +25,7 @@
 #define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
 #define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
 
-static void send_stack_usage(const char *s, unsigned int c) {
-  char outs[120];
-  hal_send_str(s);
-  snprintf(outs, sizeof(outs), "%u\n", c);
-  hal_send_str(outs);
-}
+#define send_stack_usage(S, U) send_unsigned((S), (U))
 
 unsigned int canary_size = MAX_SIZE;
 volatile unsigned char *p;

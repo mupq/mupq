@@ -1,5 +1,6 @@
 #include "api.h"
 #include "hal.h"
+#include "sendfn.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -23,13 +24,7 @@
 #define MUPQ_crypto_sign_signature NAMESPACE(crypto_sign_signature)
 #define MUPQ_crypto_sign_verify NAMESPACE(crypto_sign_verify)
 
-static void printcycles(const char *s, unsigned long long c)
-{
-  char outs[32];
-  hal_send_str(s);
-  snprintf(outs,sizeof(outs),"%llu\n",c);
-  hal_send_str(outs);
-}
+#define printcycles(S, U) send_unsignedll((S), (U))
 
 unsigned long long hash_cycles;
 
