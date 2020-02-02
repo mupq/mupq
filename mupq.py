@@ -98,6 +98,8 @@ class PlatformSettings(object):
     name = None
     makeflags = []
 
+    size_executable = 'arm-none-eabi-size'
+
     def __init__(self):
         self.log = logging.getLogger(__class__.__name__)
 
@@ -296,7 +298,7 @@ class SizeBenchmark(StackBenchmark):
         implementation.build_objects(self.test_type)
         glob = f'obj/{implementation.path.replace("/", "_")}_*.o'
         output = subprocess.check_output(
-                'arm-none-eabi-size -t ' + glob,
+                self.platform_settings.size_executable + ' -t ' + glob,
                 shell=True,
                 stderr=subprocess.DEVNULL,
                 universal_newlines=True)
