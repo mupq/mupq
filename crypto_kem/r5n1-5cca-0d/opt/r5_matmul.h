@@ -1,1 +1,1 @@
-../../r5nd-1kemcca-5d/opt/r5_matmul.h
+../../r5nd-1cca-5d/opt/r5_matmul.h

@@ -1,1 +1,1 @@
-../../r5nd-1kemcca-5d/opt/little_endian.h
+../../r5nd-1cca-5d/opt/little_endian.h

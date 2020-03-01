@@ -1,1 +1,1 @@
-../../r5nd-1kemcca-5d/opt/r5_ringmul.c
+../../r5nd-1cca-5d/opt/r5_ringmul.c
