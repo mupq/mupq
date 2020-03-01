@@ -1,1 +1,0 @@
-../../r5nd-1kemcca-5d/opt/ct_util.h
