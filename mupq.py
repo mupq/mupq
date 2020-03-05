@@ -161,18 +161,19 @@ class Platform(contextlib.AbstractContextManager):
     def flash(self, binary_path):
         self.log.info("Flashing %s to device", binary_path)
         self.state = 'waiting'
-        self.equals_seen = 0
 
     def run(self, binary_path):
         """Runs the flashed target and collects the result"""
         self.flash(binary_path)
         while not self._wait_for_start():
-          self.flash(binary_path)
+            self.flash(binary_path)
         self.log.info("Output started")
         return self._read_output()
 
     def _wait_for_start(self):
         """Waits until we read five equals signs"""
+        equals_seen = 0
+        self.device().reset_input_buffer()
         while self.state == 'waiting':
             x = self.device().read()
             if x == b'':
@@ -180,12 +181,12 @@ class Platform(contextlib.AbstractContextManager):
                     "timed out while waiting for the markers, reflashing")
                 return False
             elif x == b'=':
-                self.equals_seen += 1
+                equals_seen += 1
                 continue
-            elif self.equals_seen > 5:
+            elif equals_seen > 5:
                 self.state = 'beginning'
                 self.log.debug("Found output marker")
-            elif self.equals_seen > 1:
+            elif equals_seen > 1:
                 self.log.warning(
                     "Got garbage after finding first equals sign, restarting"
                 )
