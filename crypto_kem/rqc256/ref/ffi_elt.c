@@ -5,7 +5,7 @@
 
 #include "ffi.h"
 #include "ffi_elt.h"
-#include "nist-rng.h"
+#include "nistseedexpander.h"
 #include "randombytes.h"
 
 static int init_field = 0;

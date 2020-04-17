@@ -10,7 +10,7 @@
 #include "ffi_elt.h"
 #include "ffi_vec.h"
 #include "ffi_vspace.h"
-#include "nist-rng.h"
+#include "nistseedexpander.h"
 
 void ffi_poly_init(ffi_poly* p, uint64_t degree);
 void ffi_poly_resize(ffi_poly p, uint64_t size);

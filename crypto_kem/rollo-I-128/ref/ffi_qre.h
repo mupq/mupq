@@ -7,7 +7,7 @@
 #define FFI_QRE_H
 
 #include "ffi.h"
-#include "nist-rng.h"
+#include "nistseedexpander.h"
 
 void ffi_qre_init_modulus(uint64_t n);
 void ffi_qre_clear_modulus(void);

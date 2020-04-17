@@ -7,7 +7,7 @@
 #define FFI_ELT_H
 
 #include "ffi.h"
-#include "nist-rng.h"
+#include "nistseedexpander.h"
 
 
 /********************
