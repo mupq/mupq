@@ -467,7 +467,7 @@ static const unsigned char aes_nonce[16] = {0};
 static void Expand(uint32 *L,const unsigned char *k)
 {
   aes256ctx ctx;
-  aes256_keyexp(&ctx, k);
+  aes256_ctr_keyexp(&ctx, k);
   aes256_ctr((unsigned char *) L, 4*p, aes_nonce, &ctx);
 }
 

@@ -56,7 +56,7 @@ seedexpander(AES_XOF_struct *ctx, unsigned char *x, unsigned long xlen)
 {
     unsigned long   offset;
     aes256ctx aesctx;
-    aes256_keyexp(&aesctx, ctx->key);
+    aes256_ctr_keyexp(&aesctx, ctx->key);
 
     if ( x == NULL )
         return RNG_BAD_OUTBUF;
