@@ -67,8 +67,6 @@ static void surf(void)
 
 int randombytes(uint8_t *x, size_t xlen)
 {
-  unsigned long long bak = xlen;
-  unsigned char *xbak = x;
 
   while (xlen > 0) {
     if (!outleft) {
@@ -80,7 +78,6 @@ int randombytes(uint8_t *x, size_t xlen)
     ++x;
     --xlen;
   }
-  printbytes(xbak, bak);
 
   return 0;
 }
