@@ -7,6 +7,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "fips202.h"
 #include "keccakf1600.h"
@@ -253,6 +254,14 @@ void shake128_inc_squeeze(uint8_t *output, size_t outlen, shake128incctx *state)
 #endif
 }
 
+void shake128_inc_ctx_clone(shake128incctx* dest, const shake128incctx *src) {
+    memcpy(dest, src, sizeof(shake128incctx));
+}
+
+void shake128_inc_ctx_release(shake128incctx *state) {
+    (void) state;
+}
+
 void shake256_inc_init(shake256incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
@@ -295,6 +304,14 @@ void shake256_inc_squeeze(uint8_t *output, size_t outlen, shake256incctx *state)
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
+}
+
+void shake256_inc_ctx_clone(shake256incctx* dest, const shake256incctx *src) {
+    memcpy(dest, src, sizeof(shake256incctx));
+}
+
+void shake256_inc_ctx_release(shake256incctx *state) {
+    (void) state;
 }
 
 /********** cSHAKE128 ***********/
@@ -463,6 +480,12 @@ void shake128(uint8_t *output, size_t outlen, const uint8_t *input, size_t inlen
 #endif
 }
 
+void shake128_ctx_release(shake128ctx *state) {
+    (void) state;
+}
+void shake128_ctx_clone(shake128ctx *dest, const shake128ctx *src) {
+    memcpy(dest, src, sizeof(shake128ctx));
+}
 
 void shake256_absorb(shake256ctx *state, const uint8_t *input, size_t inlen)
 {
@@ -539,6 +562,15 @@ void shake256(uint8_t *output, size_t outlen,
 #endif
 }
 
+void shake256_ctx_release(shake256ctx *state) {
+    (void) state;
+}
+
+void shake256_ctx_clone(shake256ctx *dest, const shake256ctx *src) {
+    memcpy(dest, src, sizeof(shake256ctx));
+}
+
+
 /*************************************************
  * Name:        sha3_256
  *
@@ -610,6 +642,14 @@ void sha3_256_inc_finalize(uint8_t *output, sha3_256incctx *state) {
 #endif
 }
 
+void sha3_256_inc_ctx_clone(sha3_256incctx *dest, const sha3_256incctx *src) {
+    memcpy(dest, src, sizeof(sha3_256incctx));
+}
+
+void sha3_256_inc_ctx_release(sha3_256incctx *state) {
+    (void) state;
+}
+
 void sha3_384_inc_init(sha3_384incctx *state) {
 #ifdef PROFILE_HASHING
   uint64_t t0 = hal_get_time();
@@ -648,6 +688,14 @@ void sha3_384_inc_finalize(uint8_t *output, sha3_384incctx *state) {
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
+}
+
+void sha3_384_inc_ctx_clone(sha3_384incctx *dest, const sha3_384incctx *src) {
+    memcpy(dest, src, sizeof(sha3_384incctx));
+}
+
+void sha3_384_inc_ctx_release(sha3_384incctx *state) {
+    (void) state;
 }
 
 /*************************************************
@@ -749,6 +797,14 @@ void sha3_512_inc_finalize(uint8_t *output, sha3_512incctx *state) {
   uint64_t t1 = hal_get_time();
   hash_cycles += (t1-t0);
 #endif
+}
+
+void sha3_512_inc_ctx_clone(sha3_512incctx *dest, const sha3_512incctx *src) {
+    memcpy(dest, src, sizeof(sha3_512incctx));
+}
+
+void sha3_512_inc_ctx_release(sha3_512incctx *state) {
+    (void) state;
 }
 
 /********** cSHAKE256 ***********/

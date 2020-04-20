@@ -8,7 +8,7 @@
 
 #include "ffi.h"
 #include "ffi_elt.h"
-#include "nist-rng.h"
+#include "nistseedexpander.h"
 
 void ffi_vec_init(ffi_vec* v, uint64_t size);
 void ffi_vec_clear(ffi_vec v, uint64_t size);

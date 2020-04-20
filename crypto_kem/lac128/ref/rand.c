@@ -55,7 +55,7 @@ int pseudo_random_bytes(unsigned char *r, unsigned int len, const unsigned char 
 	EVP_CIPHER_CTX_free(ctx);
     */
     aes256ctx ctx;
-    aes256_keyexp(&ctx, seed);
+    aes256_ctr_keyexp(&ctx, seed);
     aes256_ctr(r, len, data, &ctx);
 	return 0;
 }
