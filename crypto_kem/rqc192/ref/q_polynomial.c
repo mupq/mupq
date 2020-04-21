@@ -1,1 +1,0 @@
-../../rqc128/ref/q_polynomial.c
