@@ -9,10 +9,11 @@
 
 #define CRYPTO_ALGNAME "RQC-256"
 
-#define CRYPTO_SECRETKEYBYTES 2324
-#define CRYPTO_PUBLICKEYBYTES 2284
+#define CRYPTO_SECRETKEYBYTES 4130
+#define CRYPTO_PUBLICKEYBYTES 4090
 #define CRYPTO_BYTES 64
-#define CRYPTO_CIPHERTEXTBYTES 4552
+#define CRYPTO_CIPHERTEXTBYTES 8164
+
 
 // As a technicality, the public key is appended to the secret key in order to respect the NIST API.
 // Without this constraint, CRYPTO_SECRETKEYBYTES would be defined as 40
