@@ -10,7 +10,7 @@ int pseudo_random_bytes(uint8_t *r, unsigned int len, const uint8_t *seed)
 {
 	uint8_t data[12] = {0};
 	aes256ctx ctx;
-	aes256_keyexp(&ctx, seed);
+	aes256_ctr_keyexp(&ctx, seed);
 	aes256_ctr(r, len, data, &ctx);
 	return 0;
 }
