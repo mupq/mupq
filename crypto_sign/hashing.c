@@ -53,16 +53,16 @@ int main(void)
   t0 = hal_get_time();
   MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
   t1 = hal_get_time();
-  printcycles("sign cycles: ", t1-t0);
-  printcycles("sign hash cycles: ", hash_cycles);
+  printcycles("sign cycles:", t1-t0);
+  printcycles("sign hash cycles:", hash_cycles);
 
   // Verification
   hash_cycles = 0;
   t0 = hal_get_time();
   MUPQ_crypto_sign_open(sm, &smlen, sm, smlen, pk);
   t1 = hal_get_time();
-  printcycles("verify cycles: ", t1-t0);
-  printcycles("verify hash cycles: ", hash_cycles);
+  printcycles("verify cycles:", t1-t0);
+  printcycles("verify hash cycles:", hash_cycles);
 
   hal_send_str("#");
   while(1);

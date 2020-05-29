@@ -74,9 +74,9 @@ static int test_keys(void) {
   if (memcmp(key_a, key_b, MUPQ_CRYPTO_BYTES)){
     return -1;
   } else {
-    send_stack_usage("key gen stack usage", stack_key_gen);
-    send_stack_usage("encaps stack usage", stack_encaps);
-    send_stack_usage("decaps stack usage", stack_decaps);
+    send_stack_usage("keypair stack usage:", stack_key_gen);
+    send_stack_usage("encaps stack usage:", stack_encaps);
+    send_stack_usage("decaps stack usage:", stack_decaps);
     hal_send_str("OK KEYS\n");
     return 0;
   }
