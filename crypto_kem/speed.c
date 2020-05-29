@@ -45,13 +45,13 @@ int main(void)
   t0 = hal_get_time();
   MUPQ_crypto_kem_enc(ct, key_a, pk);
   t1 = hal_get_time();
-  printcycles("encaps cycles: ", t1-t0);
+  printcycles("encaps cycles:", t1-t0);
 
   // Decapsulation
   t0 = hal_get_time();
   MUPQ_crypto_kem_dec(key_b, ct, sk);
   t1 = hal_get_time();
-  printcycles("decaps cycles: ", t1-t0);
+  printcycles("decaps cycles:", t1-t0);
 
   if (memcmp(key_a, key_b, MUPQ_CRYPTO_BYTES)) {
     hal_send_str("ERROR KEYS\n");

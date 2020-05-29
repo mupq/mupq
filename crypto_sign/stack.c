@@ -82,9 +82,9 @@ static int test_sign(void) {
   if (rc) {
     return -1;
   } else {
-    send_stack_usage("crypto_sign_keypair stack usage", stack_key_gen);
-    send_stack_usage("crypto_sign stack usage", stack_sign);
-    send_stack_usage("crypto_sign_open stack usage", stack_verify);
+    send_stack_usage("keypair stack usage:", stack_key_gen);
+    send_stack_usage("sign stack usage:", stack_sign);
+    send_stack_usage("verify stack usage:", stack_verify);
     hal_send_str("Signature valid!\n");
     return 0;
   }
