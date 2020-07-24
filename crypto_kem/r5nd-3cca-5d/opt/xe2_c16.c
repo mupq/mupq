@@ -1,1 +1,0 @@
-../../r5nd-1cca-5d/opt/xe2_c16.c
