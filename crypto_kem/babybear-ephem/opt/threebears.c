@@ -1,1 +1,0 @@
-../../mamabear/opt/threebears.c
