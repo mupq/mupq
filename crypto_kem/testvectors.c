@@ -28,16 +28,6 @@
 
 typedef uint32_t uint32;
 
-static void printbytes(const unsigned char *x, unsigned long long xlen)
-{
-  char outs[2*xlen+1];
-  unsigned long long i;
-  for(i=0;i<xlen;i++)
-    sprintf(outs+2*i, "%02x", x[i]);
-  outs[2*xlen] = 0;
-  hal_send_str(outs);
-}
-
 static uint32 seed[32] = { 3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4,6,2,6,4,3,3,8,3,2,7,9,5 } ;
 static uint32 in[12];
 static uint32 out[8];
@@ -99,19 +89,19 @@ int main(void)
     // Key-pair generation
     MUPQ_crypto_kem_keypair(pk, sk_a);
 
-    printbytes(pk,MUPQ_CRYPTO_PUBLICKEYBYTES);
-    printbytes(sk_a,MUPQ_CRYPTO_SECRETKEYBYTES);
+    hal_send_bytes(pk, MUPQ_CRYPTO_PUBLICKEYBYTES);
+    hal_send_bytes(sk_a, MUPQ_CRYPTO_SECRETKEYBYTES);
 
     // Encapsulation
     MUPQ_crypto_kem_enc(sendb, key_b, pk);
 
-    printbytes(sendb,MUPQ_CRYPTO_CIPHERTEXTBYTES);
-    printbytes(key_b,MUPQ_CRYPTO_BYTES);
+    hal_send_bytes(sendb, MUPQ_CRYPTO_CIPHERTEXTBYTES);
+    hal_send_bytes(key_b, MUPQ_CRYPTO_BYTES);
 
     // Decapsulation
     MUPQ_crypto_kem_dec(key_a, sendb, sk_a);
 
-    printbytes(key_a,MUPQ_CRYPTO_BYTES);
+    hal_send_bytes(key_a, MUPQ_CRYPTO_BYTES);
 
     for(j=0;j<MUPQ_CRYPTO_BYTES;j++)
     {

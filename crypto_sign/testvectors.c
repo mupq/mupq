@@ -30,16 +30,6 @@
 
 typedef uint32_t uint32;
 
-static void printbytes(const unsigned char *x, unsigned long long xlen)
-{
-  char outs[2*xlen+1];
-  unsigned long long i;
-  for(i=0;i<xlen;i++)
-    sprintf(outs+2*i, "%02x", x[i]);
-  outs[2*xlen] = 0;
-  hal_send_str(outs);
-}
-
 static uint32 seed[32] = { 3,1,4,1,5,9,2,6,5,3,5,8,9,7,9,3,2,3,8,4,6,2,6,4,3,3,8,3,2,7,9,5 } ;
 static uint32 in[12];
 static uint32 out[8];
@@ -105,12 +95,12 @@ int main(void)
 
     MUPQ_crypto_sign_keypair(pk, sk);
 
-    printbytes(pk,MUPQ_CRYPTO_PUBLICKEYBYTES);
-    printbytes(sk,MUPQ_CRYPTO_SECRETKEYBYTES);
+    hal_send_bytes(pk, MUPQ_CRYPTO_PUBLICKEYBYTES);
+    hal_send_bytes(sk, MUPQ_CRYPTO_SECRETKEYBYTES);
 
     MUPQ_crypto_sign(sm, &smlen, mi, i, sk);
 
-    printbytes(sm, smlen);
+    hal_send_bytes(sm, smlen);
 
     // By relying on m == sm we prevent having to allocate CRYPTO_BYTES twice
     r = MUPQ_crypto_sign_open(sm, &mlen, sm, smlen, pk);
