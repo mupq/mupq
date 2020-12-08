@@ -36,7 +36,6 @@ unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
 unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
 unsigned char sm[MLEN + MUPQ_CRYPTO_BYTES];
 unsigned char m[MLEN];
-unsigned char m_out[MLEN + MUPQ_CRYPTO_BYTES];
 
 size_t mlen;
 size_t smlen;
@@ -74,7 +73,7 @@ static int test_sign(void) {
 
   // Alice uses Bobs response to get her secret key
   FILL_STACK()
-  rc = MUPQ_crypto_sign_open(m_out, &mlen, sm, smlen, pk);
+  rc = MUPQ_crypto_sign_open(sm, &mlen, sm, smlen, pk);
   CHECK_STACK()
   if(c >= canary_size) return -1;
   stack_verify = c;
