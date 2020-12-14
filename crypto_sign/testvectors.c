@@ -67,6 +67,11 @@ static void surf(void)
   }
 }
 
+static void setstate(int i) {
+	memset(in, i, sizeof(in));
+	outleft = 0;
+}
+
 int randombytes(uint8_t *x, size_t xlen)
 {
   while (xlen > 0) {
@@ -101,6 +106,7 @@ int main(void)
 
   for(i=0; i<MAXMLEN; i=(i==0)?i+1:i<<1)
   {
+    setstate(i);
     randombytes(mi,i);
 
     MUPQ_crypto_sign_keypair(pk, sk);
