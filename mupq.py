@@ -66,12 +66,12 @@ class Implementation(object):
         makeflags.append(target)
         return subprocess.check_call(makeflags)
 
-    def get_binary_path(self, type_):
-        return f'bin/{self.path.replace("/", "_")}_{type_}.bin'
+    def get_binary_path(self, test_type, bin_type):
+        return f'bin/{self.path.replace("/", "_")}_{test_type}.{bin_type}'
 
-    def build_binary(self, type_):
-        self.log.info(f"Building {self} - {type_}")
-        self.run_make(self.get_binary_path(type_))
+    def build_binary(self, test_type, bin_type):
+        self.log.info(f"Building {self} - {test_type}")
+        self.run_make(self.get_binary_path(test_type, bin_type))
 
     def get_object_path(self, source):
         return f'obj/{self.path}/{source}'
@@ -98,6 +98,8 @@ class PlatformSettings(object):
     makeflags = []
 
     size_executable = 'arm-none-eabi-size'
+
+    binary_type = 'bin'
 
     def __init__(self):
         self.log = logging.getLogger(__class__.__name__)
@@ -181,8 +183,10 @@ class BoardTestCase(abc.ABC):
 
     @abc.abstractmethod
     def run_test(self, implementation):
-        implementation.build_binary(f'{self.test_type}')
-        binary = implementation.get_binary_path(f'{self.test_type}')
+        implementation.build_binary(f'{self.test_type}',
+                                    self.platform_settings.binary_type)
+        binary = implementation.get_binary_path(f'{self.test_type}',
+                                                self.platform_settings.binary_type)
         return self.interface.run(binary)
 
     def test_all(self, args=[]):
@@ -330,7 +334,8 @@ class BuildAll(BoardTestCase):
 
     def run_test(self, implementation):
         for test_type in ('test', 'testvectors', 'speed', 'hashing', 'stack'):
-            implementation.build_binary(test_type)
+            implementation.build_binary(test_type,
+                                        self.platform_settings.binary_type)
 
 class Converter(object):
     def convert(self):
