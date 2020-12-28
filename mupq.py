@@ -74,15 +74,14 @@ class Implementation(object):
         self.run_make(self.get_binary_path(type_))
 
     def get_object_path(self, source):
-        return f'obj/{self.path.replace("/", "_")}_{source}'
+        return f'obj/{self.path}/{source}'
 
-    def build_objects(self, type_):
-        self.log.info(f"Building {self} - {type_}")
-        for source_file in os.listdir(self.path):
-            if Implementation._source_regex.match(source_file) == None:
-                continue
-            object_file = self.get_object_path(source_file[:-1] + 'o')
-            self.run_make(object_file)
+    def get_library_path(self):
+        return f'obj/lib{self.path.replace("/", "_")}.a'
+
+    def build_library(self):
+        self.log.info(f"Building {self} library")
+        self.run_make(self.get_library_path())
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -244,13 +243,12 @@ class SizeBenchmark(StackBenchmark):
 
     def run_test(self, implementation):
         self.log.info("Measuring %s", implementation)
-        implementation.build_objects(self.test_type)
-        glob = f'obj/{implementation.path.replace("/", "_")}_*.o'
+        implementation.build_library()
         output = subprocess.check_output(
-                self.platform_settings.size_executable + ' -t ' + glob,
-                shell=True,
-                stderr=subprocess.DEVNULL,
-                universal_newlines=True)
+            self.platform_settings.size_executable + ' -t ' + implementation.get_library_path(),
+            shell=True,
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True)
         sizes = output.splitlines()[-1].split('\t')
         fsizes = (f'.text bytes:\n{sizes[0].strip()}\n'
                   f'.data bytes:\n{sizes[1].strip()}\n'
