@@ -158,61 +158,9 @@ class Platform(contextlib.AbstractContextManager):
         raise NotImplementedError("Override this")
 
     @abc.abstractmethod
-    def flash(self, binary_path):
-        self.log.info("Flashing %s to device", binary_path)
-        self.state = 'waiting'
-
     def run(self, binary_path):
         """Runs the flashed target and collects the result"""
-        self.flash(binary_path)
-        while not self._wait_for_start():
-            self.flash(binary_path)
-        self.log.info("Output started")
-        return self._read_output()
-
-    def _wait_for_start(self):
-        """Waits until we read five equals signs"""
-        equals_seen = 0
-        self.device().reset_input_buffer()
-        while self.state == 'waiting':
-            x = self.device().read()
-            if x == b'':
-                self.log.warning(
-                    "timed out while waiting for the markers, reflashing")
-                return False
-            elif x == b'=':
-                equals_seen += 1
-                continue
-            elif equals_seen > 5:
-                self.state = 'beginning'
-                self.log.debug("Found output marker")
-            elif equals_seen > 1:
-                self.log.warning(
-                    "Got garbage after finding first equals sign, restarting"
-                )
-                return False
-        # Read remaining = signs
-        while self.state == 'beginning':
-            x = self.device().read()
-            # Consume remaining =
-            if x != b'=':
-                self.output = [x]
-                self.state = 'reading'
-                break
-        return True
-
-    def _read_output(self):
-        while self.state == 'reading':
-            x = self.device().read()
-            if x == b'#':
-                self.state = 'done'
-                break
-            elif x != b'':
-                self.output.append(x)
-        output = b''.join(self.output).decode('utf-8', 'ignore')
-        # sometimes there's a line full of markers; strip out to avoid errors
-        lines = (x for x in output.split('\n') if not all(c == '=' for c in x))
-        return "{}\n".format('\n'.join(lines))
+        raise NotImplementedError("Override this")
 
 
 class BoardTestCase(abc.ABC):
