@@ -58,6 +58,5 @@ int main(void)
   printcycles("verify cycles:", t1-t0);
 
   hal_send_str("#");
-  while(1);
   return 0;
 }

@@ -65,6 +65,5 @@ int main(void)
   printcycles("verify hash cycles:", hash_cycles);
 
   hal_send_str("#");
-  while(1);
   return 0;
 }

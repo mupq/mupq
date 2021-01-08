@@ -106,6 +106,5 @@ int main(void) {
   // marker for automated benchmarks
   hal_send_str("#");
 
-  while(1);
   return 0;
 }

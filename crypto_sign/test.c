@@ -143,6 +143,5 @@ int main(void)
     test_sign();
     test_wrong_pk();
     hal_send_str("#");
-    while(1);
     return 0;
 }

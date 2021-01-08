@@ -61,6 +61,5 @@ int main(void)
   }
 
   hal_send_str("#");
-  while(1);
   return 0;
 }
