@@ -8,7 +8,7 @@ obj/_ELFNAME_%.o:
 elf/%.elf: obj/_ELFNAME_%.elf.o $(LINKDEPS)
 	@echo "  LD      $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(LD) $(LDFLAGS) -o $@ $(filter %.o,$(filter-out %.a -l% obj/_ELFNAME_%.elf.o,$^)) obj/_ELFNAME_$(@F).o -Wl,--start-group $(LDLIBS) -Wl,--end-group
+	$(Q)$(LD) $(LDFLAGS) -o $@ $(filter %.o,$^) -Wl,--start-group $(LDLIBS) -Wl,--end-group
 
 obj/%.a:
 	@echo "  AR      $@"
@@ -60,27 +60,27 @@ obj/hashprof/%.s.o: %.s
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
 	$(Q)$(CC) -c -o $@ $(CFLAGS) $<
 
-elf-host/%:
+bin-host/%: $(HOST_LIBDEPS)
 	@echo "  HOST-LD $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(LD) $(LDFLAGS) -o $@ $(filter %.o,$(filter-out %.a -l% _ELFNAME_%.elf.o,$^)) $(LDLIBS)
+	$(Q)$(HOST_LD) $(HOST_LDFLAGS) -o $@ $(filter %.o,$^) $(HOST_LDLIBS)
 
 obj-host/%.a:
 	@echo "  HOST-AR $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(AR) rcs $@ $(filter %.o,$^)
+	$(Q)$(HOST_AR) rcs $@ $(filter %.o,$^)
 
 obj-host/%.c.o: %.c
-	@echo "  CC      $@"
+	@echo "  HOST-CC $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(CC) -c -o $@ $(CFLAGS) $<
+	$(Q)$(HOST_CC) -c -o $@ $(HOST_CFLAGS) $<
 
 obj-host/%.c.S: %.c
-	@echo "  CC      $@"
+	@echo "  HOST-CC $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(CC) -S -o $@ $(CFLAGS) $<
+	$(Q)$(HOST_CC) -S -o $@ $(HOST_CFLAGS) $<
 
 obj-host/%.S.o: %.S
-	@echo "  AS      $@"
+	@echo "  HOST-AS $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(CC) -c -o $@ $(CFLAGS) $<
+	$(Q)$(HOST_CC) -c -o $@ $(HOST_CFLAGS) $<

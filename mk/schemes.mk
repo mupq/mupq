@@ -70,6 +70,14 @@ define compiletest =
 	$(Q)$(CC) $(filter-out --specs=%,$(CFLAGS)) $(LDFLAGS) -o $@ $(if $(AIO),$(filter %.c %.S %.s,$^),$<) -Wl,--start-group $(LDLIBS) -Wl,--end-group
 endef
 
+define hostcompiletest =
+	@echo "  HOST-LD $@"
+	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
+	$(Q)$(HOST_CC) $(filter-out --specs=%,$(HOST_CFLAGS)) $(HOST_LDFLAGS) -o $@ $(filter %.c,$^) $(HOST_LDLIBS)
+endef
+
+HOST_IMPLEMENTATIONS = %_clean %_ref %_opt %opt-ct
+
 # This template defines all the targets for a scheme: a library file containing
 # all the compiled objects, and an elf file for each test.
 define schemelib =
@@ -78,6 +86,7 @@ libs: obj/lib$(2).a
 elf/$(2)_%.elf: CPPFLAGS+=-I$(1)
 elf/$(2)_%.elf: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
 elf/$(2)_hashing.elf: PROFILE_HASHING=1
+elf/$(2)_testvectors.elf: NO_RANDOMBYTES=1
 
 # The {test,stack,speed,...}.c file is compiled directly into the elf file,
 # since the code depends on the preprocessor definitions in the api.h file of
@@ -85,12 +94,12 @@ elf/$(2)_hashing.elf: PROFILE_HASHING=1
 
 ifeq ($(AIO),1)
 # Compile all sources in one.
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $(call schemesrc,$(1)) $(LINKDEPS)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $(call schemesrc,$(1)) $$(LINKDEPS)
 	$$(compiletest)
 else
 # Compile just the test and link against the library.
 elf/$(2)_%.elf: LDLIBS+=-l$(2)
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c obj/lib$(2).a $(LINKDEPS)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c obj/lib$(2).a $$(LINKDEPS)
 	$$(compiletest)
 endif
 
@@ -98,6 +107,14 @@ endif
 tests: elf/$(2)_test.elf elf/$(2)_speed.elf elf/$(2)_hashing.elf elf/$(2)_stack.elf elf/$(2)_testvectors.elf
 tests-bin: bin/$(2)_test.bin bin/$(2)_speed.bin bin/$(2)_hashing.bin bin/$(2)_stack.bin bin/$(2)_testvectors.bin
 tests-hex: bin/$(2)_test.hex bin/$(2)_speed.hex bin/$(2)_hashing.hex bin/$(2)_stack.hex bin/$(2)_testvectors.hex
+
+ifneq ($(filter $(HOST_IMPLEMENTATIONS),$(2)),)
+bin-host/$(2)_testvectors: HOST_CPPFLAGS+=-I$(1)
+bin-host/$(2)_testvectors: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
+bin-host/$(2)_testvectors: mupq/crypto_$(3)/testvectors-host.c $(call schemesrc,$(1)) $$(HOST_LIBDEPS)
+	$$(hostcompiletest)
+testvectors: bin-host/$(2)_testvectors
+endif
 
 # For each scheme a Makefile with special scheme-specific options can be placed
 # under <schemefolder>/config.mk and mk/<schemename>.mk. If such a file does not

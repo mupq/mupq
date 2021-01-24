@@ -97,10 +97,15 @@ LDFLAGS += \
 
 LDLIBS += -lm
 
+HOST_CPPFLAGS += -DMUPQ_NAMESPACE=$(MUPQ_NAMESPACE)
+
 HOST_CFLAGS += \
+	-O2 -g3 \
 	-I$(SRCDIR)/mupq/common \
 	-Wall -Wextra -Wshadow \
-	-MMD
+	-MMD \
+	-fno-common \
+	$(HOST_CPPFLAGS)
 
 HOST_LDFLAGS += \
 	-Lobj-host

@@ -298,7 +298,8 @@ class TestVectors(BoardTestCase):
                     continue
                 # Build host version
                 self.log.info("Running %s on host", impl)
-                binpath = impl.get_binary_path(self.test_type)
+                binpath = impl.get_binary_path(self.test_type,
+                                               self.platform_settings.binary_type)
                 hostbin = (binpath
                            .replace('bin/', 'bin-host/')
                            .replace('.bin', ''))
