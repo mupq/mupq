@@ -225,8 +225,16 @@ class StackBenchmark(BoardTestCase):
             implementation.scheme, implementation.implementation,
             timestamp)
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, 'w') as f:
-            f.write(result)
+
+        # if result contains multiple iterations, they are separated by +
+        if "+" in result:
+            results = result.split("+")[:-1]
+            for idx, result in enumerate(results):
+                with open(f"{filename}_{idx}", 'w') as f:
+                    f.write(result)
+        else:
+            with open(filename, 'w') as f:
+                f.write(result)
         self.log.info("Wrote benchmark!")
 
     def run_test(self, implementation):
