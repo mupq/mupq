@@ -30,7 +30,7 @@ Q ?= @
 PLATFORM ?=
 
 ifeq (,$(PLATFORM))
-$(error No PLATFORM specified (e.g., PLATFORM=sam3x8e for the Arduino Due or PLATFORM=lm3s for the QEmu)!)
+$(error No PLATFORM specified (see README.md for a list of supported platforms)!)
 endif
 
 ifeq (,$(wildcard $(SRCDIR)/mk/$(PLATFORM).mk))
