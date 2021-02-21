@@ -62,7 +62,7 @@ CFLAGS += \
 DEBUG ?=
 OPT_SIZE ?=
 LTO ?=
-AIO ?=
+AIO ?= 1
 
 RETAINED_VARS += DEBUG OPT_SIZE LTO AIO
 
@@ -74,9 +74,7 @@ else
 CFLAGS += -O3 -g3
 endif
 
-ifeq ($(AIO),1)
-# AIO flag is handled in schemes.mk
-else ifeq ($(LTO),1)
+ifeq ($(LTO),1)
 CFLAGS += -flto
 LDFLAGS += -flto
 endif
