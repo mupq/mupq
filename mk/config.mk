@@ -109,7 +109,7 @@ HOST_LDFLAGS += \
 	-Lobj-host
 
 # Check if the retained variables have been changed
-define VAR_CHECK =
+define VAR_CHECK
 ifneq ($$(origin LAST_$(1)),undefined)
 ifneq "$$($(1))" "$$(LAST_$(1))"
 $$(error "You changed the $(1) variable, you must run make clean!")

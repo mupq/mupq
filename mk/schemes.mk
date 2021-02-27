@@ -64,13 +64,13 @@ schemesrc = $(wildcard $(1)/*.c) $(wildcard $(1)/*.s) $(wildcard $(1)/*.S)
 namespace = $(shell echo $(if $(filter mupq_pqclean_%,$(1)),$(subst mupq_pqclean_crypto_$(2)_,pqclean_,$(1))_) | tr '[:lower:]' '[:upper:]' | tr -d '-')
 
 # The default compilation rule.
-define compiletest =
+define compiletest
 	@echo "  CC      $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
 	$(Q)$(CC) $(filter-out --specs=%,$(CFLAGS)) $(LDFLAGS) -o $@ $(if $(AIO),$(filter %.c %.S %.s,$^),$<) -Wl,--start-group $(LDLIBS) -Wl,--end-group
 endef
 
-define hostcompiletest =
+define hostcompiletest
 	@echo "  HOST-LD $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
 	$(Q)$(HOST_CC) $(filter-out --specs=%,$(HOST_CFLAGS)) $(HOST_LDFLAGS) -o $@ $(filter %.c,$^) $(HOST_LDLIBS)
@@ -80,7 +80,7 @@ HOST_IMPLEMENTATIONS = %_clean %_ref %_opt %opt-ct
 
 # This template defines all the targets for a scheme: a library file containing
 # all the compiled objects, and an elf file for each test.
-define schemelib =
+define schemelib
 obj/lib$(2).a: $(call objs,$(call schemesrc,$(1)))
 libs: obj/lib$(2).a
 elf/$(2)_%.elf: CPPFLAGS+=-I$(1)
@@ -147,7 +147,7 @@ benchmarks/stack/%/frommake:
 	$(SIZE) $< > $@; \
 	$(QEMU) $(QEMUFLAGS) -kernel $< >> $@ < /dev/null
 
-define runtest =
+define runtest
 benchmarks/$(3)/$(1)/frommake: elf/$(2)_$(3).elf
 run-$(3)-tests: benchmarks/$(3)/$(1)/frommake
 endef
