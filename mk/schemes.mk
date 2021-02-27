@@ -94,12 +94,12 @@ elf/$(2)_testvectors.elf: NO_RANDOMBYTES=1
 
 ifeq ($(AIO),1)
 # Compile all sources in one.
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $(call schemesrc,$(1)) $$(LINKDEPS)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $(call schemesrc,$(1)) $$(LINKDEPS) $$(CONFIG)
 	$$(compiletest)
 else
 # Compile just the test and link against the library.
 elf/$(2)_%.elf: LDLIBS+=-l$(2)
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c obj/lib$(2).a $$(LINKDEPS)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c obj/lib$(2).a $$(LINKDEPS) $$(CONFIG)
 	$$(compiletest)
 endif
 
@@ -111,7 +111,7 @@ tests-hex: bin/$(2)_test.hex bin/$(2)_speed.hex bin/$(2)_hashing.hex bin/$(2)_st
 ifneq ($(filter $(HOST_IMPLEMENTATIONS),$(2)),)
 bin-host/$(2)_testvectors: HOST_CPPFLAGS+=-I$(1)
 bin-host/$(2)_testvectors: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
-bin-host/$(2)_testvectors: mupq/crypto_$(3)/testvectors-host.c $(call schemesrc,$(1)) $$(HOST_LIBDEPS)
+bin-host/$(2)_testvectors: mupq/crypto_$(3)/testvectors-host.c $(call schemesrc,$(1)) $$(HOST_LIBDEPS) $$(CONFIG)
 	$$(hostcompiletest)
 testvectors: bin-host/$(2)_testvectors
 endif

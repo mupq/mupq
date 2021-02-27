@@ -11,9 +11,12 @@ endif
 
 RETAINED_VARS :=
 
--include obj/.config.mk
+CONFIG := obj/.config.mk
 
-obj/.config.mk:
+-include $(CONFIG)
+
+$(CONFIG):
+	@echo "  GEN     $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
 	@echo "# These variables are retained and can't be changed without a clean" > $@
 	@$(foreach var,$(RETAINED_VARS),echo "$(var) := $($(var))" >> $@; echo "LAST_$(var) := $($(var))" >> $@;)
@@ -113,7 +116,8 @@ HOST_LDFLAGS += \
 define VAR_CHECK
 ifneq ($$(origin LAST_$(1)),undefined)
 ifneq "$$($(1))" "$$(LAST_$(1))"
-$$(error "You changed the $(1) variable, you must run make clean!")
+$$(info Variable $(1) changed, forcing rebuild!)
+.PHONY: $(CONFIG)
 endif
 endif
 endef
