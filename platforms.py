@@ -69,7 +69,7 @@ class SerialCommsPlatform(mupq.Platform):
         self.flash(binary_path)
         self._dev.reset_input_buffer()
         # Wait for the first equal sign
-        if self._dev.read_until(b'=') != b'=':
+        if self._dev.read_until(b'=')[-1] != b'='[0]:
             raise Exception('Timout waiting for start')
         # Wait for the end of the equal delimiter
         start = self._dev.read_until(b'\n')
