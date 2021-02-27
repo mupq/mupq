@@ -15,15 +15,15 @@ obj/%.a: $(CONFIG)
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
 	$(Q)$(AR) rcs $@ $(filter %.o,$^)
 
-bin/%.bin: elf/%.elf $(CONFIG)
+bin/%.bin: elf/%.elf
 	@echo "  OBJCOPY $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(OBJCOPY) -Obinary $^ $@
+	$(Q)$(OBJCOPY) -Obinary $< $@
 
-bin/%.hex: elf/%.elf $(CONFIG)
+bin/%.hex: elf/%.elf
 	@echo "  OBJCOPY $@"
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D)
-	$(Q)$(OBJCOPY) -Oihex $^ $@
+	$(Q)$(OBJCOPY) -Oihex $< $@
 
 obj/%.c.o: %.c $(CONFIG)
 	@echo "  CC      $@"
