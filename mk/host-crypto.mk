@@ -1,5 +1,7 @@
 HOST_SYMCRYPTO_SRC = \
-	$(SYMCRYPTO_SRC_COMMON) \
+	mupq/common/fips202.c \
+	mupq/common/sp800-185.c \
+	mupq/common/nistseedexpander.c \
 	mupq/common/keccakf1600.c \
 	mupq/pqclean/common/aes.c \
 	mupq/pqclean/common/sha2.c
