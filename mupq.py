@@ -423,7 +423,7 @@ class Converter(object):
         return data
 
     def _stats(self, data):
-        return (int(statistics.mean(data)), min(data), max(data))
+        return (int(statistics.median(data)), min(data), max(data))
 
     def _parseData(self, fileContents, benchmark, type_):
         parts = fileContents.split("\n")
@@ -502,8 +502,8 @@ class MarkdownConverter(Converter):
         print("| "+ " | ".join(data)+" |")
 
     def _formatStats(self, l):
-        mean, minimum, maximum = self._stats(l)
-        return "AVG: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(mean, minimum, maximum)
+        med, minimum, maximum = self._stats(l)
+        return "MED: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(med, minimum, maximum)
 
     def _formatNumber(self, num):
         return f"{num:,}"
@@ -529,17 +529,17 @@ class CsvConverter(Converter):
         self._header("Speed Evaluation")
         self._subheader("Key Encapsulation Schemes")
         self._tablehead(["Scheme", "Implementation"] +
-                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Encapsulation [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Decapsulation [cycles] ({x})" for x in ["mean", "min", "max"]])
+                        [f"Key Generation [cycles] ({x})" for x in ["med", "min", "max"]] +
+                        [f"Encapsulation [cycles] ({x})" for x in ["med", "min", "max"]] +
+                        [f"Decapsulation [cycles] ({x})" for x in ["med", "min", "max"]])
 
         cyclesKem = self._processPrimitives("benchmarks/speed/crypto_kem/", "speed", "crypto_kem")
 
         self._subheader("Signature Schemes")
         self._tablehead(["Scheme", "Implementation"]+
-                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Sign [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Verify [cycles] ({x})" for x in ["mean", "min", "max"]])
+                        [f"Key Generation [cycles] ({x})" for x in ["med", "min", "max"]] +
+                        [f"Sign [cycles] ({x})" for x in ["med", "min", "max"]] +
+                        [f"Verify [cycles] ({x})" for x in ["med", "min", "max"]])
         cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", "speed", "crypto_sign")
         return (cyclesKem, cyclesSign)
 
@@ -549,8 +549,8 @@ class CsvConverter(Converter):
         print(row+(","*(10-row.count(","))))
 
     def _formatStats(self, l):
-        mean, minimum, maximum = self._stats(l)
-        return f"{mean},{minimum},{maximum}"
+        med, minimum, maximum = self._stats(l)
+        return f"{med},{minimum},{maximum}"
 
     def _formatNumber(self, num):
         return str(num)
