@@ -4,6 +4,9 @@
  * Written by Nir Drucker, Shay Gueron and Dusan Kostic,
  * AWS Cryptographic Algorithms Group.
  *
+ * Modification: 2021 Ming-Shing Chen, Tung Chou, and Markus Krausz
+ *
+ *
  * [1] The optimizations are based on the description developed in the paper:
  *     Drucker, Nir, and Shay Gueron. 2019. “A Toolbox for Software Optimization
  *     of QC-MDPC Code-Based Cryptosystems.” Journal of Cryptographic Engineering,
