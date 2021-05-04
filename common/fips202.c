@@ -38,9 +38,7 @@ static void keccak_absorb(uint64_t *s,
     const uint8_t *m, size_t mlen,
     uint8_t p)
 {
-  size_t i;
-  uint8_t t[200];
-
+  uint8_t t;
   while (mlen >= r)
   {
     KeccakF1600_StateXORBytes(s, m, 0, r);
@@ -49,14 +47,11 @@ static void keccak_absorb(uint64_t *s,
     m += r;
   }
 
-  for (i = 0; i < r; ++i)
-    t[i] = 0;
-  for (i = 0; i < mlen; ++i)
-    t[i] = m[i];
-  t[i] = p;
-  t[r - 1] |= 128;
-
-  KeccakF1600_StateXORBytes(s, t, 0, r);
+  KeccakF1600_StateXORBytes(s, m, 0, mlen);
+  t = p;
+  KeccakF1600_StateXORBytes(s, &t, mlen+1, 1);
+  t = 128;
+  KeccakF1600_StateXORBytes(s, &t, r-1, 1);
 }
 
 
@@ -150,14 +145,10 @@ static void keccak_inc_absorb(uint64_t *s_inc, uint32_t r, const uint8_t *m,
 static void keccak_inc_finalize(uint64_t *s_inc, uint32_t r, uint8_t p) {
     /* After keccak_inc_absorb, we are guaranteed that s_inc[25] < r,
        so we can always use one more byte for p in the current state. */
-    size_t i;
-    uint8_t t[200];
-    for (i = 0; i < r; ++i)
-      t[i] = 0;
-    t[s_inc[25]] = p;
-    t[r - 1] |= 128;
-
-    KeccakF1600_StateXORBytes(s_inc, t, 0, r);
+    uint8_t t = p;
+    KeccakF1600_StateXORBytes(s_inc, &t, s_inc[25], 1);
+    t = 128;
+    KeccakF1600_StateXORBytes(s_inc, &t, r-1, 1);
     s_inc[25] = 0;
 }
 
