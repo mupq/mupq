@@ -47,7 +47,7 @@ static void keccak_absorb(uint64_t *s,
   }
 
   if(mlen > 0){
-    KeccakF1600_StateXORBytes(s, m, mlen, r);
+    KeccakF1600_StateXORBytes(s, m, 0, mlen);
   }
 
   if(mlen == r-1){
