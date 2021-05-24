@@ -58,6 +58,7 @@ HOST_LD := $(HOST_CC)
 SYSROOT ?= $(shell $(CC) --print-sysroot)
 
 CFLAGS += \
+	-std=gnu99 \
 	--sysroot=$(SYSROOT) \
 	-I$(SRCDIR)/common \
 	-I$(SRCDIR)/mupq/common
