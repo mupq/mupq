@@ -66,8 +66,8 @@ class SerialCommsPlatform(mupq.Platform):
         return super().__exit__(*args, **kwargs)
 
     def run(self, binary_path):
-        self.flash(binary_path)
         self._dev.reset_input_buffer()
+        self.flash(binary_path)
         # Wait for the first equal sign
         if self._dev.read_until(b'=')[-1] != b'='[0]:
             raise Exception('Timout waiting for start')
