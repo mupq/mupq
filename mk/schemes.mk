@@ -78,6 +78,8 @@ endef
 
 HOST_IMPLEMENTATIONS = %_clean %_ref %_opt %opt-ct
 
+.SECONDEXPANSION:
+
 # This template defines all the targets for a scheme: a library file containing
 # all the compiled objects, and an elf file for each test.
 define schemelib
