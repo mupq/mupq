@@ -5,6 +5,7 @@ import re
 import serial
 import subprocess
 import time
+import os
 
 try:
     import chipwhisperer as cw
@@ -106,8 +107,10 @@ class OpenOCD(SerialCommsPlatform):
 
 class StLink(SerialCommsPlatform):
     def flash(self, binary_path):
+        if os.getenv("MUPQ_ST_FLASH_ARGS") is not None:
+            extraargs = os.getenv("MUPQ_ST_FLASH_ARGS").split()
         subprocess.check_call(
-            ["st-flash", "--reset", "write", binary_path, "0x8000000"],
+            ["st-flash"] + extraargs + ["--reset", "write", binary_path, "0x8000000"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
