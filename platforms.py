@@ -80,7 +80,10 @@ class SerialCommsPlatform(mupq.Platform):
         output = bytearray()
         while len(output) == 0 or output[-1] != b'#'[0]:
             data = self._dev.read_until(b'#')
+            if b"+" in data:
+                print("+" * data.count(b"+"), end='', flush=True)
             output.extend(data)
+        print()
         return output[:-1].decode('utf-8', 'ignore')
 
     @abc.abstractmethod
