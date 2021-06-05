@@ -96,7 +96,7 @@ elf/$(2)_testvectors.elf: NO_RANDOMBYTES=1
 
 ifeq ($(AIO),1)
 # Compile all sources in one.
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $(call schemesrc,$(1)) $$(LINKDEPS) $$(CONFIG)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $$(LINKDEPS) $(call schemesrc,$(1)) $$(CONFIG)
 	$$(compiletest)
 else
 # Compile just the test and link against the library.
