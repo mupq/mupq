@@ -90,8 +90,6 @@ CFLAGS += \
 	-Wall -Wextra -Wshadow \
 	-MMD \
 	-fno-common \
-	-ffunction-sections \
-	-fdata-sections \
 	$(CPPFLAGS)
 
 LDFLAGS += \
