@@ -6,8 +6,15 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef MAX_STACK_SIZE
+#define MAX_STACK_SIZE hal_get_stack_size()
+#endif
+
+#ifndef STACK_SIZE_INCR
+#define STACK_SIZE_INCR 0x1000
+#endif
+
 #define MLEN 32
-#define MAX_SIZE 0x1B000
 // https://stackoverflow.com/a/1489985/1711232
 #define PASTER(x, y) x####y
 #define EVALUATOR(x, y) PASTER(x, y)
@@ -27,7 +34,7 @@
 
 #define send_stack_usage(S, U) send_unsigned((S), (U))
 
-unsigned int canary_size = MAX_SIZE;
+unsigned int canary_size;
 volatile unsigned char *p;
 unsigned int c;
 uint8_t canary = 0x42;
@@ -94,10 +101,10 @@ int main(void) {
 
  // marker for automated benchmarks
   hal_send_str("==========================");
-  canary_size = 0x1000;
+  canary_size = STACK_SIZE_INCR;
   while(test_sign()){
-    canary_size += 0x1000;
-    if(canary_size >= MAX_SIZE) {
+    canary_size += STACK_SIZE_INCR;
+    if(canary_size >= MAX_STACK_SIZE) {
       hal_send_str("failed to measure stack usage.\n");
       break;
     }
@@ -106,6 +113,5 @@ int main(void) {
   // marker for automated benchmarks
   hal_send_str("#");
 
-  while(1);
   return 0;
 }

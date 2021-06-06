@@ -181,7 +181,5 @@ int main(void)
   test_invalid_ciphertext();
   hal_send_str("#");
 
-  while(1);
-
   return 0;
 }

@@ -66,23 +66,22 @@ class Implementation(object):
         makeflags.append(target)
         return subprocess.check_call(makeflags)
 
-    def get_binary_path(self, type_):
-        return f'bin/{self.path.replace("/", "_")}_{type_}.bin'
+    def get_binary_path(self, test_type, bin_type):
+        return f'bin/{self.path.replace("/", "_")}_{test_type}.{bin_type}'
 
-    def build_binary(self, type_):
-        self.log.info(f"Building {self} - {type_}")
-        self.run_make(self.get_binary_path(type_))
+    def build_binary(self, test_type, bin_type):
+        self.log.info(f"Building {self} - {test_type}")
+        self.run_make(self.get_binary_path(test_type, bin_type))
 
     def get_object_path(self, source):
-        return f'obj/{self.path.replace("/", "_")}_{source}'
+        return f'obj/{self.path}/{source}'
 
-    def build_objects(self, type_):
-        self.log.info(f"Building {self} - {type_}")
-        for source_file in os.listdir(self.path):
-            if Implementation._source_regex.match(source_file) == None:
-                continue
-            object_file = self.get_object_path(source_file[:-1] + 'o')
-            self.run_make(object_file)
+    def get_library_path(self):
+        return f'obj/lib{self.path.replace("/", "_")}.a'
+
+    def build_library(self):
+        self.log.info(f"Building {self} library")
+        self.run_make(self.get_library_path())
 
     def __str__(self):
         return f"{self.scheme} - {self.implementation}"
@@ -99,6 +98,8 @@ class PlatformSettings(object):
     makeflags = []
 
     size_executable = 'arm-none-eabi-size'
+
+    binary_type = 'bin'
 
     def __init__(self):
         self.log = logging.getLogger(__class__.__name__)
@@ -158,61 +159,9 @@ class Platform(contextlib.AbstractContextManager):
         raise NotImplementedError("Override this")
 
     @abc.abstractmethod
-    def flash(self, binary_path):
-        self.log.info("Flashing %s to device", binary_path)
-        self.state = 'waiting'
-
     def run(self, binary_path):
         """Runs the flashed target and collects the result"""
-        self.flash(binary_path)
-        while not self._wait_for_start():
-            self.flash(binary_path)
-        self.log.info("Output started")
-        return self._read_output()
-
-    def _wait_for_start(self):
-        """Waits until we read five equals signs"""
-        equals_seen = 0
-        self.device().reset_input_buffer()
-        while self.state == 'waiting':
-            x = self.device().read()
-            if x == b'':
-                self.log.warning(
-                    "timed out while waiting for the markers, reflashing")
-                return False
-            elif x == b'=':
-                equals_seen += 1
-                continue
-            elif equals_seen > 5:
-                self.state = 'beginning'
-                self.log.debug("Found output marker")
-            elif equals_seen > 1:
-                self.log.warning(
-                    "Got garbage after finding first equals sign, restarting"
-                )
-                return False
-        # Read remaining = signs
-        while self.state == 'beginning':
-            x = self.device().read()
-            # Consume remaining =
-            if x != b'=':
-                self.output = [x]
-                self.state = 'reading'
-                break
-        return True
-
-    def _read_output(self):
-        while self.state == 'reading':
-            x = self.device().read()
-            if x == b'#':
-                self.state = 'done'
-                break
-            elif x != b'':
-                self.output.append(x)
-        output = b''.join(self.output).decode('utf-8', 'ignore')
-        # sometimes there's a line full of markers; strip out to avoid errors
-        lines = (x for x in output.split('\n') if not all(c == '=' for c in x))
-        return "{}\n".format('\n'.join(lines))
+        raise NotImplementedError("Override this")
 
 
 class BoardTestCase(abc.ABC):
@@ -234,8 +183,10 @@ class BoardTestCase(abc.ABC):
 
     @abc.abstractmethod
     def run_test(self, implementation):
-        implementation.build_binary(f'{self.test_type}')
-        binary = implementation.get_binary_path(f'{self.test_type}')
+        implementation.build_binary(f'{self.test_type}',
+                                    self.platform_settings.binary_type)
+        binary = implementation.get_binary_path(f'{self.test_type}',
+                                                self.platform_settings.binary_type)
         return self.interface.run(binary)
 
     def test_all(self, args=[]):
@@ -274,8 +225,16 @@ class StackBenchmark(BoardTestCase):
             implementation.scheme, implementation.implementation,
             timestamp)
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, 'w') as f:
-            f.write(result)
+
+        # if result contains multiple iterations, they are separated by +
+        if "+" in result:
+            results = result.split("+")[:-1]
+            for idx, result in enumerate(results):
+                with open(f"{filename}_{idx}", 'w') as f:
+                    f.write(result)
+        else:
+            with open(filename, 'w') as f:
+                f.write(result)
         self.log.info("Wrote benchmark!")
 
     def run_test(self, implementation):
@@ -296,13 +255,12 @@ class SizeBenchmark(StackBenchmark):
 
     def run_test(self, implementation):
         self.log.info("Measuring %s", implementation)
-        implementation.build_objects(self.test_type)
-        glob = f'obj/{implementation.path.replace("/", "_")}_*.o'
+        implementation.build_library()
         output = subprocess.check_output(
-                self.platform_settings.size_executable + ' -t ' + glob,
-                shell=True,
-                stderr=subprocess.DEVNULL,
-                universal_newlines=True)
+            self.platform_settings.size_executable + ' -t ' + implementation.get_library_path(),
+            shell=True,
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True)
         sizes = output.splitlines()[-1].split('\t')
         fsizes = (f'.text bytes:\n{sizes[0].strip()}\n'
                   f'.data bytes:\n{sizes[1].strip()}\n'
@@ -348,7 +306,8 @@ class TestVectors(BoardTestCase):
                     continue
                 # Build host version
                 self.log.info("Running %s on host", impl)
-                binpath = impl.get_binary_path(self.test_type)
+                binpath = impl.get_binary_path(self.test_type,
+                                               self.platform_settings.binary_type)
                 hostbin = (binpath
                            .replace('bin/', 'bin-host/')
                            .replace('.bin', ''))
@@ -384,7 +343,8 @@ class BuildAll(BoardTestCase):
 
     def run_test(self, implementation):
         for test_type in ('test', 'testvectors', 'speed', 'hashing', 'stack'):
-            implementation.build_binary(test_type)
+            implementation.build_binary(test_type,
+                                        self.platform_settings.binary_type)
 
 class Converter(object):
     def convert(self):
