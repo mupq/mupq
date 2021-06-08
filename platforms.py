@@ -107,6 +107,7 @@ class OpenOCD(SerialCommsPlatform):
 
 class StLink(SerialCommsPlatform):
     def flash(self, binary_path):
+        extraargs = []
         if os.getenv("MUPQ_ST_FLASH_ARGS") is not None:
             extraargs = os.getenv("MUPQ_ST_FLASH_ARGS").split()
         subprocess.check_call(
