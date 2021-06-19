@@ -95,10 +95,13 @@ int main(void) {
   hal_send_str("==========================");
   canary_size = STACK_SIZE_INCR;
   while(test_keys()){
-    canary_size += STACK_SIZE_INCR;
-    if(canary_size >= MAX_STACK_SIZE) {
+    if(canary_size == MAX_STACK_SIZE) {
       hal_send_str("failed to measure stack usage.\n");
       break;
+    }
+    canary_size += STACK_SIZE_INCR;
+    if(canary_size >= MAX_STACK_SIZE) {
+      canary_size = MAX_STACK_SIZE;
     }
   }
   // marker for automated benchmarks
