@@ -7,7 +7,7 @@
 #define NTESTS 10
 
 // https://stackoverflow.com/a/1489985/1711232
-#define PASTER(x, y) x####y
+#define PASTER(x, y) x##y
 #define EVALUATOR(x, y) PASTER(x, y)
 #define NAMESPACE(fun) EVALUATOR(MUPQ_NAMESPACE, fun)
 
