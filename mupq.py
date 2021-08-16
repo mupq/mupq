@@ -66,8 +66,11 @@ class Implementation(object):
         makeflags.append(target)
         return subprocess.check_call(makeflags)
 
-    def get_binary_path(self, test_type, bin_type):
-        return f'bin/{self.path.replace("/", "_")}_{test_type}.{bin_type}'
+    def get_binary_path(self, test_type, bin_type=None):
+        if not bin_type:
+            return f'bin/{self.path.replace("/", "_")}_{test_type}'
+        else:
+            return f'bin/{self.path.replace("/", "_")}_{test_type}.{bin_type}'
 
     def build_binary(self, test_type, bin_type):
         self.log.info(f"Building {self} - {test_type}")
@@ -306,11 +309,9 @@ class TestVectors(BoardTestCase):
                     continue
                 # Build host version
                 self.log.info("Running %s on host", impl)
-                binpath = impl.get_binary_path(self.test_type,
-                                               self.platform_settings.binary_type)
+                binpath = impl.get_binary_path(self.test_type)
                 hostbin = (binpath
-                           .replace('bin/', 'bin-host/')
-                           .replace('.bin', ''))
+                           .replace('bin/', 'bin-host/'))
                 self.run_make(hostbin, impl.path, impl.namespace)
                 checksum = self.hash_output(
                     subprocess.check_output(
