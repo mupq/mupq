@@ -67,7 +67,7 @@ class Implementation(object):
         return subprocess.check_call(makeflags)
 
     def get_binary_path(self, test_type, bin_type=None):
-        if not bin_type:
+        if bin_type is None:
             return f'bin/{self.path.replace("/", "_")}_{test_type}'
         else:
             return f'bin/{self.path.replace("/", "_")}_{test_type}.{bin_type}'
