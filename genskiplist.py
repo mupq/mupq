@@ -1,4 +1,20 @@
 #!/usr/bin/env python3
+"""This script is used to generate the skiplist.py files in pqm{4,3}. It
+takes the output files from the mps2-an386 target, when run via the make
+script, i.e., compile pqm{4,3} with the mps2-an38{6,5} plattform and the
+run-stack-tests targets (remember to backup your benchmark results, if
+you want to keep them!):
+
+    cp -r benchmarks benchmarks.bak
+    make clean # Because this will delete it
+    make PLATFORM=mps2-an386 -j4 run-stack-tests
+    find benchmarks -name frommake -exec python3 mupq/genskiplist.py {} + > skiplist.py
+
+You can also simply update a single scheme:
+
+    make PLATFORM=mps2-an386 benchmarks/stack/crypto_kem/mysuperscheme/opt/frommake
+    python3 mupq/genskiplist.py benchmarks/stack/crypto_kem/mysuperscheme/opt/frommake
+"""
 
 import argparse
 import pprint
@@ -7,7 +23,11 @@ import sys
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Generate a size list")
+    parser = argparse.ArgumentParser(
+        description="Generate a skiplist.py",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
     parser.add_argument(
         "inputs",
         help="Stack benchmark output of mps2 platform",
