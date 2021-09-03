@@ -98,6 +98,9 @@ ifeq ($(AIO),1)
 # Compile all sources in one.
 elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $$(LINKDEPS) $(call schemesrc,$(1)) $$(CONFIG)
 	$$(compiletest)
+# Library target doesn't inherit these flags in AIO mode
+obj/lib$(2).a: CPPFLAGS+=-I$(1)
+obj/lib$(2).a: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
 else
 # Compile just the test and link against the library.
 elf/$(2)_%.elf: LDLIBS+=-l$(2)
