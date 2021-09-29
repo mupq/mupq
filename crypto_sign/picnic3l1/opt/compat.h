@@ -32,7 +32,7 @@
 #define HAVE_TIMINGSAFE_BCMP
 #endif /* HAVE_TIMINGSAFE_BCMP */
 
-#if defined(PQM4)
+#if defined(MUPQ)
 #define HAVE_TIMINGSAFE_BCMP
 #include <string.h>
 #endif /* STM32F4 */
