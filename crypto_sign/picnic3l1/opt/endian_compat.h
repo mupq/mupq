@@ -77,7 +77,7 @@ static inline uint64_t ATTR_CONST bswap64(uint64_t x) {
 #endif
 
 /* STM32F4 Discovery board. */
-#if defined(PQM4)
+#if defined(MUPQ)
 #define PICNIC_IS_LITTLE_ENDIAN
 #endif
 
