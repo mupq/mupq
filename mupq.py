@@ -119,7 +119,7 @@ class PlatformSettings(object):
                     if not os.path.isdir(scheme_path):
                         continue
                     for implementation_path in os.listdir(scheme_path):
-                        if implementation_path in ["avx", "avx2", "aesni", "sse"]:
+                        if implementation_path in ["avx", "avx2", "aesni", "sse", "aarch64"]:
                             continue
                         path = os.path.join(scheme_path,
                                             implementation_path)
