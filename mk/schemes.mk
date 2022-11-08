@@ -18,7 +18,8 @@ IGNORE_IMPLEMENTATIONS ?= \
 	-or -name avx2 \
 	-or -name sse \
 	-or -name vec \
-	-or -name aesni
+	-or -name aesni \
+	-or -name aarch64
 
 # This is the implementation finding mechanism. This target will create a
 # makefile, that essentially just contains two variables {KEM,SIGN}_SCHEMES,
