@@ -24,7 +24,6 @@ IGNORE_IMPLEMENTATIONS ?= \
 # This is the implementation finding mechanism. This target will create a
 # makefile, that essentially just contains two variables {KEM,SIGN}_SCHEMES,
 # each containing the list of paths of schemes.
-.PHONY: obj/.schemes.mk
 obj/.schemes.mk:
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D); \
 	touch $@; \
@@ -33,10 +32,14 @@ obj/.schemes.mk:
 	printf "\n\nSIGN_SCHEMES :=" >> $@; \
 	find $(SIGN_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@;
 
-# We include the makefile that is created above. Since it's marked as PHONY,
-# Make will always remake it first before including it. Hence, the
-# {KEM,SIGN}_SCHEMES variables will always contain an up-to-date list of all
-# schemes in the search paths.
+ifeq ($(MAKE_RESTARTS),)
+  _ := $(shell rm -f obj/.schemes.mk)
+endif
+
+# We include the makefile that is created above. It's deleted the first time
+# make is started, to force Make to rebuild it. Hence, the {KEM,SIGN}_SCHEMES
+# variables will always contain an up-to-date list of all schemes in the search
+# paths.
 -include obj/.schemes.mk
 
 # The platforms may optionally contain a list of ignored schemes (usually the
