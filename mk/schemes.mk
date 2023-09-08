@@ -88,8 +88,9 @@ obj/lib$(2).a: $(call objs,$(call schemesrc,$(1)))
 libs: obj/lib$(2).a
 elf/$(2)_%.elf: CPPFLAGS+=-I$(1)
 elf/$(2)_%.elf: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
-elf/$(2)_hashing.elf: PROFILE_HASHING=1
-elf/$(2)_testvectors.elf: NO_RANDOMBYTES=1
+elf/$(2)_%.elf: PROFILE_HASHING=$$(filter %_hashing.elf,$$@)
+elf/$(2)_%.elf: NO_RANDOMBYTES=$$(filter %_testvectors.elf,$$@)
+
 
 # The {test,stack,speed,...}.c file is compiled directly into the elf file,
 # since the code depends on the preprocessor definitions in the api.h file of
@@ -97,7 +98,7 @@ elf/$(2)_testvectors.elf: NO_RANDOMBYTES=1
 
 ifeq ($(AIO),1)
 # Compile all sources in one.
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $$(LINKDEPS) $(call schemesrc,$(1)) $$(CONFIG)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $$$$(LINKDEPS) $(call schemesrc,$(1)) $$(CONFIG)
 	$$(compiletest)
 # Library target doesn't inherit these flags in AIO mode
 obj/lib$(2).a: CPPFLAGS+=-I$(1)
@@ -105,7 +106,7 @@ obj/lib$(2).a: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
 else
 # Compile just the test and link against the library.
 elf/$(2)_%.elf: LDLIBS+=-l$(2)
-elf/$(2)_%.elf: mupq/crypto_$(3)/%.c obj/lib$(2).a $$(LINKDEPS) $$(CONFIG)
+elf/$(2)_%.elf: mupq/crypto_$(3)/%.c obj/lib$(2).a $$$$(LINKDEPS) $$(CONFIG) 
 	$$(compiletest)
 endif
 
