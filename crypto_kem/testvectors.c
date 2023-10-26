@@ -88,7 +88,7 @@ int main(void)
   unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
   unsigned char sendb[MUPQ_CRYPTO_CIPHERTEXTBYTES];
   unsigned char sk_a[MUPQ_CRYPTO_SECRETKEYBYTES];
-  int i,j;
+  unsigned int i,j;
 
   hal_setup(CLOCK_FAST);
 
