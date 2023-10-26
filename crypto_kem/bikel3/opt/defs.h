@@ -5,6 +5,7 @@
  * AWS Cryptographic Algorithms Group.
  *
  * Modification: 2021 Ming-Shing Chen, Tung Chou, and Markus Krausz
+ * Modification: 2023 Till Eifert
  *
  */
 
@@ -38,7 +39,7 @@
 #endif
 
 // Divide by the divider and round up to next integer
-#define DIVIDE_AND_CEIL(x, divider) (((x) + (divider)) / (divider))
+#define DIVIDE_AND_CEIL(x, divider) (((x) + (divider) - 1) / (divider))
 
 // Bit manipulations
 // Linux Assemblies, except for Ubuntu, cannot understand what ULL mean.
