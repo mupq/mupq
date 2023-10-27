@@ -17,6 +17,10 @@ static inline uint32_t br_swap32(uint32_t x) {
 }
 
 
+#ifdef PROFILE_HASHING
+#include "hal.h"
+extern unsigned long long hash_cycles;
+#endif
 
 #include "aes-publicinputs.h"
 
