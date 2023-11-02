@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -180,11 +179,7 @@ int crypto_sign_keypair(
     LOG_HEX(pk, MEDS_PK_BYTES);
 
     if (MEDS_PK_BYTES != MEDS_pub_seed_bytes + bs.byte_pos + (bs.bit_pos > 0 ? 1 : 0))
-    {
-      fprintf(stderr, "ERROR: MEDS_PK_BYTES and actual pk size do not match! %i vs %i\n", MEDS_PK_BYTES, MEDS_pub_seed_bytes + bs.byte_pos+(bs.bit_pos > 0 ? 1 : 0));
-      fprintf(stderr, "%i %i\n", MEDS_pub_seed_bytes + bs.byte_pos, MEDS_pub_seed_bytes + bs.byte_pos + (bs.bit_pos > 0 ? 1 : 0));
       return -1;
-    }
   }
 
   // copy sk data
@@ -577,11 +572,7 @@ int _crypto_sign_open(
         memcpy(tmp_mu, mu, MEDS_m*MEDS_m*sizeof(GFq_t));
 
         if (pmod_mat_syst_ct(tmp_mu, MEDS_m, MEDS_m) != 0)
-        {
-          fprintf(stderr, "Signature verification failed; malformed signature!\n");
-
           return -1;
-        }
       }
 
       // Check if nu is invetible.
@@ -591,11 +582,7 @@ int _crypto_sign_open(
         memcpy(tmp_nu, nu, MEDS_n*MEDS_n*sizeof(GFq_t));
 
         if (pmod_mat_syst_ct(tmp_nu, MEDS_n, MEDS_n) != 0)
-        {
-          fprintf(stderr, "Signature verification failed; malformed signature!\n");
-
           return -1;
-        }
       }
 
 
@@ -605,11 +592,7 @@ int _crypto_sign_open(
       LOG_MAT_FMT(G_hat_i, MEDS_k, MEDS_m*MEDS_n, "G_hat[%i]", i);
 
       if (pmod_mat_syst_ct(G_hat_i, MEDS_k, MEDS_m*MEDS_n) < 0)
-      {
-        fprintf(stderr, "Signature verification failed!\n");
-
         return -1;
-      }
 
       LOG_MAT_FMT(G_hat_i, MEDS_k, MEDS_m*MEDS_n, "G_hat[%i]", i);
     }
@@ -684,11 +667,7 @@ int _crypto_sign_open(
   shake256_squeeze(check, MEDS_digest_bytes, &shake);
 
   if (memcmp(digest, check, MEDS_digest_bytes) != 0)
-  {
-    fprintf(stderr, "Signature verification failed!\n");
-
     return -1;
-  }
 
   memcpy(m, (uint8_t*)(sm + MEDS_SIG_BYTES), smlen - MEDS_SIG_BYTES);
   *mlen = smlen - MEDS_SIG_BYTES;

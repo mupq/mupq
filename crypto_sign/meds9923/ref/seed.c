@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 
 #include "fips202_wrapper.h"
@@ -9,38 +8,6 @@
 
 #include "seed.h"
 #include "log.h"
-
-void print_tree(uint8_t *stree)
-{
-  int h = 0;
-  int i = 0;
-
-  int start = i;
-  int end = i+1;
-
-  for (; h < MEDS_seed_tree_height + 1; h++)
-  {
-    for (int i = 0; i < (1 << (MEDS_seed_tree_height - h))-1; i++)
-      printf("  ");
-
-    for (int i = start; i < end; i++)
-    {
-      // print incomplete tree for non-power-of-two number of leafs
-      if ((i << (MEDS_seed_tree_height - h)) >= MEDS_t)
-        break;
-
-      printf("%02x", stree[MEDS_st_seed_bytes * SEED_TREE_ADDR(h, i)]);
-
-      for (int j = 0; j < ((1 << (MEDS_seed_tree_height - h)) - 1)*2 + 1; j++)
-        printf("  ");
-    }
-
-    printf("\n");
-
-    start = start<<1;
-    end = end<<1;
-  }
-}
 
 void t_hash(uint8_t *stree, uint8_t *salt, int h, int i)
 {

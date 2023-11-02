@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -25,7 +24,6 @@ int bs_write(bitstream_t *bs, uint32_t data, uint32_t data_len)
 {
   if (bs->byte_pos * 8 + bs->bit_pos + data_len > bs->buf_len * 8)
   {
-    fprintf(stderr, "ERROR: bistream - write esceeds buffer!\n");
     return -1;
   }
 
@@ -79,7 +77,6 @@ uint32_t bs_read(bitstream_t *bs, uint32_t data_len)
 {
   if (bs->byte_pos * 8 + bs->bit_pos + data_len > bs->buf_len * 8)
   {
-    fprintf(stderr, "ERROR: bistream - read esceeds buffer!\n");
     return -1;
   }
 
