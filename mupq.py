@@ -287,6 +287,7 @@ class TestVectors(BoardTestCase):
         checksum = self.hash_output(
             super().run_test(implementation).encode('utf-8'))
         assert self.testvectorhash[implementation.scheme] == checksum
+        self.log.info("Success")
 
     def run_make(self, target, path, namespace):
         makeflags = ["make",
