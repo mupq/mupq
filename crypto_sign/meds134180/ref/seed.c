@@ -1,1 +1,1 @@
-../../MEDS9923/ref/seed.c
+../../meds9923/ref/seed.c

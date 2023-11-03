@@ -1,1 +1,1 @@
-../../MEDS9923/ref/matrixmod.c
+../../meds9923/ref/matrixmod.c

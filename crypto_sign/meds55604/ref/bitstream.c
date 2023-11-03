@@ -1,1 +1,1 @@
-../../MEDS9923/ref/bitstream.c
+../../meds9923/ref/bitstream.c
