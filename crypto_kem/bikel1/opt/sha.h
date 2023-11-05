@@ -3,6 +3,9 @@
  *
  * Written by Nir Drucker, Shay Gueron and Dusan Kostic,
  * AWS Cryptographic Algorithms Group.
+ *
+ * Modification: 2023 Till Eifert
+ *
  */
 
 #pragma once
@@ -28,12 +31,12 @@ bike_static_assert(sizeof(sha384_dgst_t) == SHA384_DGST_BYTES, sha384_dgst_size)
 typedef sha384_dgst_t sha_dgst_t;
 CLEANUP_FUNC(sha_dgst, sha_dgst_t)
 
-#include "sha2.h"
+#include "fips202.h"
 
 _INLINE_ ret_t sha(OUT sha_dgst_t *  dgst,
                    IN const uint32_t byte_len,
                    IN const uint8_t *msg)
 {
-  sha384(dgst->u.raw, msg, byte_len);
+  sha3_384(dgst->u.raw, msg, byte_len);
   return SUCCESS;
 }

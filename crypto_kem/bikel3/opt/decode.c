@@ -5,6 +5,7 @@
  * AWS Cryptographic Algorithms Group.
  *
  * Modification: 2021 Ming-Shing Chen, Tung Chou, and Markus Krausz
+ * Modification: 2023 Till Eifert
  *
  *
  * [1] The optimizations are based on the description developed in the paper:
@@ -94,10 +95,6 @@ ret_t compute_syndrome(OUT syndrome_t *syndrome,
 
 #include "run_config.h"
 
-#if defined(_USE_CCM_IF_STM32F4_)
-#define _USE_CCM_
-#endif
-
 
 _INLINE_ ret_t recompute_syndrome(OUT syndrome_t *syndrome,
                                   IN const pad_r_t *c0,
@@ -105,27 +102,6 @@ _INLINE_ ret_t recompute_syndrome(OUT syndrome_t *syndrome,
                                   IN const pad_r_t *pk,
                                   IN const e_t *e)
 {
-#if defined(_USE_CCM_)
-  uint8_t * ptr = 0x10000000;  // use ccm
-  pad_r_t * _tmp_c0 = (pad_r_t*) ptr; ptr += sizeof(pad_r_t);
-  pad_r_t * _e0 = (pad_r_t*) ptr; ptr += sizeof(pad_r_t);
-  memset( _e0, 0, sizeof(pad_r_t) );
-  pad_r_t * _e1 = (pad_r_t*) ptr; ptr += sizeof(pad_r_t);
-  memset( _e1, 0, sizeof(pad_r_t) );
-
-  _e0->val = e->val[0];
-  _e1->val = e->val[1];
-
-  // tmp_c0 = pk * e1 + c0 + e0
-  gf2x_mod_mul(_tmp_c0, _e1, pk);
-  gf2x_mod_add(_tmp_c0, _tmp_c0, c0);
-  gf2x_mod_add(_tmp_c0, _tmp_c0, _e0);
-
-  // Recompute the syndrome using the updated ciphertext
-  GUARD(compute_syndrome(syndrome, _tmp_c0, h0));
-
-  return SUCCESS;
-#else
   DEFER_CLEANUP(pad_r_t tmp_c0, pad_r_cleanup);
   DEFER_CLEANUP(pad_r_t e0 = {0}, pad_r_cleanup);
   DEFER_CLEANUP(pad_r_t e1 = {0}, pad_r_cleanup);
@@ -142,7 +118,6 @@ _INLINE_ ret_t recompute_syndrome(OUT syndrome_t *syndrome,
   GUARD(compute_syndrome(syndrome, &tmp_c0, h0));
 
   return SUCCESS;
-#endif
 }
 
 _INLINE_ uint8_t get_threshold(IN const syndrome_t *s)
@@ -217,59 +192,6 @@ _INLINE_ void find_err1(OUT e_t *e,
                         IN const compressed_idx_d_ar_t wlist,
                         IN const uint8_t               threshold)
 {
-#if defined(_USE_CCM_)
-  // This function uses the bit-slice-adder methodology of [5]:
-  uint8_t * ptr = 0x10000000;  // use ccm
-  syndrome_t * _rotated_syndrome = (syndrome_t*)ptr;  ptr += sizeof(syndrome_t);
-  memset(_rotated_syndrome, 0, sizeof(syndrome_t));
-  upc_t * _upc = (upc_t*) ptr;
-
-  for(uint32_t i = 0; i < N0; i++) {
-    // UPC must start from zero at every iteration
-    bike_memset(_upc, 0, sizeof(upc_t));
-
-    // 1) Right-rotate the syndrome for every secret key set bit index
-    //    Then slice-add it to the UPC array.
-    for(size_t j = 0; j < D; j++) {
-      rotate_right(_rotated_syndrome, syndrome, wlist[i].val[j]);
-      bit_sliced_adder(_upc, _rotated_syndrome, LOG2_MSB(j + 1));
-    }
-
-    // 2) Subtract the threshold from the UPC counters
-    bit_slice_full_subtract(_upc, threshold);
-
-    // 3) Update the errors and the black errors vectors.
-    //    The last slice of the UPC array holds the MSB of the accumulated values
-    //    minus the threshold. Every zero bit indicates a potential error bit.
-    //    The errors values are stored in the black array and xored with the
-    //    errors Of the previous iteration.
-    const r_t *last_slice = &(_upc->slice[SLICES - 1].u.r.val);
-    for(size_t j = 0; j < R_BYTES; j++) {
-      const uint8_t sum_msb  = (~last_slice->raw[j]);
-      black_e->val[i].raw[j] = sum_msb;
-      e->val[i].raw[j] ^= sum_msb;
-    }
-
-    // Ensure that the padding bits (upper bits of the last byte) are zero so
-    // they will not be included in the multiplication and in the hash function.
-    e->val[i].raw[R_BYTES - 1] &= LAST_R_BYTE_MASK;
-
-    // 4) Calculate the gray error array by adding "DELTA" to the UPC array.
-    //    For that we reuse the rotated_syndrome variable setting it to all "1".
-    for(size_t l = 0; l < DELTA; l++) {
-      bike_memset((uint8_t *) _rotated_syndrome, 0xff, R_BYTES);
-      bit_sliced_adder(_upc, _rotated_syndrome, SLICES);
-    }
-
-    // 5) Update the gray list with the relevant bits that are not
-    //    set in the black list.
-    for(size_t j = 0; j < R_BYTES; j++) {
-      const uint8_t sum_msb = (~last_slice->raw[j]);
-      gray_e->val[i].raw[j] = (~(black_e->val[i].raw[j])) & sum_msb;
-    }
-  }
-
-#else
   // This function uses the bit-slice-adder methodology of [5]:
   DEFER_CLEANUP(syndrome_t rotated_syndrome = {0}, syndrome_cleanup);
   DEFER_CLEANUP(upc_t upc, upc_cleanup);
@@ -318,7 +240,6 @@ _INLINE_ void find_err1(OUT e_t *e,
       gray_e->val[i].raw[j] = (~(black_e->val[i].raw[j])) & sum_msb;
     }
   }
-#endif
 }
 
 // Recalculate the UPCs and update the errors vector (e) according to it
@@ -329,40 +250,6 @@ _INLINE_ void find_err2(OUT e_t *e,
                         IN const compressed_idx_d_ar_t wlist,
                         IN const uint8_t               threshold)
 {
-#if defined(_USE_CCM_)
-  uint8_t * ptr = 0x10000000;  // use ccm
-  syndrome_t * _rotated_syndrome = (syndrome_t*)ptr;  ptr += sizeof(syndrome_t);
-  memset(_rotated_syndrome, 0, sizeof(syndrome_t));
-  upc_t * _upc = (upc_t*) ptr;
-
-  for(uint32_t i = 0; i < N0; i++) {
-    // UPC must start from zero at every iteration
-    bike_memset(_upc, 0, sizeof(upc_t));
-
-    // 1) Right-rotate the syndrome, for every index of a set bit in the secret
-    // key. Then slice-add it to the UPC array.
-    for(size_t j = 0; j < D; j++) {
-      rotate_right(_rotated_syndrome, syndrome, wlist[i].val[j]);
-      bit_sliced_adder(_upc, _rotated_syndrome, LOG2_MSB(j + 1));
-    }
-
-    // 2) Subtract the threshold from the UPC counters
-    bit_slice_full_subtract(_upc, threshold);
-
-    // 3) Update the errors vector.
-    //    The last slice of the UPC array holds the MSB of the accumulated values
-    //    minus the threshold. Every zero bit indicates a potential error bit.
-    const r_t *last_slice = &(_upc->slice[SLICES - 1].u.r.val);
-    for(size_t j = 0; j < R_BYTES; j++) {
-      const uint8_t sum_msb = (~last_slice->raw[j]);
-      e->val[i].raw[j] ^= (pos_e->val[i].raw[j] & sum_msb);
-    }
-
-    // Ensure that the padding bits (upper bits of the last byte) are zero, so
-    // they are not included in the multiplication, and in the hash function.
-    e->val[i].raw[R_BYTES - 1] &= LAST_R_BYTE_MASK;
-  }
-#else
   DEFER_CLEANUP(syndrome_t rotated_syndrome = {0}, syndrome_cleanup);
   DEFER_CLEANUP(upc_t upc, upc_cleanup);
 
@@ -393,8 +280,6 @@ _INLINE_ void find_err2(OUT e_t *e,
     // they are not included in the multiplication, and in the hash function.
     e->val[i].raw[R_BYTES - 1] &= LAST_R_BYTE_MASK;
   }
-
-#endif
 }
 
 
@@ -407,63 +292,6 @@ _INLINE_ void find_err2(OUT e_t *e,
 
 ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
 {
-#if defined(_USE_CCM_)
-  uint8_t *ptr = 0x10000000 + 0xa440;
-  e_t * _black_e = (e_t*)ptr; ptr += sizeof(e_t);
-  memset(_black_e, 0, sizeof(e_t));
-  e_t * _gray_e = (e_t*)ptr; ptr += sizeof(e_t);
-  memset(_gray_e, 0, sizeof(e_t));
-  pad_r_t * _c0 = (pad_r_t*)ptr; ptr += sizeof(pad_r_t);
-  memset(_c0, 0, sizeof(pad_r_t));
-  pad_r_t * _h0 = (pad_r_t*)ptr; ptr += sizeof(pad_r_t);
-  memset(_h0, 0, sizeof(pad_r_t));
-  pad_r_t pk = {0};
-
-
-  // Pad ciphertext (c0), secret key (h0), and public key (h)
-  _c0->val = ct->c0;
-  _h0->val = sk->bin[0];
-  pk.val = sk->pk;
-
-  DEFER_CLEANUP(syndrome_t s = {0}, syndrome_cleanup);
-  DMSG("  Computing s.\n");
-  GUARD(compute_syndrome(&s, _c0, _h0));
-  dup(&s);
-
-  // Reset (init) the error because it is xored in the find_err functions.
-  bike_memset(e, 0, sizeof(*e));
-
-  for(uint32_t iter = 0; iter < MAX_IT; iter++) {
-    const uint8_t threshold = get_threshold(&s);
-
-    DMSG("    Iteration: %d\n", iter);
-    DMSG("    Weight of e: %lu\n",
-         r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
-    DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
-
-    find_err1(e, _black_e, _gray_e, &s, sk->wlist, threshold);
-    GUARD(recompute_syndrome(&s, _c0, _h0, &pk, e));
-#if defined(BGF_DECODER)
-    if(iter >= 1) {
-      continue;
-    }
-#endif
-    DMSG("    Weight of e: %lu\n",
-         r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
-    DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
-
-    find_err2(e, _black_e, &s, sk->wlist, ((D + 1) / 2) + 1);
-    GUARD(recompute_syndrome(&s, _c0, _h0, &pk, e));
-
-    DMSG("    Weight of e: %lu\n",
-         r_bits_vector_weight(&e->val[0]) + r_bits_vector_weight(&e->val[1]));
-    DMSG("    Weight of syndrome: %lu\n", r_bits_vector_weight((r_t *)s.qw));
-
-    find_err2(e, _gray_e, &s, sk->wlist, ((D + 1) / 2) + 1);
-    GUARD(recompute_syndrome(&s, _c0, _h0, &pk, e));
-  }
-
-#else
   DEFER_CLEANUP(e_t black_e = {0}, e_cleanup);
   DEFER_CLEANUP(e_t gray_e = {0}, e_cleanup);
 
@@ -514,8 +342,6 @@ ret_t decode(OUT e_t *e, IN const ct_t *ct, IN const sk_t *sk)
     find_err2(e, &gray_e, &s, sk->wlist, ((D + 1) / 2) + 1);
     GUARD(recompute_syndrome(&s, &c0, &h0, &pk, e));
   }
-
-#endif
 
   if(r_bits_vector_weight((r_t *)s.qw) > 0) {
     BIKE_ERROR(E_DECODING_FAILURE);

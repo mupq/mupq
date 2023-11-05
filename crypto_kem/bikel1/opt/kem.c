@@ -5,10 +5,11 @@
  * AWS Cryptographic Algorithms Group.
  *
  * Modification: 2021 Ming-Shing Chen, Tung Chou, and Markus Krausz
+ * Modification: 2023 Till Eifert
  *
  */
 
- #include "crypto_kem.h"
+#include "crypto_kem.h"
 #include "decode.h"
 #include "gf2x.h"
 #include "sampling.h"
@@ -144,11 +145,11 @@ int crypto_kem_keypair(OUT unsigned char *pk, OUT unsigned char *sk)
   // The randomness of the key generation
   DEFER_CLEANUP(seeds_t seeds = {0}, seeds_cleanup);
 
-  // An AES_PRF state for the secret key
-  DEFER_CLEANUP(aes_ctr_prf_state_t h_prf_state = {0}, aes_ctr_prf_state_cleanup);
-
   get_seeds(&seeds);
-  GUARD(init_aes_ctr_prf_state(&h_prf_state, MAX_AES_INVOKATION, &seeds.seed[0]));
+  // A SHAKE_PRF state for the secret key
+  DEFER_CLEANUP(prf_state_t h_prf_state = {0}, clean_shake256_prf_state);
+
+  GUARD(init_shake256_prf_state(&h_prf_state, MAX_PRF_INVOCATION, &seeds.seed[0]));
 
   // Generate the secret key (h0, h1) with weight w/2
   GUARD(generate_sparse_rep(&h0, l_sk.wlist[0].val, &h_prf_state));
