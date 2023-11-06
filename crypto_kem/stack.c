@@ -55,27 +55,20 @@ unsigned int stack_key_gen, stack_encaps, stack_decaps;
   }
 
 static int test_keys(void) {
-  volatile unsigned char a;
   // Alice generates a public key
-  FILL_STACK()
+  hal_spraystack();
   MUPQ_crypto_kem_keypair(pk, sk_a);
-  CHECK_STACK()
-  if(c >= canary_size) return -1;
-  stack_key_gen = c;
+  stack_key_gen = hal_checkstack();
 
   // Bob derives a secret key and creates a response
-  FILL_STACK()
+  hal_spraystack();
   MUPQ_crypto_kem_enc(sendb, key_b, pk);
-  CHECK_STACK()
-  if(c >= canary_size) return -1;
-  stack_encaps = c;
+  stack_encaps = hal_checkstack();
 
   // Alice uses Bobs response to get her secret key
-  FILL_STACK()
+  hal_spraystack();
   MUPQ_crypto_kem_dec(key_a, sendb, sk_a);
-  CHECK_STACK()
-  if(c >= canary_size) return -1;
-  stack_decaps = c;
+  stack_decaps = hal_checkstack();
 
   if (memcmp(key_a, key_b, MUPQ_CRYPTO_BYTES)){
     return -1;
@@ -93,17 +86,7 @@ int main(void) {
 
   // marker for automated benchmarks
   hal_send_str("==========================");
-  canary_size = STACK_SIZE_INCR;
-  while(test_keys()){
-    if(canary_size == MAX_STACK_SIZE) {
-      hal_send_str("failed to measure stack usage.\n");
-      break;
-    }
-    canary_size += STACK_SIZE_INCR;
-    if(canary_size >= MAX_STACK_SIZE) {
-      canary_size = MAX_STACK_SIZE;
-    }
-  }
+  test_keys();
   // marker for automated benchmarks
   hal_send_str("#");
 
