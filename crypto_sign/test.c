@@ -97,7 +97,11 @@ static int test_sign(void)
 static int test_wrong_pk(void)
 {
     unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
+    #ifndef BIG_PUBLIC_KEY_TESTS
     unsigned char pk2[MUPQ_CRYPTO_PUBLICKEYBYTES];
+    #else
+    unsigned char *pk2 = pk;
+    #endif
     unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
     unsigned char sm[MLEN + MUPQ_CRYPTO_BYTES];
     unsigned char m[MLEN];
@@ -108,16 +112,21 @@ static int test_wrong_pk(void)
     int i;
 
     for (i = 0; i < NTESTS; i++) {
+        #ifndef BIG_PUBLIC_KEY_TESTS
         MUPQ_crypto_sign_keypair(pk2, sk);
         hal_send_str("crypto_sign_keypair DONE.\n");
+        #endif
 
         MUPQ_crypto_sign_keypair(pk, sk);
         hal_send_str("crypto_sign_keypair DONE.\n");
 
-
         randombytes(m, MLEN);
         MUPQ_crypto_sign(sm, &smlen, m, MLEN, sk);
         hal_send_str("crypto_sign DONE.\n");
+
+        #ifdef BIG_PUBLIC_KEY_TESTS
+        randombytes(pk, sizeof pk);
+        #endif
 
         // By relying on m == sm we prevent having to allocate CRYPTO_BYTES twice
         if (MUPQ_crypto_sign_open(sm, &mlen, sm, smlen, pk2))
