@@ -45,17 +45,22 @@ class Qemu(mupq.Platform):
         ]
         self.log.info(f'Running QEMU: {" ".join(args)}')
         proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding="ascii")
-        output = ""
-        while "#" not in output:
-            buf = proc.stdout.readline()
-            # print(buf)
-            output += buf
-            if expiterations > 1:
-                if "+" in buf:
-                    pb.update(buf.count("+"))
-                else:
-                    pb.refresh()
-        proc.wait()
+        try:
+            output = ""
+            while "#" not in output:
+                buf = proc.stdout.readline()
+                # print(buf)
+                output += buf
+                if expiterations > 1:
+                    if "+" in buf:
+                        pb.update(buf.count("+"))
+                    else:
+                        pb.refresh()
+            proc.wait()
+        except Exception as e:
+            if proc and proc.poll is not None:
+                proc.kill()
+            raise e
         start = self.start_pat.search(output)
         end = self.end_pat.search(output, start.end())
         if end is None:
