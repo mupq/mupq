@@ -204,6 +204,8 @@ class BoardTestCase(abc.ABC):
     """
     test_type = 'undefined'
 
+    iterations = 1
+
     def __init__(self, settings, interface):
         self.platform_settings = settings
         self.interface = interface
@@ -219,7 +221,7 @@ class BoardTestCase(abc.ABC):
                                     self.platform_settings.binary_type)
         binary = implementation.get_binary_path(f'{self.test_type}',
                                                 self.platform_settings.binary_type)
-        return self.interface.run(binary)
+        return self.interface.run(binary, self.iterations)
 
     def test_all(self, args=[]):
         implementations = []
@@ -244,6 +246,7 @@ class SimpleTest(BoardTestCase):
     test_type = 'test'
 
     def run_test(self, implementation):
+        self.iterations = 30 if implementation.primitive == "crypto_sign" else 45
         output = super().run_test(implementation).strip()
         if output.count("ERROR") or output.count("OK") != 30:
             self.log.error("Test %s - %s Failed!", implementation, self.test_type)
@@ -285,6 +288,10 @@ class StackBenchmark(BoardTestCase):
 
 class SpeedBenchmark(StackBenchmark):
     test_type = 'speed'
+
+    def __init__(self, *args, **kwargs):
+        super(SpeedBenchmark, self).__init__(*args, **kwargs)
+        self.iterations = self.platform_settings.iterations
 
 class HashingBenchmark(StackBenchmark):
     test_type = 'hashing'

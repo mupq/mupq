@@ -90,8 +90,8 @@ static int test_keys(void)
     {
       hal_send_str("OK KEYS\n");
     }
+    hal_send_str("+");
   }
-
   return 0;
 }
 
@@ -126,6 +126,7 @@ static int test_invalid_sk_a(void)
     {
       hal_send_str("OK invalid sk_a\n");
     }
+    hal_send_str("+");
   }
 
   return 0;
@@ -165,6 +166,7 @@ static int test_invalid_ciphertext(void)
     {
       hal_send_str("OK invalid ciphertext\n");
     }
+    hal_send_str("+");
   }
 
   return 0;
