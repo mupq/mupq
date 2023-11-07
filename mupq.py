@@ -9,10 +9,26 @@ import hashlib
 import time
 import statistics
 from datetime import datetime
+import tqdm
+import sys
+
+class TqdmLoggingHandler(logging.StreamHandler):
+    def __init__(self, tqdm_class=tqdm.std.tqdm):
+        super(TqdmLoggingHandler, self).__init__()
+        self.tqdm_class = tqdm_class
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            self.tqdm_class.write(msg)
+            self.flush()
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
 
 
-logging.basicConfig(level=logging.DEBUG)
-
+logging.basicConfig(level=logging.WARNING, handlers=[TqdmLoggingHandler()])
 
 class Implementation(object):
     """Contains some properties of a scheme implementation"""
@@ -64,7 +80,19 @@ class Implementation(object):
             makeflags.append(f"MUPQ_NAMESPACE={self.namespace}")
         makeflags.extend(self.extraflags)
         makeflags.append(target)
-        return subprocess.check_call(makeflags)
+        p = subprocess.Popen(makeflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ret = p.wait()
+        stdout = p.stdout.read()
+        stderr = p.stdout.read()
+        if len(stdout) > 0:
+            self.log.log(logging.ERROR if ret else logging.DEBUG,
+                         "make stdout output:\n" + stdout.decode("utf8").strip())
+        if len(stderr) > 0:
+            self.log.log(logging.ERROR if ret else logging.WARNING,
+                         "make stderr output:\n" + stderr.decode("utf8").strip())
+        if ret:
+            self.log.error("make return code %d", ret)
+        return ret
 
     def get_binary_path(self, test_type, bin_type=None):
         if bin_type is None:
@@ -73,7 +101,7 @@ class Implementation(object):
             return f'bin/{self.path.replace("/", "_")}_{test_type}.{bin_type}'
 
     def build_binary(self, test_type, bin_type):
-        self.log.info(f"Building {self} - {test_type}")
+        self.log.info("Building %s - %s", self, test_type)
         self.run_make(self.get_binary_path(test_type, bin_type))
 
     def get_object_path(self, source):
@@ -83,7 +111,7 @@ class Implementation(object):
         return f'obj/lib{self.path.replace("/", "_")}.a'
 
     def build_library(self):
-        self.log.info(f"Building {self} library")
+        self.log.info("Building %s library", self)
         self.run_make(self.get_library_path())
 
     def __str__(self):
@@ -150,7 +178,7 @@ class Platform(contextlib.AbstractContextManager):
     """Generic platform interface"""
 
     def __init__(self):
-        self.log = logging.getLogger("platform interface")
+        self.log = logging.getLogger(__class__.__name__)
 
     def __enter__(self):
         return super().__enter__()
@@ -186,6 +214,7 @@ class BoardTestCase(abc.ABC):
 
     @abc.abstractmethod
     def run_test(self, implementation):
+        self.log.info("Runnning %s - %s", implementation, self.test_type)
         implementation.build_binary(f'{self.test_type}',
                                     self.platform_settings.binary_type)
         binary = implementation.get_binary_path(f'{self.test_type}',
@@ -193,26 +222,34 @@ class BoardTestCase(abc.ABC):
         return self.interface.run(binary)
 
     def test_all(self, args=[]):
+        implementations = []
         exclude = "--exclude" in args
         for implementation in self.get_implementations():
             if exclude and implementation.scheme in args:
                 continue
             if not exclude and len(args) > 0 and implementation.scheme not in args:
                 continue
-            if self.run_test(implementation) == -1:
-                return -1
+            implementations.append(implementation)
+        with tqdm.tqdm(total=len(implementations), desc=self.test_type) as pb:
+            for implementation in implementations:
+                pb.set_postfix_str(f"{implementation}")
+                if self.run_test(implementation) == -1:
+                    pb.write(f"{implementation} FAIL")
+                    return -1
+                pb.write(f"{implementation} DONE")
+                pb.update()
 
 
 class SimpleTest(BoardTestCase):
     test_type = 'test'
 
-    def run_test(self, *args, **kwargs):
-        output = super().run_test(*args, **kwargs).strip()
+    def run_test(self, implementation):
+        output = super().run_test(implementation).strip()
         if output.count("ERROR") or output.count("OK") != 30:
-            self.log.error("Failed!")
+            self.log.error("Test %s - %s Failed!", implementation, self.test_type)
             return -1
         else:
-            self.log.info("Success")
+            self.log.info("Test %s - %s Succeeded", implementation, self.test_type)
             return 0
 
 
@@ -238,7 +275,6 @@ class StackBenchmark(BoardTestCase):
         else:
             with open(filename, 'w') as f:
                 f.write(result)
-        self.log.info("Wrote benchmark!")
 
     def run_test(self, implementation):
         self.log.info("Benchmarking %s", implementation)
@@ -286,20 +322,15 @@ class TestVectors(BoardTestCase):
     def run_test(self, implementation):
         checksum = self.hash_output(
             super().run_test(implementation).encode('utf-8'))
-        assert self.testvectorhash[implementation.scheme] == checksum
-        self.log.info("Success")
-
-    def run_make(self, target, path, namespace):
-        makeflags = ["make",
-                     f"IMPLEMENTATION_PATH={path}"]
-        if namespace is not None:
-            makeflags.append(f"MUPQ_NAMESPACE={namespace}")
-        makeflags.extend(self.platform_settings.makeflags)
-        makeflags.append(target)
-        return subprocess.check_call(makeflags)
-
+        if self.testvectorhash[implementation.scheme] != checksum:
+            self.log.error("Test %s - %s Failed!", implementation, self.test_type)
+            return -1
+        else:
+            self.log.info("Test %s - %s Succeeded", implementation, self.test_type)
+            return 0
 
     def _prepare_testvectors(self, exclude, args):
+        hostimpl = []
         for scheme, implementations in self.schemes.items():
             for impl in implementations:
                 if exclude and impl.scheme in args:
@@ -308,34 +339,48 @@ class TestVectors(BoardTestCase):
                     continue
                 if impl.implementation not in ('ref', 'clean', 'opt', 'opt-ct'):
                     continue
+                hostimpl.append(impl)
+                break
+        with tqdm.tqdm(total=len(hostimpl), desc="Prep. testvectors") as pb:
+            for impl in hostimpl:
                 # Build host version
+                pb.set_postfix_str(f"{impl}")
                 self.log.info("Running %s on host", impl)
                 binpath = impl.get_binary_path(self.test_type)
                 hostbin = (binpath
-                           .replace('bin/', 'bin-host/'))
-                self.run_make(hostbin, impl.path, impl.namespace)
+                        .replace('bin/', 'bin-host/'))
+                impl.run_make(hostbin)
+                # self.run_make(hostbin, impl.path, impl.namespace)
                 checksum = self.hash_output(
                     subprocess.check_output(
                         [hostbin],
                         stderr=subprocess.DEVNULL,
                     ))
-                self.testvectorhash[scheme] = checksum
-                break
+                self.testvectorhash[impl.scheme] = checksum
+                pb.update()
 
     def test_all(self, args):
         self.schemes = defaultdict(list)
         for implementation in self.get_implementations(all=True):
             self.schemes[implementation.scheme].append(implementation)
 
+        implementations = []
         exclude = "--exclude" in args
-        self._prepare_testvectors(exclude, args)
-
         for implementation in self.get_implementations():
             if exclude and implementation.scheme in args:
                 continue
-            if not exclude and len(args)>0 and implementation.scheme not in args:
+            if not exclude and len(args) > 0 and implementation.scheme not in args:
                 continue
-            self.run_test(implementation)
+            implementations.append(implementation)
+
+        self._prepare_testvectors(exclude, args)
+
+        with tqdm.tqdm(total=len(implementations), desc=self.test_type) as pb:
+            for implementation in implementations:
+                pb.set_postfix_str(f"{implementation}")
+                self.run_test(implementation)
+                pb.write(f"{implementation} DONE")
+                pb.update()
 
 
 class BuildAll(BoardTestCase):
