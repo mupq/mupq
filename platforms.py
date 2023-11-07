@@ -3,9 +3,11 @@ from mupq import mupq
 import abc
 import re
 import serial
+import socket
 import subprocess
 import time
 import os
+import os.path
 import tqdm
 
 try:
@@ -133,6 +135,28 @@ class OpenOCD(SerialCommsPlatform):
             # stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
+
+
+class OpenOCDTcp(SerialCommsPlatform):
+    def __init__(self, port=6666, tty="/dev/ttyACM0", baud=38400, timeout=60):
+        super().__init__(tty, baud, timeout)
+        self.socket = socket.create_connection(("localhost", port))
+
+    def _cmd(self, *commands):
+        n = len(commands)
+        commands = b"\x1a".join(command.encode("ascii")
+                                for command in commands) + b"\x1a"
+        self.socket.sendall(commands)
+        buf = bytearray()
+        while buf.count(b"\x1a") != n:
+            buf.extend(self.socket.recv(64))
+        return [b.decode("utf-8") for b in buf.split(b"\x1a")[:-1]]
+
+    def flash(self, binary_path):
+        binary_path = os.path.abspath(binary_path)
+        self._cmd("reset halt",
+                  f"program {binary_path} verify reset",
+                  "resume")
 
 
 class StLink(SerialCommsPlatform):
