@@ -34,11 +34,6 @@
 
 #define send_stack_usage(S, U) send_unsigned((S), (U))
 
-unsigned int canary_size;
-volatile unsigned char *p;
-unsigned int c;
-uint8_t canary = 0x42;
-
 unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
 unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
 unsigned char sm[MLEN + MUPQ_CRYPTO_BYTES];
@@ -49,41 +44,22 @@ size_t smlen;
 unsigned int rc;
 unsigned int stack_key_gen, stack_sign, stack_verify;
 
-#define FILL_STACK()                                                           \
-  p = &a;                                                                      \
-  while (p > &a - canary_size)                                                    \
-    *(p--) = canary;
-#define CHECK_STACK()                                                         \
-  c = canary_size;                                                                \
-  p = &a - canary_size + 1;                                                       \
-  while (*p == canary && p < &a) {                                             \
-    p++;                                                                       \
-    c--;                                                                       \
-  }                                                                            \
-
 static int test_sign(void) {
-  volatile unsigned char a;
   // Alice generates a public key
-  FILL_STACK()
+  hal_spraystack();
   MUPQ_crypto_sign_keypair(pk, sk);
-  CHECK_STACK()
-  if(c >= canary_size) return -1;
-  stack_key_gen = c;
+  stack_key_gen = hal_checkstack();
 
   // Bob derives a secret key and creates a response
   randombytes(m, MLEN);
-  FILL_STACK()
+  hal_spraystack();
   MUPQ_crypto_sign(sm, &smlen, m, MLEN, sk);
-  CHECK_STACK()
-  if(c >= canary_size) return -1;
-  stack_sign = c;
+  stack_sign = hal_checkstack();
 
   // Alice uses Bobs response to get her secret key
-  FILL_STACK()
+  hal_spraystack();
   rc = MUPQ_crypto_sign_open(sm, &mlen, sm, smlen, pk);
-  CHECK_STACK()
-  if(c >= canary_size) return -1;
-  stack_verify = c;
+  stack_verify = hal_checkstack();
 
   if (rc) {
     return -1;
@@ -101,18 +77,7 @@ int main(void) {
 
  // marker for automated benchmarks
   hal_send_str("==========================");
-  canary_size = STACK_SIZE_INCR;
-  while(test_sign()){
-    if(canary_size == MAX_STACK_SIZE) {
-      hal_send_str("failed to measure stack usage.\n");
-      break;
-    }
-    canary_size += STACK_SIZE_INCR;
-    if(canary_size >= MAX_STACK_SIZE) {
-      canary_size = MAX_STACK_SIZE;
-    }
-  }
-
+  test_sign();
   // marker for automated benchmarks
   hal_send_str("#");
 
