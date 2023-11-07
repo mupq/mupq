@@ -3,7 +3,9 @@ from collections import defaultdict
 import contextlib
 import re
 import os
+import os.path
 import logging
+import logging.handlers
 import subprocess
 import hashlib
 import time
@@ -27,8 +29,18 @@ class TqdmLoggingHandler(logging.StreamHandler):
         except:
             self.handleError(record)
 
+formater = logging.Formatter("%(asctime)s %(name)s %(levelname)s: %(message)s")
+stream_handler = TqdmLoggingHandler()
+stream_handler.setLevel(logging.WARNING)
+stream_handler.setFormatter(formater)
+LOGFILE = "mupq.log"
+file_handler = logging.handlers.RotatingFileHandler(LOGFILE, backupCount=10)
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(formater)
+if os.path.isfile(LOGFILE):
+    file_handler.doRollover()
 
-logging.basicConfig(level=logging.WARNING, handlers=[TqdmLoggingHandler()])
+logging.basicConfig(level=logging.DEBUG, handlers=[stream_handler, file_handler], force=True)
 
 class Implementation(object):
     """Contains some properties of a scheme implementation"""
