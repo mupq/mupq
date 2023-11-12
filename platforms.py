@@ -44,8 +44,8 @@ class Qemu(mupq.Platform):
             binary_path,
         ]
         self.log.info(f'Running QEMU: {" ".join(args)}')
-        proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding="ascii")
         try:
+            proc = subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, encoding="ascii")
             output = ""
             while "#" not in output:
                 buf = proc.stdout.readline()
@@ -57,10 +57,13 @@ class Qemu(mupq.Platform):
                     else:
                         pb.refresh()
             proc.wait()
-        except Exception as e:
-            if proc and proc.poll is not None:
-                proc.kill()
-            raise e
+        except Exception:
+            try:
+                if proc and proc.poll is not None:
+                    proc.kill()
+            except Exception:
+                pass
+            raise
         start = self.start_pat.search(output)
         end = self.end_pat.search(output, start.end())
         if end is None:
@@ -94,12 +97,12 @@ class SerialCommsPlatform(mupq.Platform):
         self.flash(binary_path)
         # Wait for the first equal sign
         if self._dev.read_until(b'=')[-1] != b'='[0]:
-            raise Exception('Timout waiting for start')
+            raise RuntimeError('Timout waiting for start')
         # Wait for the end of the equal delimiter
         start = self._dev.read_until(b'\n')
         self.log.debug(f'Found start pattern: {start}')
         if self.start_pat.fullmatch(start) is None:
-            raise Exception('Start does not match')
+            raise RuntimeError('Start does not match')
         # Wait for the end
         output = bytearray()
         while len(output) == 0 or output[-1] != b'#'[0]:

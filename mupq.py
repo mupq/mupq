@@ -13,6 +13,7 @@ import statistics
 from datetime import datetime
 import tqdm
 import sys
+import traceback
 
 class TqdmLoggingHandler(logging.StreamHandler):
     def __init__(self, tqdm_class=tqdm.std.tqdm):
@@ -233,7 +234,13 @@ class BoardTestCase(abc.ABC):
                                     self.platform_settings.binary_type)
         binary = implementation.get_binary_path(f'{self.test_type}',
                                                 self.platform_settings.binary_type)
-        return self.interface.run(binary, self.iterations)
+        try:
+            output = self.interface.run(binary, self.iterations)
+            return output
+        except Exception as e:
+            tb = "\n".join(traceback.format_exception(e))
+            self.log.error("Running %s - %s failed with exception: %s", implementation, self.test_type, tb)
+            return -1
 
     def test_all(self, args=[]):
         implementations = []
@@ -248,9 +255,9 @@ class BoardTestCase(abc.ABC):
             for implementation in implementations:
                 pb.set_postfix_str(f"{implementation}")
                 if self.run_test(implementation) == -1:
-                    pb.write(f"{implementation} FAIL")
+                    pb.write(f"{implementation} FAILED")
                     return -1
-                pb.write(f"{implementation} DONE")
+                pb.write(f"{implementation} SUCCESSFUL")
                 pb.update()
 
 
@@ -258,13 +265,13 @@ class SimpleTest(BoardTestCase):
     test_type = 'test'
 
     def run_test(self, implementation):
-        self.iterations = 30 if implementation.primitive == "crypto_sign" else 45
+        self.iterations = 30
         output = super().run_test(implementation).strip()
         if output.count("ERROR") or output.count("OK") != 30:
             self.log.error("Test %s - %s Failed!", implementation, self.test_type)
             return -1
         else:
-            self.log.info("Test %s - %s Succeeded", implementation, self.test_type)
+            self.log.info("Test %s - %s Successful", implementation, self.test_type)
             return 0
 
 
@@ -294,8 +301,13 @@ class StackBenchmark(BoardTestCase):
     def run_test(self, implementation):
         self.log.info("Benchmarking %s", implementation)
         output = super().run_test(implementation)
-        assert 'ERROR' not in output
+        if output == -1:
+            return -1
         self.write_result(implementation, output)
+        if "ERROR" in output:
+            return -1
+        else:
+            return 0
 
 
 class SpeedBenchmark(StackBenchmark):
@@ -345,7 +357,7 @@ class TestVectors(BoardTestCase):
             self.log.error("Test %s - %s Failed!", implementation, self.test_type)
             return -1
         else:
-            self.log.info("Test %s - %s Succeeded", implementation, self.test_type)
+            self.log.info("Test %s - %s Successful", implementation, self.test_type)
             return 0
 
     def _prepare_testvectors(self, exclude, args):
@@ -366,17 +378,19 @@ class TestVectors(BoardTestCase):
                 pb.set_postfix_str(f"{impl}")
                 self.log.info("Running %s on host", impl)
                 binpath = impl.get_binary_path(self.test_type)
-                hostbin = (binpath
-                        .replace('bin/', 'bin-host/'))
+                hostbin = binpath.replace('bin/', 'bin-host/')
                 impl.run_make(hostbin)
-                # self.run_make(hostbin, impl.path, impl.namespace)
-                checksum = self.hash_output(
-                    subprocess.check_output(
-                        [hostbin],
-                        stderr=subprocess.DEVNULL,
-                    ))
+                try:
+                    checksum = self.hash_output(
+                        subprocess.check_output(
+                            [hostbin],
+                            stderr=subprocess.DEVNULL,
+                        ))
+                except e:
+                    self.log.error("Generating testvector for %s failed with exception: %s", impl, e)
                 self.testvectorhash[impl.scheme] = checksum
                 pb.update()
+        return 0
 
     def test_all(self, args):
         self.schemes = defaultdict(list)
@@ -397,8 +411,10 @@ class TestVectors(BoardTestCase):
         with tqdm.tqdm(total=len(implementations), desc=self.test_type) as pb:
             for implementation in implementations:
                 pb.set_postfix_str(f"{implementation}")
-                self.run_test(implementation)
-                pb.write(f"{implementation} DONE")
+                if self.run_test(implementation) == -1:
+                    pb.write(f"{implementation} FAILED")
+                    return -1
+                pb.write(f"{implementation} SUCCESSFUL")
                 pb.update()
 
 
