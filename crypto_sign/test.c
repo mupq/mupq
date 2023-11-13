@@ -89,6 +89,7 @@ static int test_sign(void)
             hal_send_str("OK Signature did verify correctly!\n");
         }
         hal_send_str("crypto_sign_open DONE.\n");
+        hal_send_str("+");
     }
 
     return 0;
@@ -138,6 +139,7 @@ static int test_wrong_pk(void)
             hal_send_str("ERROR Signature did verify correctly under wrong public key!\n");
         }
         hal_send_str("crypto_sign_open DONE.\n");
+        hal_send_str("+");
     }
 
     return 0;
