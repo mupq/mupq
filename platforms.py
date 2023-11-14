@@ -117,6 +117,23 @@ class SerialCommsPlatform(mupq.Platform):
             pb.close()
         return output[:-1].decode('utf-8', 'ignore')
 
+    def _run_flash_util(self, args):
+        self.log.debug("Running command %s", " ".join(f"\"{a}\"" if " " in a else a for a in args))
+        try:
+            proc = subprocess.run(args, capture_output=True, check=True, encoding="utf-8")
+            if proc.stdout.strip():
+                self.log.debug("%s stdout:\n%s", args[0], proc.stdout)
+            if proc.stderr.strip():
+                self.log.debug("%s stderr:\n%s", args[0], proc.stderr)
+        except subprocess.CalledProcessError as e:
+            self.log.error("Running %s failed with return code %d", args[0], e.returncode)
+            if e.stdout:
+                self.log.error("%s stdout:\n%s", args[0], e.stdout)
+            if e.stderr:
+                self.log.error("%s stderr:\n%s", args[0], e.stderr)
+            raise
+
+
     @abc.abstractmethod
     def flash(self, binary_path):
         pass
@@ -128,11 +145,8 @@ class OpenOCD(SerialCommsPlatform):
         self.script = script
 
     def flash(self, binary_path):
-        subprocess.check_call(
-            ["openocd", "-f", self.script, "-c", f"program {binary_path} verify reset exit"],
-            # stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        args = ["openocd", "-f", self.script, "-c", f"program {binary_path} verify reset exit"]
+        self._run_flash_util(args)
 
 
 class StLink(SerialCommsPlatform):
@@ -140,11 +154,8 @@ class StLink(SerialCommsPlatform):
         extraargs = []
         if os.getenv("MUPQ_ST_FLASH_ARGS") is not None:
             extraargs = os.getenv("MUPQ_ST_FLASH_ARGS").split()
-        subprocess.check_call(
-            ["st-flash"] + extraargs + ["--reset", "write", binary_path, "0x8000000"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        args = ["st-flash"] + extraargs + ["--reset", "write", binary_path, "0x8000000"]
+        self._run_flash_util(args)
 
 
 class ChipWhisperer(mupq.Platform):
