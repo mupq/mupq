@@ -51,11 +51,11 @@ void sha2_hash(uint8_t digest[HASH_DIGEST_LENGTH],
                const uint64_t mlen)
 {
 #if (HASH_DIGEST_LENGTH*8 == 256)
-   sha2_256(digest,m, mlen);
+   sha256(digest,m, mlen);
 #elif (HASH_DIGEST_LENGTH*8 == 384)
-   sha2_384(digest,m, mlen);
+   sha384(digest,m, mlen);
 #elif (HASH_DIGEST_LENGTH*8 == 512)
-   sha2_512(digest,m, mlen);
+   sha512(digest,m, mlen);
 #else
 #error digest length unsupported by SHA-2
 #endif
