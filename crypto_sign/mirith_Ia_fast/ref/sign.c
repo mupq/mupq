@@ -675,7 +675,7 @@ int crypto_sign_open(uint8_t *msg, size_t *msg_len,
 
     /* Check that the signature length is not too long, which could
      * happens if the signature has been corrupted. */
-    if (sig_len >= sig_msg_len
+    if (sig_len > sig_msg_len
         || sig_len > CRYPTO_BYTES)
     {
         /* Failure. */
