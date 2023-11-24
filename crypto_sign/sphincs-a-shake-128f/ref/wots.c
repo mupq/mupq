@@ -10,7 +10,7 @@
 #include "address.h"
 #include "params.h"
 #include "assert.h"
-#include "uintx.h"
+
 
 
 // TODO clarify address expectations, and make them more uniform.
@@ -40,11 +40,7 @@ static void gen_chain(unsigned char *out, const unsigned char *in,
     }
 }
 
-
-void encode(unsigned int *out, uint256_t *x, int l, int w)
-{
-
-    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+void precompute_dp(uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1], int l, int w){
     int s = l * (w - 1) / 2;
 
 
@@ -56,8 +52,12 @@ void encode(unsigned int *out, uint256_t *x, int l, int w)
             for (int k = 0; k < w && k <= j; k++)
                 add_u256(&dp[i][j], (const uint256_t *)&dp[i][j], (const uint256_t *)&dp[i - 1][j - k]);
         }
+}
 
 
+void encode(unsigned int *out, uint256_t *x, int l, int w, uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1])
+{
+    int s = l * (w - 1) / 2;
 
     for (int i = l - 1; i >= 0; i--)
     {
@@ -82,7 +82,7 @@ void encode(unsigned int *out, uint256_t *x, int l, int w)
 }
 
 /* Takes a message and derives the matching chain lengths. */
-void chain_lengths(unsigned int *lengths, const unsigned char *msg)
+void chain_lengths(unsigned int *lengths, const unsigned char *msg, uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1])
 {
     uint256_t m;
 
@@ -92,7 +92,7 @@ void chain_lengths(unsigned int *lengths, const unsigned char *msg)
         m[i] = bytes_to_ull(msg+i*8,8);
     }
 
-    encode(lengths, &m, SPX_WOTS_LEN, SPX_WOTS_W);
+    encode(lengths, &m, SPX_WOTS_LEN, SPX_WOTS_W, dp);
 }
 
 /**
@@ -102,12 +102,12 @@ void chain_lengths(unsigned int *lengths, const unsigned char *msg)
  */
 void wots_pk_from_sig(unsigned char *pk,
                       const unsigned char *sig, const unsigned char *msg,
-                      const spx_ctx *ctx, uint32_t addr[8])
+                      const spx_ctx *ctx, uint32_t addr[8], uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1])
 {
     unsigned int lengths[SPX_WOTS_LEN];
     uint32_t i;
 
-    chain_lengths(lengths, msg);
+    chain_lengths(lengths, msg, dp);
 
     for (i = 0; i < SPX_WOTS_LEN; i++) {
         set_chain_addr(addr, i);

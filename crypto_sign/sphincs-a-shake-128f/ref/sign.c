@@ -55,6 +55,9 @@ int crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
 {
     spx_ctx ctx;
 
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    precompute_dp(dp, SPX_WOTS_LEN, SPX_WOTS_W);
+
     /* Initialize SK_SEED, SK_PRF and PUB_SEED from seed. */
     memcpy(sk, seed, CRYPTO_SEEDBYTES);
 
@@ -68,7 +71,7 @@ int crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
     initialize_hash_function(&ctx);
 
     /* Compute root node of the top-most subtree. */
-    merkle_gen_root(sk + 3*SPX_N, &ctx);
+    merkle_gen_root(sk + 3*SPX_N, &ctx, dp);
 
     memcpy(pk + SPX_N, sk + 3*SPX_N, SPX_N);
 
@@ -108,6 +111,8 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen,
     uint32_t idx_leaf;
     uint32_t wots_addr[8] = {0};
     uint32_t tree_addr[8] = {0};
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    precompute_dp(dp, SPX_WOTS_LEN, SPX_WOTS_W);
 
     memcpy(ctx.sk_seed, sk, SPX_N);
     memcpy(ctx.pub_seed, pk, SPX_N);
@@ -144,7 +149,7 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen,
         copy_subtree_addr(wots_addr, tree_addr);
         set_keypair_addr(wots_addr, idx_leaf);
 
-        merkle_sign(sig, root, &ctx, wots_addr, tree_addr, idx_leaf);
+        merkle_sign(sig, root, &ctx, wots_addr, tree_addr, idx_leaf, dp);
         sig += SPX_WOTS_BYTES + SPX_TREE_HEIGHT * SPX_N;
 
         /* Update the indices for the next layer. */
@@ -175,7 +180,8 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
     uint32_t wots_addr[8] = {0};
     uint32_t tree_addr[8] = {0};
     uint32_t wots_pk_addr[8] = {0};
-
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    precompute_dp(dp, SPX_WOTS_LEN, SPX_WOTS_W);
     if (siglen != SPX_BYTES) {
         return -1;
     }
@@ -215,7 +221,7 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
         /* The WOTS public key is only correct if the signature was correct. */
         /* Initially, root is the FORS pk, but on subsequent iterations it is
            the root of the subtree below the currently processed subtree. */
-        wots_pk_from_sig(wots_pk, sig, root, &ctx, wots_addr);
+        wots_pk_from_sig(wots_pk, sig, root, &ctx, wots_addr, dp);
         sig += SPX_WOTS_BYTES;
 
         /* Compute the leaf node using the WOTS public key. */
