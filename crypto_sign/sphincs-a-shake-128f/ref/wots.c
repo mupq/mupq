@@ -44,24 +44,20 @@ static void gen_chain(unsigned char *out, const unsigned char *in,
 void encode(unsigned int *out, uint256_t *x, int l, int w)
 {
 
-    static int done = 0;
-    static uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
     int s = l * (w - 1) / 2;
 
-    if (!done)
-    {
 
-        set1_u256(&dp[0][0]);
-        for (int i = 1; i <= l; i++)
-            for (int j = 0; j <= s; j++)
-            {
-                set0_u256(&dp[i][j]);
-                for (int k = 0; k < w && k <= j; k++)
-                    add_u256(&dp[i][j], (const uint256_t *)&dp[i][j], (const uint256_t *)&dp[i - 1][j - k]);
-            }
+    set1_u256(&dp[0][0]);
+    for (int i = 1; i <= l; i++)
+        for (int j = 0; j <= s; j++)
+        {
+            set0_u256(&dp[i][j]);
+            for (int k = 0; k < w && k <= j; k++)
+                add_u256(&dp[i][j], (const uint256_t *)&dp[i][j], (const uint256_t *)&dp[i - 1][j - k]);
+        }
 
-        done = 1;
-    }
+
 
     for (int i = l - 1; i >= 0; i--)
     {
