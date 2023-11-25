@@ -3,7 +3,6 @@
 #define GF16_INIT_H
 #include "gf16.h"
 
-int gf16_tables_is_init = 0;
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,10 +12,6 @@ extern "C" {
  * init gf16 tables
  */
 void init_gf16_tables() {
-    if (gf16_tables_is_init) {
-        return;
-    }
-    gf16_tables_is_init = 1;
     uint8_t F_star[15] = {1, 2,  4, 8,  3,  6,  12, 11,
                           5, 10, 7, 14, 15, 13, 9};  // Z2[x]/(x^4+x+1)
     for (int i = 0; i < 16; ++i) {

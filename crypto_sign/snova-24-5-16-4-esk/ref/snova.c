@@ -5,17 +5,11 @@
 #include "aes.h"
 
 static gf16m_t S[l_SNOVA] = {0};
-static int S_is_init = 0;
 
 /**
  * Generate elements of F16[S]
  */
 void gen_S_array() {
-    if (S_is_init) {
-        return;
-    }
-
-    S_is_init = 1;
     be_aI(S[0], 1);
     be_the_S(S[1]);
     for (int index = 2; index < l_SNOVA; index++) {
