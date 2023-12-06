@@ -60,9 +60,9 @@ void gf16mat_prod_multab(uint8_t *c, const uint8_t *matA, unsigned n_A_vec_byte,
 void gf256mat_prod_multab(uint8_t *c, const uint8_t *matA, unsigned n_A_vec_byte, unsigned n_A_width, const uint8_t *multab_b);
 
 
-/// @brief F is an batched-matrix, lambda is a vector with batch/2 elements, 
+/// @brief F is an batched-matrix, lambda is a vector with batch/2 elements,
 ///         we want to compute M = lambda_0 * F_0 + ... + lambda_{batch/2-1} * F_{batch/2-1}. in GF(16)
-/// @param[out]  M               - a col-major F_rows * F_cols matrix             - 
+/// @param[out]  M               - a col-major F_rows * F_cols matrix             -
 /// @param[in]   F                - a batched row-major F_rows * F_cols matrix F
 /// @param[in]   F_rows           - number of rows of F
 /// @param[in]   F_cols           - number of cols of F
@@ -72,9 +72,9 @@ void gf256mat_prod_multab(uint8_t *c, const uint8_t *matA, unsigned n_A_vec_byte
 void gf16mat_linearcomb_half(unsigned char *M, const unsigned char *F, unsigned F_rows, unsigned F_cols, const unsigned char *lambda, unsigned batch);
 
 
-/// @brief F is an batched-matrix, lambda is a vector with batch/2 elements, 
+/// @brief F is an batched-matrix, lambda is a vector with batch/2 elements,
 ///         we want to compute M = lambda_0 * F_0 + ... + lambda_{batch/2-1} * F_{batch/2-1}. in GF(256)
-/// @param[out]  M               - a col-major F_rows * F_cols matrix             - 
+/// @param[out]  M               - a col-major F_rows * F_cols matrix             -
 /// @param[in]   F                - a batched row-major F_rows * F_cols matrix F
 /// @param[in]   F_rows           - number of rows of F
 /// @param[in]   F_cols           - number of cols of F
@@ -138,8 +138,6 @@ void gf256mat_back_substitute_unde(uint8_t * v, const uint8_t *M, unsigned M_row
 
 #define _TUOVSIGN_DEBUG_
 #ifdef _TUOVSIGN_DEBUG_
-unsigned gfmat_gaussian_elim_unde_change(unsigned char *A, unsigned A_rows, unsigned A_cols, unsigned char *b);
-void gfmat_back_substitute_unde_change(unsigned char *sol, unsigned char *A, unsigned A_rows, unsigned A_cols, unsigned char *b);
 void gfmat_transpose_vxo_change(unsigned char *M);
 void gfmat_transpose_oxo_change(unsigned char *M);
 #endif

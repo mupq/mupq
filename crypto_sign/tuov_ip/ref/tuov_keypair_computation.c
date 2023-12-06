@@ -1,5 +1,5 @@
 /** \file   tuov_keypair_computation.h
- *  \brief  Functions for calculating pk/sk while generating keys. 
+ *  \brief  Functions for calculating pk/sk while generating keys.
  *          used in tuov_keypair.c
  */
 #include "params.h"
@@ -23,7 +23,7 @@ void multiple_S(unsigned char *M, const unsigned char *S, unsigned D){
     uint8_t multab_Mcol[_PUB_M1 * 32] __attribute__((aligned(32)));
     #ifdef _USE_GF16
     #define _GFBYTE (_GFSIZE >> 1)
-    #else 
+    #else
     #define _GFBYTE (_GFSIZE)
     #endif
     uint8_t ele_all[_GFBYTE] = {0};
@@ -77,8 +77,8 @@ void multiple_S(unsigned char *M, const unsigned char *S, unsigned D){
 void combine_F(unsigned char *F){
     _combine_m1batched_matrix(F + P11_BIAS, N_TRIANGLE_TERMS(_V));
     uint8_t *new_F23 = F + P21_BIAS;
-    uint8_t *F2 = malloc(_PUB_M_BYTE * _V);
-    uint8_t *F3 = malloc(_PUB_M_BYTE * _V * (_O - 1));
+    uint8_t F2[_PUB_M_BYTE * _V];
+    uint8_t F3[_PUB_M_BYTE * _V * (_O - 1)];
     uint8_t *F21 = F2;
     uint8_t *F22 = F2 + _PUB_M1_BYTE * _V;
     uint8_t *F31 = F3;
@@ -113,8 +113,6 @@ void combine_F(unsigned char *F){
         }
         new_F23 += _O * _V_BYTE;
     }
-    free(F2);
-    free(F3);
 
     //_combine_m1batched_matrix(F + P21_BIAS, (_V));
     //_combine_m1batched_matrix(F + P31_BIAS, (_V * (_PUB_M - 1)));
@@ -129,7 +127,7 @@ void combine_P(unsigned char *P){
     _combine_m1batched_matrix(P + P91_BIAS, (N_TRIANGLE_TERMS(_PUB_M - 1)));
 
     // convert_123569_to_123
-    
+
     // P1 --> new P1, already ok
     // P2 & P3 --> new P2
     unsigned char tmp[_PK_P2_BYTE + _PK_P3_BYTE] __attribute__((aligned(32)));
@@ -150,7 +148,7 @@ void combine_P(unsigned char *P){
 
 #ifdef _MUL_WITH_MULTAB_
 /** \brief dist += Q2 * T3
- *  
+ *
  *  \param[in,out] dst      - output
  *  \param[in] Q2           - an m1-batched row-major (n - m) * 1 matrix
  *  \param[in] multab_T3    - T3 is a col-major 1 * (m - 1) matrix, multab_T3 is the multab of T3
@@ -168,7 +166,7 @@ void add_Q2_mul_T3_multab(unsigned char *dst, const unsigned char *Q2, const uns
 #endif
 
 /** \brief dist += Q2 * T3
- *  
+ *
  *  \param[in,out] dst      - output
  *  \param[in] Q2           - an m1-batched row-major (n - m) * 1 matrix
  *  \param[in] T3           - T3 is a col-major 1 * (m - 1) matrix
@@ -205,16 +203,16 @@ void calculate_Q51(unsigned char *Q51, const unsigned char *T1, const unsigned c
 }
 
 
-void calculate_Q61(unsigned char *Q61, const unsigned char *T1, const unsigned char *T3, const unsigned char *T4, 
+void calculate_Q61(unsigned char *Q61, const unsigned char *T1, const unsigned char *T3, const unsigned char *T4,
                     const unsigned char *Q11, const unsigned char *Q21, const unsigned char *Q31, const unsigned char *Q51){
     ((void) Q51);       // Q51 + Q51_tr = 0
-    
+
     uint8_t tmp1[_PUB_M1_BYTE * _V];
     uint8_t tmp2[_PUB_M1_BYTE];
 
     // tmp1 = Q21
     memcpy(tmp1, Q21, _PUB_M1_BYTE * _V);
-    
+
     #ifdef _MUL_WITH_MULTAB_
     uint8_t multab_T1[_V * 32] __attribute__((aligned(32)));
     gfv_generate_multabs(multab_T1, T1, _V);
@@ -280,7 +278,7 @@ void calculate_Q61(unsigned char *Q61, const unsigned char *T1, const unsigned c
 
 void calculate_Q91(unsigned char *Q91, const unsigned char *T3, const unsigned char *T4, const unsigned char *Q11,
                     const unsigned char *Q21, const unsigned char *Q31, const unsigned char *Q51, const unsigned char *Q61){
-    
+
     uint8_t tmp1[_PK_P3_BYTE >> 1];
     uint8_t tmp2[(_PUB_M - 1) * _PUB_M1_BYTE];
     uint8_t tmp3[_PK_P9_BYTE >> 1];
@@ -305,8 +303,8 @@ void calculate_Q91(unsigned char *Q91, const unsigned char *T3, const unsigned c
         gfv_madd(&tmp2[i * _PUB_M1_BYTE], Q51, gfv_get_ele(T3, i), _PUB_M1_BYTE);
     }
     #endif
-    
-    
+
+
     #ifdef _MUL_WITH_MULTAB_
     uint8_t multab_T4[_V * (_PUB_M - 1) * 32] __attribute__((aligned(32)));
     gfv_generate_multabs(multab_T4, T4, _V * (_PUB_M - 1));
@@ -323,7 +321,7 @@ void calculate_Q91(unsigned char *Q91, const unsigned char *T3, const unsigned c
     batch_upper_matTr_x_mat(tmp3, T3, 1, 1, _PUB_M - 1, tmp2, _PUB_M - 1, _PUB_M1_BYTE);
     #endif
 
-    
+
 
     gfv_add(Q91, tmp3, _PK_P9_BYTE >> 1);
     // Q91 += T3_tr * tmp2
@@ -348,7 +346,7 @@ void calculate_F21(unsigned char *F21, const unsigned char *T1, const unsigned c
 }
 
 
-void calculate_F31(unsigned char *F31, const unsigned char *T3, const unsigned char *T4, const unsigned char *Q11, 
+void calculate_F31(unsigned char *F31, const unsigned char *T3, const unsigned char *T4, const unsigned char *Q11,
                     const unsigned char *Q21, const unsigned char *Q31){
     // F31 = Q31
     memcpy(F31, Q31, _PK_P3_BYTE >> 1);
@@ -374,7 +372,7 @@ void calculate_F31(unsigned char *F31, const unsigned char *T3, const unsigned c
 }
 
 
-void calculate_F52(unsigned char *F52, const unsigned char *T1, const unsigned char *Q12, const unsigned char *Q22, 
+void calculate_F52(unsigned char *F52, const unsigned char *T1, const unsigned char *Q12, const unsigned char *Q22,
                     const unsigned char *Q52){
     uint8_t tmp[_PUB_M1_BYTE];
 
@@ -396,8 +394,8 @@ void calculate_F52(unsigned char *F52, const unsigned char *T1, const unsigned c
 }
 
 
-void calculate_F62(unsigned char *F62, const unsigned char *T1, const unsigned char *T3, const unsigned char *T4, 
-                    const unsigned char *Q12, const unsigned char *Q22, const unsigned char *Q32, const unsigned char *Q52, 
+void calculate_F62(unsigned char *F62, const unsigned char *T1, const unsigned char *T3, const unsigned char *T4,
+                    const unsigned char *Q12, const unsigned char *Q22, const unsigned char *Q32, const unsigned char *Q52,
                     const unsigned char *Q62){
     calculate_Q61(F62, T1, T3, T4, Q12, Q22, Q32, Q52);
     gfv_add(F62, Q62, _PK_P6_BYTE >> 1);

@@ -1,5 +1,5 @@
 /** \file   sign.c
- *  \brief  the implementations for functions in api.h 
+ *  \brief  the implementations for functions in api.h
  */
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +35,7 @@ crypto_sign_keypair(unsigned char *pk, unsigned char *sk) {
 
 
 int
-crypto_sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen, const unsigned char *sk)
+crypto_sign(unsigned char *sm, size_t *smlen, const unsigned char *m, size_t mlen, const unsigned char *sk)
 {
     int r = -1;
 
@@ -57,7 +57,7 @@ crypto_sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m
 
 
 int
-crypto_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk)
+crypto_sign_open(unsigned char *m, size_t *mlen, const unsigned char *sm, size_t smlen, const unsigned char *pk)
 {
     if ( TUOV_SIGNATUREBYTES > smlen ) {
         return -1;

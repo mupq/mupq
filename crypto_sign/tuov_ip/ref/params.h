@@ -7,6 +7,10 @@
 #define _PARAMS_H_
 
 
+#define malloc XXXXX
+#define calloc XXXXX3
+#define free XXXXX2
+
 #if (!defined(_TUOV16_160_64))&&(!defined(_TUOV256_112_44))&&(!defined(_TUOV256_184_72))&&(!defined(_TUOV256_244_96))
 //#define _TUOV16_160_64
 #define _TUOV256_112_44

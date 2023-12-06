@@ -20,9 +20,9 @@
 #endif
 
 /* choose implementations for SHAKE256, AES128CTR, and randombytes() functions */
-#define _UTILS_OPENSSL_
+// #define _UTILS_OPENSSL_
 //#define _UTILS_SUPERCOP_
-//#define _UTILS_PQM4_
+#define _UTILS_PQM4_
 
 /* x86 aes instrucitons */
 //#define _UTILS_AESNI_

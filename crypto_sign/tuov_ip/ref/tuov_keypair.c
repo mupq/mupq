@@ -1,5 +1,5 @@
-/** \file tuov_keypair.c 
- *  \brief The standard implementations for key related functions in tuov_keypair.h   
+/** \file tuov_keypair.c
+ *  \brief The standard implementations for key related functions in tuov_keypair.h
 */
 
 #include "tuov_keypair.h"
@@ -61,8 +61,8 @@ int _generate_keypair( pk_t *pk, sk_t *sk, const unsigned char *pk_seed, const u
     calculate_Q51(pk->pk + P51_BIAS, sk->ST + T1_BIAS, Q11, Q21);
     calculate_Q61(pk->pk + P61_BIAS, sk->ST + T1_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, Q11, Q21, Q31, pk->pk + P51_BIAS);
     calculate_Q91(pk->pk + P91_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, Q11, Q21, Q31, pk->pk + P51_BIAS, pk->pk + P61_BIAS);
-    calculate_Q91(pk->pk + P92_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, 
-                pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS, 
+    calculate_Q91(pk->pk + P92_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS,
+                pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS,
                 pk->pk + P52_BIAS, pk->pk + P62_BIAS);
 
     // Q569 stores Q52, Q62, Q92 in order
@@ -90,9 +90,9 @@ int _generate_keypair( pk_t *pk, sk_t *sk, const unsigned char *pk_seed, const u
     calculate_F21(sk->F + P22_BIAS, sk->ST + T1_BIAS, pk->pk + P12_BIAS, pk->pk + P22_BIAS);
     calculate_F31(sk->F + P32_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS);
     calculate_F52(sk->F + P51_BIAS, sk->ST + T1_BIAS, pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P52_BIAS);
-    calculate_F62(sk->F + P51_BIAS + (_PK_P5_BYTE >> 1), sk->ST + T1_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, 
+    calculate_F62(sk->F + P51_BIAS + (_PK_P5_BYTE >> 1), sk->ST + T1_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS,
                     pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS, pk->pk + P52_BIAS, pk->pk + P62_BIAS);
-    
+
     return 0;
 }
 
@@ -127,8 +127,10 @@ int generate_keypair_pkc( cpk_t *rpk, sk_t *sk, const unsigned char *pk_seed, co
 }
 
 int generate_keypair_pkc_skc( cpk_t *rpk, csk_t *rsk, const unsigned char *pk_seed, const unsigned char *sk_seed ){
-    pk_t *pk = malloc(sizeof(pk_t));
-    sk_t *sk = malloc(sizeof(sk_t));
+    pk_t _pk;
+    sk_t _sk;
+    pk_t *pk = &_pk;
+    sk_t *sk = &_sk;
     memcpy( sk->sk_seed, sk_seed, LEN_SKSEED );
 
     // prng for sk
@@ -167,8 +169,8 @@ int generate_keypair_pkc_skc( cpk_t *rpk, csk_t *rsk, const unsigned char *pk_se
     calculate_Q51(pk->pk + P51_BIAS, sk->ST + T1_BIAS, Q11, Q21);
     calculate_Q61(pk->pk + P61_BIAS, sk->ST + T1_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, Q11, Q21, Q31, pk->pk + P51_BIAS);
     calculate_Q91(pk->pk + P91_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, Q11, Q21, Q31, pk->pk + P51_BIAS, pk->pk + P61_BIAS);
-    calculate_Q91(pk->pk + P92_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, 
-                pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS, 
+    calculate_Q91(pk->pk + P92_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS,
+                pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS,
                 pk->pk + P52_BIAS, pk->pk + P62_BIAS);
 
     // Q569 stores Q52, Q62, Q92 in order
@@ -192,8 +194,6 @@ int generate_keypair_pkc_skc( cpk_t *rpk, csk_t *rsk, const unsigned char *pk_se
     memcpy(rpk->P51, pk->pk + P51_BIAS, _PK_P5_BYTE >> 1);
     memcpy(rpk->P61, pk->pk + P61_BIAS, _PK_P6_BYTE >> 1);
     memcpy(rpk->P9, pk->pk + P91_BIAS, _PK_P9_BYTE);
-    free(sk);
-    free(pk);
     return 0;
 }
 
@@ -215,7 +215,8 @@ int expand_pk( pk_t *pk, const cpk_t *cpk ){
 }
 
 int expand_sk( sk_t *sk, const unsigned char *pk_seed, const unsigned char *sk_seed ){
-    pk_t *pk = malloc(sizeof(pk_t));
+    pk_t _pk;
+    pk_t *pk = &_pk;
     memcpy( sk->sk_seed, sk_seed, LEN_SKSEED );
 
     // prng for sk
@@ -259,10 +260,9 @@ int expand_sk( sk_t *sk, const unsigned char *pk_seed, const unsigned char *sk_s
     calculate_F21(sk->F + P22_BIAS, sk->ST + T1_BIAS, pk->pk + P12_BIAS, pk->pk + P22_BIAS);
     calculate_F31(sk->F + P32_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS);
     calculate_F52(sk->F + P51_BIAS, sk->ST + T1_BIAS, pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P52_BIAS);
-    calculate_F62(sk->F + P51_BIAS + (_PK_P5_BYTE >> 1), sk->ST + T1_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS, 
+    calculate_F62(sk->F + P51_BIAS + (_PK_P5_BYTE >> 1), sk->ST + T1_BIAS, sk->ST + T3_BIAS, sk->ST + T4_BIAS,
                     pk->pk + P12_BIAS, pk->pk + P22_BIAS, pk->pk + P32_BIAS, pk->pk + P52_BIAS, pk->pk + P62_BIAS);
-    
+
     combine_F(sk->F);
-    free(pk);
     return 0;
 }

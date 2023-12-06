@@ -14,6 +14,17 @@
 
 #if defined(_UTILS_PQM4_)
 
+static inline uint32_t br_swap32(uint32_t x) {
+    x = ((x & (uint32_t)0x00FF00FF) << 8)
+        | ((x >> 8) & (uint32_t)0x00FF00FF);
+    return (x << 16) | (x >> 16);
+}
+
+static inline void inc1_be(uint32_t *x) {
+    uint32_t t = br_swap32(*x) + 1;
+    *x = br_swap32(t);
+}
+
 int prng_set_publicinputs(prng_publicinputs_t *ctx, const unsigned char prng_seed[16]) {
     #ifdef _4ROUND_AES_
     aes128_4rounds_ctr_keyexp_publicinputs(&ctx->ctx, prng_seed);
@@ -25,14 +36,33 @@ int prng_set_publicinputs(prng_publicinputs_t *ctx, const unsigned char prng_see
     return 0;
 }
 
+static void ov_aes128_ctr_publicinputs(unsigned char *out, size_t outlen, const unsigned char *iv, uint32_t ctr, const aes128ctx_publicinputs *ctx) {
+    uint32_t ivw[4];
+    size_t i;
+    unsigned char tmp[16];
+    memcpy(ivw, iv, 12);
+    ivw[ 3] = br_swap32(ctr);
+    while (outlen > 16) {
+        aes128_ecb_publicinputs(out, (unsigned char *)ivw, 1, ctx);
+        out += 16;
+        outlen -= 16;
+        inc1_be(ivw + 3);
+    }
 
+    if(outlen > 0){
+        aes128_ecb_publicinputs(tmp, (unsigned char *)ivw, 1, ctx);
+        for (i = 0; i < outlen; i++) {
+            out[i] = tmp[i];
+        }
+    }
+}
 
 static
 int aes128ctr_publicinputs( unsigned char *out, unsigned nblocks, const unsigned char *n, uint32_t ctr, const prng_publicinputs_t *ctx ) {
     #ifdef _4ROUND_AES_
     aes128_4rounds_ctr_publicinputs(out, nblocks * RNG_OUTPUTLEN, n, ctr, &ctx->ctx);
     #else
-    aes128_ctr_publicinputs(out, nblocks * RNG_OUTPUTLEN, n, ctr, &ctx->ctx);
+    ov_aes128_ctr_publicinputs(out, nblocks * RNG_OUTPUTLEN, n, ctr, &ctx->ctx);
     #endif
     return 0;
 }
