@@ -14,9 +14,9 @@
 #endif
 
 #if (!defined(_TUOV_CLASSIC))&&(!defined(_TUOV_PKC))&&(!defined(_TUOV_PKC_SKC))
-// #define _TUOV_CLASSIC
+#define _TUOV_CLASSIC
 //#define _TUOV_PKC
-#define _TUOV_PKC_SKC
+//#define _TUOV_PKC_SKC
 #endif
 
 

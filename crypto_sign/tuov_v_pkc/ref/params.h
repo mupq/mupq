@@ -9,14 +9,14 @@
 #if (!defined(_TUOV16_160_64))&&(!defined(_TUOV256_112_44))&&(!defined(_TUOV256_184_72))&&(!defined(_TUOV256_244_96))
 // #define _TUOV16_160_64
 // #define _TUOV256_112_44
-#define _TUOV256_184_72
-//#define _TUOV256_244_96
+// #define _TUOV256_184_72
+#define _TUOV256_244_96
 #endif
 
 #if (!defined(_TUOV_CLASSIC))&&(!defined(_TUOV_PKC))&&(!defined(_TUOV_PKC_SKC))
 // #define _TUOV_CLASSIC
-//#define _TUOV_PKC
-#define _TUOV_PKC_SKC
+#define _TUOV_PKC
+//#define _TUOV_PKC_SKC
 #endif
 
 
