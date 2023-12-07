@@ -1,6 +1,8 @@
 #ifndef GF256_SDITH_ARITHMETIC_GF256_H_
 #define GF256_SDITH_ARITHMETIC_GF256_H_
 
+#define NDEBUG
+
 #ifdef __cplusplus
 #include <cstdint>
 #define EXPORT extern "C"
