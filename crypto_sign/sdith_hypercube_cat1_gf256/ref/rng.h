@@ -14,6 +14,7 @@
 #define HASH_TREE 3
 
 /** @brief opaque structure that represents a HASH context */
+// TODO: other security levels
 #define HASH_CTX sha3_256incctx
 void sdith_hash_create_hash_ctx(HASH_CTX *ctx, uint8_t prefix);
 void sdith_hash_free_hash_ctx(HASH_CTX *ctx);
@@ -34,8 +35,12 @@ void sdith_hash4(uint8_t prefix, void **dest, void **data, int dataBytes);
 
 /** @brief opaque structure that represents a XOF context */
 typedef struct XOF_struct XOF_CTX; // opaque structure
+
+// TODO: other security levels
+#define XOF_CTX shake128incctx
+
 /** @brief creates a xof context for randomness expansion */
-EXPORT XOF_CTX *sdith_rng_create_xof_ctx(void *in, int inBytes);
+EXPORT void sdith_rng_create_xof_ctx(XOF_CTX *ctx, void *in, int inBytes);
 /** @brief deletes a rng context instantiated with sdith_rng_create_xof_ctx */
 EXPORT void sdith_rng_free_xof_ctx(XOF_CTX *ctx);
 /** @brief produces the next random bytes out of this context */

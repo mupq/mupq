@@ -6,24 +6,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-EXPORT XOF_CTX *sdith_rng_create_xof_ctx(void *in, int inBytes) {
+EXPORT void sdith_rng_create_xof_ctx(XOF_CTX *ctx, void *in, int inBytes) {
   // TODO: other security levels
-  shake128incctx *inst =
-      (shake128incctx *)malloc(sizeof(shake128incctx));
 #if defined(CAT_1)
   //Keccak_HashInitialize_SHAKE128(inst);
-  shake128_inc_init(inst);
+  shake128_inc_init(ctx);
 #else
   Keccak_HashInitialize_SHAKE256(inst);
 #endif
   //Keccak_HashUpdate(inst, in, inBytes << 3);
-  shake128_inc_absorb(inst, in, inBytes);
+  shake128_inc_absorb(ctx, in, inBytes);
   //Keccak_HashFinal(inst, NULL);
-  shake128_inc_finalize(inst);
-  return (XOF_CTX *)inst;
+  shake128_inc_finalize(ctx);
 }
 
-EXPORT void sdith_rng_free_xof_ctx(XOF_CTX *ctx) { free(ctx); }
+EXPORT void sdith_rng_free_xof_ctx(XOF_CTX *ctx) {
+   shake128_inc_ctx_release(ctx);
+}
 
 EXPORT void sdith_xof_next_bytes(XOF_CTX *ctx, void *out, int outLen) {
   //Keccak_HashSqueeze((Keccak_HashInstance *)ctx, out, outLen << 3);

@@ -31,10 +31,10 @@ typedef struct isd_instance_struct {
 isd_instance_t generate_inhomogeneous_sd_instance(sdith_compressed_key_t const* sk) {
   isd_instance_t reps;
   ASSERT_DRAMATICALLY(((uint64_t) (reps.H_a[0])) % 32 == 0, "bug!");
-  XOF_CTX *rng_ctx = sdith_rng_create_xof_ctx((void*)sk->m_seed, PARAM_seed_size);
-  uint8_t random_tape[8192];
-  memset(random_tape, 0, 8192);
-  sdith_xof_next_bytes(rng_ctx, random_tape, 8192);
+  XOF_CTX rng_ctx;
+  sdith_rng_create_xof_ctx(&rng_ctx, (void*)sk->m_seed, PARAM_seed_size);
+  uint8_t random_tape[8192] = {0};
+  sdith_xof_next_bytes(&rng_ctx, random_tape, 8192);
 
 #ifndef NDEBUG
   fprintf(stdout, "sk seed: %s\n", hexmem(sk->m_seed, 16));
@@ -141,10 +141,11 @@ isd_instance_t generate_inhomogeneous_sd_instance(sdith_compressed_key_t const* 
   seed_t H_a_seed;
   memcpy(H_a_seed, random_tape_ptr, PARAM_seed_size);
   random_tape_ptr += PARAM_seed_size;
-  XOF_CTX *H_a_rng_ctx = sdith_rng_create_xof_ctx(H_a_seed, PARAM_seed_size);
+  XOF_CTX H_a_rng_ctx;
+  sdith_rng_create_xof_ctx(&H_a_rng_ctx, H_a_seed, PARAM_seed_size);
   fsd_t H_a[PARAM_k][PAR_y_size];
-  sdith_xof_next_bytes(H_a_rng_ctx, H_a, PARAM_k*PAR_y_size);
-  sdith_rng_free_xof_ctx(H_a_rng_ctx);
+  sdith_xof_next_bytes(&H_a_rng_ctx, H_a, PARAM_k*PAR_y_size);
+  sdith_rng_free_xof_ctx(&H_a_rng_ctx);
   // copy it slice by slice to reps
   memset(reps.H_a, 0, sizeof(reps.H_a));
   for (uint64_t j=0; j<PARAM_k; ++j) {
@@ -227,7 +228,7 @@ isd_instance_t generate_inhomogeneous_sd_instance(sdith_compressed_key_t const* 
     REQUIRE_DRAMATICALLY((fpoints_mul(sr, qr) ^ fpoints_mul(pr, fr)) == 0, "SQ-PF!=0");
   }
 #endif
-  sdith_rng_free_xof_ctx(rng_ctx);
+  sdith_rng_free_xof_ctx(&rng_ctx);
   memcpy(reps.H_a_seed, H_a_seed, PARAM_seed_size);
   return reps;
 }
@@ -265,10 +266,12 @@ void uncompress_pubkey(sdith_compressed_pubkey_t const* pk, sdith_full_pubkey_t*
   // Sample H_a
   seed_t H_a_seed;
   memcpy(H_a_seed, pk->H_a_seed, PARAM_seed_size);
-  XOF_CTX *H_a_rng_ctx = sdith_rng_create_xof_ctx(H_a_seed, PARAM_seed_size);
+  XOF_CTX H_a_rng_ctx;
+
+  sdith_rng_create_xof_ctx(&H_a_rng_ctx, H_a_seed, PARAM_seed_size);
   fsd_t H_a[PARAM_k][PAR_y_size];
-  sdith_xof_next_bytes(H_a_rng_ctx, H_a, PARAM_k*PAR_y_size);
-  sdith_rng_free_xof_ctx(H_a_rng_ctx);
+  sdith_xof_next_bytes(&H_a_rng_ctx, H_a, PARAM_k*PAR_y_size);
+  sdith_rng_free_xof_ctx(&H_a_rng_ctx);
   // copy it slice by slice to reps
   memset(u_pk->H_a, 0, sizeof(u_pk->H_a));
   for (uint64_t j=0; j<PARAM_k; ++j) {
@@ -333,8 +336,9 @@ inline void operator^=(mpc_share_raw_t& x, mpc_share_raw_t y) {
 
 /** @brief expand a leaf share from seed (any leaf except the last one) */
 void expand_mpc_share_from_seed(mpc_share_t* share, const seed_t seed) {
-  XOF_CTX* rng_ctx = sdith_rng_create_xof_ctx((void*)seed, PARAM_seed_size);
-  sdith_xof_next_bytes(rng_ctx, share, sizeof(mpc_share_t));
+  XOF_CTX rng_ctx;
+  sdith_rng_create_xof_ctx(&rng_ctx, (void*)seed, PARAM_seed_size);
+  sdith_xof_next_bytes(&rng_ctx, share, sizeof(mpc_share_t));
   for (uint64_t i_d=0; i_d < PARAM_d; ++i_d) {
     for (uint64_t i = 0; i < PARAM_t; i++) {
       share->a[i_d][i] &= PAR_fpoint_mask;
@@ -342,7 +346,7 @@ void expand_mpc_share_from_seed(mpc_share_t* share, const seed_t seed) {
       share->c[i_d][i] &= PAR_fpoint_mask;
     }
   }
-  sdith_rng_free_xof_ctx(rng_ctx);
+  sdith_rng_free_xof_ctx(&rng_ctx);
 }
 
 void expand_mpc_share_from_seed4(mpc_share_t** share, seed_t *seed) {
@@ -365,15 +369,16 @@ void expand_mpc_share_from_seed4(mpc_share_t** share, seed_t *seed) {
 /** @brief expand the random part of the last leaf share (i.e. a and b) from seed */
 void expand_last_mpc_share_from_seed(mpc_share_t* share, const seed_t seed) {
   // cur_share.a, cur_share.b <- PRNG()
-  XOF_CTX* rng_ctx = sdith_rng_create_xof_ctx((void*)seed, PARAM_seed_size);
-  sdith_xof_next_bytes(rng_ctx, &share->a, PARAM_d * PARAM_t * 2 * sizeof(fpoints_t));
+  XOF_CTX rng_ctx;
+  sdith_rng_create_xof_ctx(&rng_ctx, (void*)seed, PARAM_seed_size);
+  sdith_xof_next_bytes(&rng_ctx, &share->a, PARAM_d * PARAM_t * 2 * sizeof(fpoints_t));
   for (uint64_t i_d=0; i_d < PARAM_d; ++i_d) {
     for (uint64_t i = 0; i < PARAM_t; ++i) {
       share->a[i_d][i] &= PAR_fpoint_mask;
       share->b[i_d][i] &= PAR_fpoint_mask;
     }
   }
-  sdith_rng_free_xof_ctx(rng_ctx);
+  sdith_rng_free_xof_ctx(&rng_ctx);
 }
 
 /**
@@ -1085,13 +1090,14 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
   sdith_hash_digest_update(&ctx->msg_commit_ctx , h1, PARAM_hash_size);
 
   // Use H1 as PRNG seed to extract challenge values
-  XOF_CTX* chal_prg = sdith_rng_create_xof_ctx(h1, PARAM_hash_size);
+  XOF_CTX chal_prg;
+  sdith_rng_create_xof_ctx(&chal_prg, h1, PARAM_hash_size);
 
   fpoints_t r[PARAM_tau][PARAM_d][PARAM_t];
   fpoints_t eps[PARAM_tau][PARAM_d][PARAM_t];
-  sdith_xof_next_bytes(chal_prg, r, sizeof(r));
-  sdith_xof_next_bytes(chal_prg, eps, sizeof(eps));
-  sdith_rng_free_xof_ctx(chal_prg);
+  sdith_xof_next_bytes(&chal_prg, r, sizeof(r));
+  sdith_xof_next_bytes(&chal_prg, eps, sizeof(eps));
+  sdith_rng_free_xof_ctx(&chal_prg);
   for (uint64_t i = 0; i < PARAM_tau; i++) {
     for (uint64_t i_d = 0; i_d < PARAM_d; ++i_d) {
       for (uint64_t j = 0; j < PARAM_t; j++) {
@@ -1213,13 +1219,13 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
 
   // Use H2 as PRNG seed to extract challenge values
 #ifdef PROOF_OF_WORK
-  chal_prg = sdith_rng_create_xof_ctx(h2_pow, PARAM_hash_size);
+  sdith_rng_create_xof_ctx(&chal_prg, h2_pow, PARAM_hash_size);
 #else
-  chal_prg = sdith_rng_create_xof_ctx(h2, PARAM_hash_size);
+  sdith_rng_create_xof_ctx(&chal_prg, h2, PARAM_hash_size);
 #endif
   uint64_t chal[PARAM_tau];
-  sdith_xof_next_bytes(chal_prg, chal, sizeof(chal));
-  sdith_rng_free_xof_ctx(chal_prg);
+  sdith_xof_next_bytes(&chal_prg, chal, sizeof(chal));
+  sdith_rng_free_xof_ctx(&chal_prg);
 
   memcpy(signature.salt, ctx->salt, sizeof(ctx->salt));
   memcpy(signature.h2, h2, sizeof(h2));
@@ -1291,7 +1297,7 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
   signature_t signature;
   memcpy(&signature, sig, sizeof(signature));
 
-  XOF_CTX* chal_prg;
+  XOF_CTX chal_prg;
   // Use H2 as PRNG seed to extract challenge values
 #ifdef PROOF_OF_WORK
   uint8_t h2_pow_in[PARAM_hash_size * 2];
@@ -1305,13 +1311,13 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
     sdith_hash_final(h2_pow_ctx, h2_pow);
     sdith_hash_free_hash_ctx(h2_pow_ctx);
   }
-  chal_prg = sdith_rng_create_xof_ctx(h2_pow, PARAM_hash_size);
+  sdith_rng_create_xof_ctx(&chal_prg, h2_pow, PARAM_hash_size);
 #else
-  chal_prg = sdith_rng_create_xof_ctx(signature.h2, PARAM_hash_size);
+  sdith_rng_create_xof_ctx(&chal_prg, signature.h2, PARAM_hash_size);
 #endif
   uint64_t chal[PARAM_tau];
-  sdith_xof_next_bytes(chal_prg, chal, sizeof(chal));
-  sdith_rng_free_xof_ctx(chal_prg);
+  sdith_xof_next_bytes(&chal_prg, chal, sizeof(chal));
+  sdith_rng_free_xof_ctx(&chal_prg);
 
   // Create message commitment context
   HASH_CTX msg_commit_ctx;
@@ -1374,13 +1380,13 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
 
   // Extract challenges r, eps, and i*
   // Use H1 as PRNG seed to extract challenge values
-  chal_prg = sdith_rng_create_xof_ctx(h1, PARAM_hash_size);
+  sdith_rng_create_xof_ctx(&chal_prg, h1, PARAM_hash_size);
 
   fpoints_t r[PARAM_tau][PARAM_d][PARAM_t];
   fpoints_t eps[PARAM_tau][PARAM_d][PARAM_t];
-  sdith_xof_next_bytes(chal_prg, r, sizeof(r));
-  sdith_xof_next_bytes(chal_prg, eps, sizeof(eps));
-  sdith_rng_free_xof_ctx(chal_prg);
+  sdith_xof_next_bytes(&chal_prg, r, sizeof(r));
+  sdith_xof_next_bytes(&chal_prg, eps, sizeof(eps));
+  sdith_rng_free_xof_ctx(&chal_prg);
   for (uint64_t i = 0; i < PARAM_tau; i++) {
     for (uint64_t i_d=0; i_d<PARAM_d; ++i_d) {
       for (uint64_t j = 0; j < PARAM_t; j++) {
