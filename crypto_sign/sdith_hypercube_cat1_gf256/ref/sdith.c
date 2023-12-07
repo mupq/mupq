@@ -499,7 +499,8 @@ void expand_seed_binary_tree_bfs(sdith_full_key_t const* sk, seed_t root_seed,
 
   const uint64_t num_leafs = (1ul << PARAM_D);
   // Initialize TreePRG state
-  TREE_PRG_CTX* tree_ctx = sdith_create_tree_prg_ctx(salt);
+  TREE_PRG_CTX tree_ctx;
+  sdith_create_tree_prg_ctx(&tree_ctx, salt);
   memcpy(seeds[0], root_seed, PARAM_seed_size);
   // #ifndef NDEBUG
   //   cout << "Root seed: " << hexmem(seeds[0], params::seed_size) << std::endl;
@@ -512,7 +513,7 @@ void expand_seed_binary_tree_bfs(sdith_full_key_t const* sk, seed_t root_seed,
   uint64_t first_tweak = 1;
 
   for (uint64_t d = 1; d <= PARAM_D; ++d) {
-    sdith_tree_prg_seed_expand(tree_ctx, current_level, previous_level, first_tweak, iteration, current_level_n);
+    sdith_tree_prg_seed_expand(&tree_ctx, current_level, previous_level, first_tweak, iteration, current_level_n);
     previous_level = current_level;
     current_level = previous_level + current_level_n;
     current_level_n <<= 1;
@@ -534,7 +535,7 @@ void expand_seed_binary_tree_bfs(sdith_full_key_t const* sk, seed_t root_seed,
     seed_t leaf_seed[4];
     uint8_t leaf_rho[4][PARAM_rho_size];
     void *leaf_rho_ptr[4] = {leaf_rho[0], leaf_rho[1], leaf_rho[2], leaf_rho[3]};
-    sdith_tree_prg_leaf_expand4(tree_ctx, &leaf_level[i], leaf_seed, (uint8_t**)leaf_rho_ptr);
+    sdith_tree_prg_leaf_expand4(&tree_ctx, &leaf_level[i], leaf_seed, (uint8_t**)leaf_rho_ptr);
     
     void *leaf_seed_ptr[4] = {leaf_seed[0], leaf_seed[1], leaf_seed[2], leaf_seed[3]};
     uint16_t idx[4] = {i, i+1, i+2, i+3};
@@ -572,7 +573,7 @@ void expand_seed_binary_tree_bfs(sdith_full_key_t const* sk, seed_t root_seed,
   {
     seed_t leaf_seed;
     uint8_t leaf_rho[PARAM_rho_size];
-    sdith_tree_prg_leaf_expand(tree_ctx, leaf_level[num_leafs - 1], leaf_seed, leaf_rho);
+    sdith_tree_prg_leaf_expand(&tree_ctx, leaf_level[num_leafs - 1], leaf_seed, leaf_rho);
 
     // expand the random part from the seed
     memset(&cur_share, 0, sizeof(mpc_share_t));
@@ -625,7 +626,7 @@ void expand_seed_binary_tree_bfs(sdith_full_key_t const* sk, seed_t root_seed,
   // finally, generate the commitment hash
   sdith_hash_digest_update(msg_commit_ctx, commits, num_leafs * PARAM_commit_size);
 
- sdith_free_tree_prg_ctx(tree_ctx);
+ sdith_free_tree_prg_ctx(&tree_ctx);
  
 }
 
@@ -681,13 +682,14 @@ void walk_tree_prg_bfs(const seed_t root_seed, const salt_t salt,
   seed_t *const cur_seeds = seeds + 1;
 
   // Initialize TreePRG state
-  TREE_PRG_CTX* tree_ctx = sdith_create_tree_prg_ctx(salt);
+  TREE_PRG_CTX tree_ctx;
+  sdith_create_tree_prg_ctx(&tree_ctx, salt);
   memcpy(prev_seed, root_seed, PARAM_seed_size);
 
   // deduce the seeds of the other levels
   uint64_t current_tweak = 1;                // root tweak
   for (uint64_t d = 1; d <= PARAM_D; ++d) {  // WIP!!!!
-    sdith_tree_prg_seed_expand(tree_ctx, cur_seeds, prev_seed, current_tweak, iteration, 2);
+    sdith_tree_prg_seed_expand(&tree_ctx, cur_seeds, prev_seed, current_tweak, iteration, 2);
     if ((path >> (PARAM_D - d)) & 1) {
       // store sibling left seed
       memcpy(tree_prg_seeds[d - 1], cur_seeds[0], PARAM_seed_size);
@@ -710,7 +712,7 @@ void walk_tree_prg_bfs(const seed_t root_seed, const salt_t salt,
 
   seed_t leaf_seed;
   uint8_t leaf_rho[PARAM_rho_size];
-  sdith_tree_prg_leaf_expand(tree_ctx, (void*)chal_seed, leaf_seed, leaf_rho);
+  sdith_tree_prg_leaf_expand(&tree_ctx, (void*)chal_seed, leaf_seed, leaf_rho);
 
   if (path == num_leafs - 1) {
     commit_last_leaf(chal_commit, leaf_seed, leaf_rho, aux, salt, iteration);
@@ -724,7 +726,7 @@ void walk_tree_prg_bfs(const seed_t root_seed, const salt_t salt,
   //   std::cout << "Wchall: " << path << " " << hexmem(chal_seed, params::seed_size) << std::endl;
   //   std::cout << "Wcommit: " << path << " " << hexmem(chal_commit, params::seed_size) << std::endl;
   // #endif
-  sdith_free_tree_prg_ctx(tree_ctx);
+  sdith_free_tree_prg_ctx(&tree_ctx);
 }
 
 /** @brief reconstructs the main party shares available from the sibling path
@@ -749,7 +751,8 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
   //posix_memalign((void**)&commits, 32, num_leafs * PARAM_commit_size);
 
   // Initialize TreePRG state
-  TREE_PRG_CTX* tree_ctx = sdith_create_tree_prg_ctx(salt);
+  TREE_PRG_CTX tree_ctx;
+  sdith_create_tree_prg_ctx(&tree_ctx, salt);
   // root seed is not available, we set it to zero
   memset(seeds, 0, PARAM_seed_size);
   seed_t *previous_level = seeds + 0;
@@ -758,7 +761,7 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
   uint64_t current_tweak = 1;
   for (uint64_t d = 1; d <= PARAM_D; ++d) {
     // expand all the seeds from level d-1 to d
-    sdith_tree_prg_seed_expand(tree_ctx, current_level, previous_level, current_tweak, iteration, current_level_n);
+    sdith_tree_prg_seed_expand(&tree_ctx, current_level, previous_level, current_tweak, iteration, current_level_n);
     // correct the seed using the sibling seed
     uint64_t index_sibling = (hint >> (PARAM_D - d)) ^ 1;
     memcpy(current_level[index_sibling], seed_hint[d - 1], PARAM_seed_size);
@@ -782,7 +785,7 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
     seed_t leaf_seed[4];
     uint8_t leaf_rho[4][PARAM_rho_size];
     void *leaf_rho_ptr[4] = {leaf_rho[0], leaf_rho[1], leaf_rho[2], leaf_rho[3]};
-    sdith_tree_prg_leaf_expand4(tree_ctx, &leaf_level[i], leaf_seed, (uint8_t**)leaf_rho_ptr);
+    sdith_tree_prg_leaf_expand4(&tree_ctx, &leaf_level[i], leaf_seed, (uint8_t**)leaf_rho_ptr);
     
     void *leaf_seed_ptr[4] = {leaf_seed[0], leaf_seed[1], leaf_seed[2], leaf_seed[3]};
     uint16_t idx[4] = {i, i+1, i+2, i+3};
@@ -815,7 +818,7 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
   if (hint != num_leafs - 1) {
     seed_t leaf_seed;
     uint8_t leaf_rho[PARAM_rho_size];
-    sdith_tree_prg_leaf_expand(tree_ctx, leaf_level[num_leafs - 1], leaf_seed, leaf_rho);
+    sdith_tree_prg_leaf_expand(&tree_ctx, leaf_level[num_leafs - 1], leaf_seed, leaf_rho);
 
     // commitment of the last leaf is from seed + aux
     commit_last_leaf2(commits[num_leafs - 1], leaf_seed, leaf_rho, aux, salt, iteration);
@@ -840,7 +843,7 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
 
   // finally, generate the commitment hash
   sdith_hash_digest_update(msg_commit_ctx, commits, num_leafs * PARAM_commit_size);
-  sdith_free_tree_prg_ctx(tree_ctx);
+  sdith_free_tree_prg_ctx(&tree_ctx);
 }
 
 #define compressed_helper_t 16  // TODO generalize or not?

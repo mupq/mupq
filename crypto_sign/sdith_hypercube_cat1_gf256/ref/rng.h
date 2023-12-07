@@ -64,8 +64,10 @@ EXPORT void sdith_xof4_next_bytes(XOF4_CTX *ctx, void **out, int outLen);
  * sampled within [0, 251) using rejection sampling. */
 EXPORT void sdith_xof4_next_bytes_mod251(XOF4_CTX *ctx, void **out, int outLen);
 
-/** @brief opaque structure that represents a TREE_PRG context */
-typedef struct TREE_PRG_struct TREE_PRG_CTX;
+typedef struct {
+  salt_t salt;
+} TREE_PRG_CTX;
+
 /** @brief takes as input n/2 seeds and produces n seeds:
  * out[i]=F_{first_tweak+i}(in[i/2]) */
 EXPORT void sdith_tree_prg_seed_expand(TREE_PRG_CTX *key, void *out,
@@ -73,7 +75,7 @@ EXPORT void sdith_tree_prg_seed_expand(TREE_PRG_CTX *key, void *out,
                                        const uint16_t first_tweak,
                                        const uint16_t iteration, uint64_t n);
 /** @brief takes a tree_prg context */
-EXPORT TREE_PRG_CTX *sdith_create_tree_prg_ctx(void const *const root_salt);
+EXPORT void sdith_create_tree_prg_ctx(TREE_PRG_CTX *ctx, void const *const root_salt);
 /** @brief free a tree_prg context */
 EXPORT void sdith_free_tree_prg_ctx(TREE_PRG_CTX *key);
 /** @brief expand the leaf into seed and rho */

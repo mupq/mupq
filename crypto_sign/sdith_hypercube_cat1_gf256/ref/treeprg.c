@@ -6,9 +6,7 @@
 #include "rng.h"
 #include "types.h"
 
-typedef struct treeprg_sha3_context_struct {
-  salt_t salt;
-} treeprg_sha3_context_t;
+
 
 typedef struct seed_expand_vec {
   salt_t salt;
@@ -19,14 +17,13 @@ typedef struct seed_expand_vec {
 
 /** @brief takes as input n/2 seeds and produces n seeds:
  * out[i]=F_{first_tweak+i}(in[i/2]) */
-EXPORT void sdith_tree_prg_seed_expand(TREE_PRG_CTX *key, void *out,
+EXPORT void sdith_tree_prg_seed_expand(TREE_PRG_CTX *context, void *out,
                                        const void *in,
                                        const uint16_t first_tweak,
                                        const uint16_t iteration, uint64_t n) {
 
 
   ASSERT_DRAMATICALLY(n % 2 == 0, "n must be even for this function");
-  treeprg_sha3_context_t *context = (treeprg_sha3_context_t *)key;
   const seed_t *in_seeds = (seed_t *)in;
   seed_t(*out_seeds)[2] = (seed_t(*)[2])out;
 
@@ -72,21 +69,19 @@ EXPORT void sdith_tree_prg_seed_expand(TREE_PRG_CTX *key, void *out,
 }
 
 /** @brief takes a tree_prg context */
-EXPORT TREE_PRG_CTX *sdith_create_tree_prg_ctx(void const *const root_salt) {
-  treeprg_sha3_context_t *context =
-      (treeprg_sha3_context_t *)malloc(sizeof(treeprg_sha3_context_t));
-  memcpy(context->salt, root_salt, PARAM_salt_size);
-  return (TREE_PRG_CTX *)context;
+EXPORT void sdith_create_tree_prg_ctx(TREE_PRG_CTX* ctx, void const *const root_salt) {
+  memcpy(ctx->salt, root_salt, PARAM_salt_size);
 }
 
 /** @brief free a tree_prg context */
-EXPORT void sdith_free_tree_prg_ctx(TREE_PRG_CTX *key) { free(key); }
+EXPORT void sdith_free_tree_prg_ctx(TREE_PRG_CTX *key) {
+   (void) key;
+}
 
 /** @brief expand the leaf into seed and rho */
-EXPORT void sdith_tree_prg_leaf_expand(TREE_PRG_CTX *key, seed_t in_seed,
+EXPORT void sdith_tree_prg_leaf_expand(TREE_PRG_CTX *context, seed_t in_seed,
                                        seed_t out_seed,
                                        uint8_t out_rho[PARAM_rho_size]) {
-  treeprg_sha3_context_t *context = (treeprg_sha3_context_t *)key;
   uint8_t in[PARAM_seed_size + PARAM_salt_size];
   memcpy(in, in_seed, PARAM_seed_size);
   memcpy(&in[PARAM_seed_size], context->salt, PARAM_salt_size);
@@ -98,9 +93,8 @@ EXPORT void sdith_tree_prg_leaf_expand(TREE_PRG_CTX *key, seed_t in_seed,
 }
 
 /** @brief expand the leaf into seed and rho x4 */
-EXPORT void sdith_tree_prg_leaf_expand4(TREE_PRG_CTX *key, seed_t *in_seed,
+EXPORT void sdith_tree_prg_leaf_expand4(TREE_PRG_CTX *context, seed_t *in_seed,
                                         seed_t *out_seed, uint8_t **out_rho) {
-  treeprg_sha3_context_t *context = (treeprg_sha3_context_t *)key;
   uint8_t in4[4][PARAM_seed_size + PARAM_salt_size];
   for (uint64_t i = 0; i < 4; ++i) {
     memcpy(in4[i], in_seed[i], PARAM_seed_size);
