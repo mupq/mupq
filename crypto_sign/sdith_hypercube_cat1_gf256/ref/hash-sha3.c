@@ -8,29 +8,27 @@
 
 
 
-HASH_CTX *sdith_hash_create_hash_ctx(uint8_t prefix) {
+void sdith_hash_create_hash_ctx(HASH_CTX *ctx, uint8_t prefix) {
   // TODO other sec levels
-  sha3_256incctx *inst =
-      (sha3_256incctx *)malloc(sizeof(sha3_256incctx));
 #if defined(CAT_1)
   //Keccak_HashInitialize_SHA3_256(inst);
-  sha3_256_inc_init(inst);
+  sha3_256_inc_init(ctx);
 #elif defined(CAT_3)
-  Keccak_HashInitialize_SHA3_384(inst);
+  Keccak_HashInitialize_SHA3_384(ctx);
 #else
-  Keccak_HashInitialize_SHA3_512(inst);
+  Keccak_HashInitialize_SHA3_512(ctx);
 #endif
-  sha3_256_inc_absorb(inst, &prefix, 1);
+  sha3_256_inc_absorb(ctx, &prefix, 1);
   //Keccak_HashUpdate(inst, &prefix, sizeof(uint8_t) << 3);
-  return (HASH_CTX *)inst;
 }
 
-void sdith_hash_free_hash_ctx(HASH_CTX *ctx) { free(ctx); }
+
+void sdith_hash_free_hash_ctx(HASH_CTX *ctx) { sha3_256_inc_ctx_release(ctx); }
 
 void sdith_hash_digest_update(HASH_CTX *ctx, void const *in, int inBytes) {
   //Keccak_HashUpdate((Keccak_HashInstance *)ctx, (uint8_t const *)in,
   //                  inBytes << 3);
-  sha3_256_inc_absorb((sha3_256incctx *)ctx, in, inBytes);
+  sha3_256_inc_absorb(ctx, in, inBytes);
 }
 
 void sdith_hash_final(HASH_CTX *ctx, void *dest) {
@@ -39,10 +37,11 @@ void sdith_hash_final(HASH_CTX *ctx, void *dest) {
 }
 
 void sdith_hash(uint8_t prefix, void *dest, void const *data, int dataBytes) {
-  HASH_CTX *ctx = sdith_hash_create_hash_ctx(prefix);
-  sdith_hash_digest_update(ctx, data, dataBytes);
-  sdith_hash_final(ctx, dest);
-  sdith_hash_free_hash_ctx(ctx);
+  HASH_CTX ctx;
+  sdith_hash_create_hash_ctx(&ctx, prefix);
+  sdith_hash_digest_update(&ctx, data, dataBytes);
+  sdith_hash_final(&ctx, dest);
+  sdith_hash_free_hash_ctx(&ctx);
 }
 
 

@@ -3,6 +3,7 @@
 
 #include "param.h"
 #include "types.h"
+#include "fips202.h"
 #include <stdint.h>
 
 #define EXPORT
@@ -13,8 +14,8 @@
 #define HASH_TREE 3
 
 /** @brief opaque structure that represents a HASH context */
-typedef struct HASH_struct HASH_CTX;
-HASH_CTX *sdith_hash_create_hash_ctx(uint8_t prefix);
+#define HASH_CTX sha3_256incctx
+void sdith_hash_create_hash_ctx(HASH_CTX *ctx, uint8_t prefix);
 void sdith_hash_free_hash_ctx(HASH_CTX *ctx);
 void sdith_hash_digest_update(HASH_CTX *ctx, void const *in, int inBytes);
 void sdith_hash_final(HASH_CTX *ctx, void *dest);

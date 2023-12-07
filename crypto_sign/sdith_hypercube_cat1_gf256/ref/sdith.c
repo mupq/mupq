@@ -385,17 +385,19 @@ void expand_last_mpc_share_from_seed(mpc_share_t* share, const seed_t seed) {
  * @param leaf_idx   : leaf index between 0 and max_leaf
  */
 void commit_leaf(void* commitment, void const* leaf_seed, void const* leaf_rho, void const* salt, uint16_t iteration, uint16_t leaf_idx) {
-  HASH_CTX* share_commit_ctx = sdith_hash_create_hash_ctx(HASH_COM);
+  HASH_CTX share_commit_ctx;
+
+  sdith_hash_create_hash_ctx(&share_commit_ctx, HASH_COM);
   // H0(salt || e || i ...)
-  sdith_hash_digest_update(share_commit_ctx, salt, PARAM_salt_size);
-  sdith_hash_digest_update(share_commit_ctx, &iteration, sizeof(iteration));
-  sdith_hash_digest_update(share_commit_ctx, &leaf_idx, sizeof(leaf_idx));
+  sdith_hash_digest_update(&share_commit_ctx, salt, PARAM_salt_size);
+  sdith_hash_digest_update(&share_commit_ctx, &iteration, sizeof(iteration));
+  sdith_hash_digest_update(&share_commit_ctx, &leaf_idx, sizeof(leaf_idx));
   // H0(... || rho ...)
-  sdith_hash_digest_update(share_commit_ctx, leaf_rho, PARAM_rho_size);
+  sdith_hash_digest_update(&share_commit_ctx, leaf_rho, PARAM_rho_size);
   // H0(... || state)
-  sdith_hash_digest_update(share_commit_ctx, leaf_seed, PARAM_seed_size);
-  sdith_hash_final(share_commit_ctx, commitment);
-  sdith_hash_free_hash_ctx(share_commit_ctx);
+  sdith_hash_digest_update(&share_commit_ctx, leaf_seed, PARAM_seed_size);
+  sdith_hash_final(&share_commit_ctx, commitment);
+  sdith_hash_free_hash_ctx(&share_commit_ctx);
 }
 
 void commit4_leaf(void **commitment, void **leaf_seed, void **leaf_rho, void * salt, uint16_t iteration, uint16_t *leaf_idx) {
@@ -425,20 +427,21 @@ void commit4_leaf(void **commitment, void **leaf_seed, void **leaf_rho, void * s
  */
 void commit_last_leaf(void* commitment, void const* leaf_seed, void const* leaf_rho, mpc_share_t const* aux, void const* salt,
                       uint16_t iteration) {
-  HASH_CTX* share_commit_ctx = sdith_hash_create_hash_ctx(HASH_COM);
+  HASH_CTX share_commit_ctx;
+  sdith_hash_create_hash_ctx(&share_commit_ctx, HASH_COM);
   // H0(salt || e || i ...)
-  sdith_hash_digest_update(share_commit_ctx, salt, PARAM_salt_size);
-  sdith_hash_digest_update(share_commit_ctx, &iteration, sizeof(iteration));
+  sdith_hash_digest_update(&share_commit_ctx, salt, PARAM_salt_size);
+  sdith_hash_digest_update(&share_commit_ctx, &iteration, sizeof(iteration));
   uint16_t leaf_idx = (1 << PARAM_D) - 1;
-  sdith_hash_digest_update(share_commit_ctx, &leaf_idx, sizeof(leaf_idx));
+  sdith_hash_digest_update(&share_commit_ctx, &leaf_idx, sizeof(leaf_idx));
   // H0(... || rho ...)
-  sdith_hash_digest_update(share_commit_ctx, leaf_rho, PARAM_rho_size);
+  sdith_hash_digest_update(&share_commit_ctx, leaf_rho, PARAM_rho_size);
   // H0(... || state || s_A || q_poly || p_poly || c)
-  sdith_hash_digest_update(share_commit_ctx, leaf_seed, PARAM_seed_size);
-  sdith_hash_digest_update(share_commit_ctx, aux, PARAM_k + PARAM_d * PAR_wd * 2);
-  sdith_hash_digest_update(share_commit_ctx, aux->c, PARAM_d * PARAM_t * sizeof(fpoints_t));
-  sdith_hash_final(share_commit_ctx, commitment);
-  sdith_hash_free_hash_ctx(share_commit_ctx);
+  sdith_hash_digest_update(&share_commit_ctx, leaf_seed, PARAM_seed_size);
+  sdith_hash_digest_update(&share_commit_ctx, aux, PARAM_k + PARAM_d * PAR_wd * 2);
+  sdith_hash_digest_update(&share_commit_ctx, aux->c, PARAM_d * PARAM_t * sizeof(fpoints_t));
+  sdith_hash_final(&share_commit_ctx, commitment);
+  sdith_hash_free_hash_ctx(&share_commit_ctx);
 }
 
 /**
@@ -451,20 +454,21 @@ void commit_last_leaf(void* commitment, void const* leaf_seed, void const* leaf_
  */
 void commit_last_leaf2(void* commitment, void const* leaf_seed, void const* leaf_rho, aux_share_t const* aux, void const* salt,
                       uint16_t iteration) {
-  HASH_CTX* share_commit_ctx = sdith_hash_create_hash_ctx(HASH_COM);
+  HASH_CTX share_commit_ctx;
+  sdith_hash_create_hash_ctx(&share_commit_ctx, HASH_COM);
   // H0(salt || e || i ...)
-  sdith_hash_digest_update(share_commit_ctx, salt, PARAM_salt_size);
-  sdith_hash_digest_update(share_commit_ctx, &iteration, sizeof(iteration));
+  sdith_hash_digest_update(&share_commit_ctx, salt, PARAM_salt_size);
+  sdith_hash_digest_update(&share_commit_ctx, &iteration, sizeof(iteration));
   uint16_t leaf_idx = (1 << PARAM_D) - 1;
-  sdith_hash_digest_update(share_commit_ctx, &leaf_idx, sizeof(leaf_idx));
+  sdith_hash_digest_update(&share_commit_ctx, &leaf_idx, sizeof(leaf_idx));
   // H0(... || rho ...)
-  sdith_hash_digest_update(share_commit_ctx, leaf_rho, PARAM_rho_size);
+  sdith_hash_digest_update(&share_commit_ctx, leaf_rho, PARAM_rho_size);
   // H0(... || state || s_A || q_poly || p_poly || c)
-  sdith_hash_digest_update(share_commit_ctx, leaf_seed, PARAM_seed_size);
-  sdith_hash_digest_update(share_commit_ctx, aux, PARAM_k + PARAM_d * PAR_wd * 2);
-  sdith_hash_digest_update(share_commit_ctx, aux->c, PARAM_d * PARAM_t * sizeof(fpoints_t));
-  sdith_hash_final(share_commit_ctx, commitment);
-  sdith_hash_free_hash_ctx(share_commit_ctx);
+  sdith_hash_digest_update(&share_commit_ctx, leaf_seed, PARAM_seed_size);
+  sdith_hash_digest_update(&share_commit_ctx, aux, PARAM_k + PARAM_d * PAR_wd * 2);
+  sdith_hash_digest_update(&share_commit_ctx, aux->c, PARAM_d * PARAM_t * sizeof(fpoints_t));
+  sdith_hash_final(&share_commit_ctx, commitment);
+  sdith_hash_free_hash_ctx(&share_commit_ctx);
 }
 
 /**
@@ -991,7 +995,7 @@ void mpc_compute_communications(mpc_share_t const* share, bool with_offsets, mpc
 
 typedef struct sdith_ctx_struct {
   salt_t salt;
-  HASH_CTX* msg_commit_ctx;
+  HASH_CTX msg_commit_ctx;
   mpc_share_t main_party_shares[PARAM_tau][PARAM_D][/* N= */ 2];
   mpc_share_t aux[PARAM_tau];
   mpc_share_t sum_shares[PARAM_tau];
@@ -1016,11 +1020,11 @@ void sign_offline(sdith_ctx_t* ctx, sdith_full_pubkey_t __attribute__((unused)) 
 #endif
   
   // Create message commitment context
-  ctx->msg_commit_ctx = sdith_hash_create_hash_ctx(HASH_H1);
+  sdith_hash_create_hash_ctx(&ctx->msg_commit_ctx, HASH_H1);
   // We intentially skip H(m) and move it to the online phase
   // H1(pk || salt ...)
-  sdith_hash_digest_update(ctx->msg_commit_ctx, pk->compressed_pubkey.H_a_seed, PARAM_seed_size);
-  sdith_hash_digest_update(ctx->msg_commit_ctx, ctx->salt, PARAM_salt_size);
+  sdith_hash_digest_update(&ctx->msg_commit_ctx , pk->compressed_pubkey.H_a_seed, PARAM_seed_size);
+  sdith_hash_digest_update(&ctx->msg_commit_ctx , ctx->salt, PARAM_salt_size);
 
   
   // Initialize main party shares
@@ -1046,7 +1050,7 @@ void sign_offline(sdith_ctx_t* ctx, sdith_full_pubkey_t __attribute__((unused)) 
     seed_t seeds[1<<(PARAM_D+1)];
     commit_t commits[1<<PARAM_D];
 #endif
-    expand_seed_binary_tree_bfs(sk, ctx->root_seeds[e], ctx->salt, ctx->msg_commit_ctx, e, &ctx->aux[e],
+    expand_seed_binary_tree_bfs(sk, ctx->root_seeds[e], ctx->salt, &ctx->msg_commit_ctx , e, &ctx->aux[e],
                                 &ctx->sum_shares[e], ctx->main_party_shares[e],
                               seeds, commits);
   }
@@ -1060,24 +1064,24 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
                  uint8_t const* msg, int msgBytes, uint8_t* sig, int* sigBytes) {
 #ifndef IDS_3_ROUND
   // H1(... || m)
-  sdith_hash_digest_update(ctx->msg_commit_ctx, msg, msgBytes);
+  sdith_hash_digest_update(&ctx->msg_commit_ctx , msg, msgBytes);
 #endif
   // Obtain H1
   hash_t h1;
-  sdith_hash_final(ctx->msg_commit_ctx, h1);
-  sdith_hash_free_hash_ctx(ctx->msg_commit_ctx);
+  sdith_hash_final(&ctx->msg_commit_ctx , h1);
+  sdith_hash_free_hash_ctx(&ctx->msg_commit_ctx );
 #ifndef NDEBUG
   fprintf(stdout, "H1: %s\n", hexmem(h1, sizeof(h1)));
 #endif
 
   // Create H2 context
-  ctx->msg_commit_ctx = sdith_hash_create_hash_ctx(HASH_H2);
+  sdith_hash_create_hash_ctx(&ctx->msg_commit_ctx, HASH_H2);
   // H2(m ...)
-  sdith_hash_digest_update(ctx->msg_commit_ctx, msg, msgBytes);
+  sdith_hash_digest_update(&ctx->msg_commit_ctx , msg, msgBytes);
   // H2(... || salt ...)
-  sdith_hash_digest_update(ctx->msg_commit_ctx, ctx->salt, PARAM_salt_size);
+  sdith_hash_digest_update(&ctx->msg_commit_ctx , ctx->salt, PARAM_salt_size);
   // H2(... || h1 ...)
-  sdith_hash_digest_update(ctx->msg_commit_ctx, h1, PARAM_hash_size);
+  sdith_hash_digest_update(&ctx->msg_commit_ctx , h1, PARAM_hash_size);
 
   // Use H1 as PRNG seed to extract challenge values
   XOF_CTX* chal_prg = sdith_rng_create_xof_ctx(h1, PARAM_hash_size);
@@ -1127,9 +1131,9 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
                            beta[e]);
 
     // H2(... || alpha[e] ...)
-    sdith_hash_digest_update(ctx->msg_commit_ctx, alpha[e], sizeof(alpha[e]));
+    sdith_hash_digest_update(&ctx->msg_commit_ctx , alpha[e], sizeof(alpha[e]));
     // H2(... || beta[e] ...)
-    sdith_hash_digest_update(ctx->msg_commit_ctx, beta[e], sizeof(beta[e]));
+    sdith_hash_digest_update(&ctx->msg_commit_ctx , beta[e], sizeof(beta[e]));
 
     for (uint64_t i = 0; i < PARAM_D; i++) {
       uint32_t sh_alpha[2][PARAM_d][PARAM_t];
@@ -1155,11 +1159,11 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
       // we include only party 0 in the communications hash
       for (uint64_t party = 0; party < 1; party++) {
         // H2(... || sh_alpha[party][i_t] ...)
-        sdith_hash_digest_update(ctx->msg_commit_ctx, sh_alpha[party], sizeof(sh_alpha[party]));
+        sdith_hash_digest_update(&ctx->msg_commit_ctx , sh_alpha[party], sizeof(sh_alpha[party]));
         // H2(... || sh_beta[party] ...)
-        sdith_hash_digest_update(ctx->msg_commit_ctx, sh_beta[party], sizeof(sh_beta[party]));
+        sdith_hash_digest_update(&ctx->msg_commit_ctx , sh_beta[party], sizeof(sh_beta[party]));
         // H2(... || sh_v[party] ...)
-        sdith_hash_digest_update(ctx->msg_commit_ctx, sh_v[party], sizeof(sh_v[party]));
+        sdith_hash_digest_update(&ctx->msg_commit_ctx , sh_v[party], sizeof(sh_v[party]));
       }
     }
   }
@@ -1186,8 +1190,8 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
 
   // Obtain H2
   hash_t h2;
-  sdith_hash_final(ctx->msg_commit_ctx, h2);
-  sdith_hash_free_hash_ctx(ctx->msg_commit_ctx);
+  sdith_hash_final(&ctx->msg_commit_ctx , h2);
+  sdith_hash_free_hash_ctx(&ctx->msg_commit_ctx );
 #ifndef NDEBUG
   fprintf(stdout, "H2: %s\n", hexmem(h2, sizeof(h2)));
 #endif
@@ -1309,10 +1313,11 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
   sdith_rng_free_xof_ctx(chal_prg);
 
   // Create message commitment context
-  HASH_CTX *msg_commit_ctx = sdith_hash_create_hash_ctx(HASH_H1);
+  HASH_CTX msg_commit_ctx;
+  sdith_hash_create_hash_ctx(&msg_commit_ctx, HASH_H1);
   // H1(pk || salt ...)
-  sdith_hash_digest_update(msg_commit_ctx, pk->compressed_pubkey.H_a_seed, PARAM_seed_size);
-  sdith_hash_digest_update(msg_commit_ctx, signature.salt, PARAM_salt_size);
+  sdith_hash_digest_update(&msg_commit_ctx, pk->compressed_pubkey.H_a_seed, PARAM_seed_size);
+  sdith_hash_digest_update(&msg_commit_ctx, signature.salt, PARAM_salt_size);
 
   // Create main party shares
   mpc_share_t main_party_shares[PARAM_tau][PARAM_D][/* N= */ 2];
@@ -1338,9 +1343,9 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
     }
 
     // expand_seed_binary_tree_with_hint(signature.tree_prg_seeds[e], ~challenge & chal_mask, signature.salt,
-    //                                       msg_commit_ctx, e, signature.com[e], signature.aux[e], &sum_shares[e],
+    //                                       &msg_commit_ctx, e, signature.com[e], signature.aux[e], &sum_shares[e],
     //                                       main_party_shares[e]);
-    expand_seed_binary_tree_with_hint_bfs(signature.tree_prg_seeds[e], challenge, signature.salt, msg_commit_ctx, e,
+    expand_seed_binary_tree_with_hint_bfs(signature.tree_prg_seeds[e], challenge, signature.salt, &msg_commit_ctx, e,
                                           signature.com[e], &signature.aux[e], main_party_shares[e]);
 //#ifndef NDEBUG
 //    for (uint64_t d=0; d<PARAM_D; ++d) {
@@ -1354,13 +1359,13 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
 
 #ifndef IDS_3_ROUND
   // H1(... || m)
-  sdith_hash_digest_update(msg_commit_ctx, msg, msgBytes);
+  sdith_hash_digest_update(&msg_commit_ctx, msg, msgBytes);
 #endif
 
   // Obtain H1
   hash_t h1;
-  sdith_hash_final(msg_commit_ctx, h1);
-  sdith_hash_free_hash_ctx(msg_commit_ctx);
+  sdith_hash_final(&msg_commit_ctx, h1);
+  sdith_hash_free_hash_ctx(&msg_commit_ctx);
 
 #ifndef NDEBUG
   fprintf(stdout, "H1: %s\n", hexmem(h1, sizeof(h1)));
@@ -1385,13 +1390,13 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
   }
 
   // Create H2 context
-  msg_commit_ctx = sdith_hash_create_hash_ctx(HASH_H2);
+  sdith_hash_create_hash_ctx(&msg_commit_ctx, HASH_H2);
   // H2(m ...)
-  sdith_hash_digest_update(msg_commit_ctx, msg, msgBytes);
+  sdith_hash_digest_update(&msg_commit_ctx, msg, msgBytes);
   // H2(... || salt ...)
-  sdith_hash_digest_update(msg_commit_ctx, signature.salt, PARAM_salt_size);
+  sdith_hash_digest_update(&msg_commit_ctx, signature.salt, PARAM_salt_size);
   // H2(... || h1 ...)
-  sdith_hash_digest_update(msg_commit_ctx, h1, PARAM_hash_size);
+  sdith_hash_digest_update(&msg_commit_ctx, h1, PARAM_hash_size);
 
   // precompute the mpc helpers
   mpc_helper_t mpc_helpers[PARAM_tau][PARAM_d];
@@ -1423,9 +1428,9 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
     uint64_t challenge = chal[e] & chal_mask;
 
     // H2(... || alpha[e] ...)
-    sdith_hash_digest_update(msg_commit_ctx, alpha[e], sizeof(alpha[e]));
+    sdith_hash_digest_update(&msg_commit_ctx, alpha[e], sizeof(alpha[e]));
     // H2(... || beta[e] ...)
-    sdith_hash_digest_update(msg_commit_ctx, beta[e], sizeof(beta[e]));
+    sdith_hash_digest_update(&msg_commit_ctx, beta[e], sizeof(beta[e]));
 
     // // Add alpha, beta of i* to the global alpha, beta
     // for (uint64_t i_t = 0; i_t < params::t; i_t++) {
@@ -1460,19 +1465,19 @@ int verify(sdith_full_pubkey_t const* pk, void const* msg, int msgBytes, void co
 //#endif
       for (uint64_t party = 0; party < 1; party++) {
         // H2(... || sh_alpha[party][i_t] ...)
-        sdith_hash_digest_update(msg_commit_ctx, sh_alpha[party], sizeof(sh_alpha[party]));
+        sdith_hash_digest_update(&msg_commit_ctx, sh_alpha[party], sizeof(sh_alpha[party]));
         // H2(... || sh_beta[party] ...)
-        sdith_hash_digest_update(msg_commit_ctx, sh_beta[party], sizeof(sh_beta[party]));
+        sdith_hash_digest_update(&msg_commit_ctx, sh_beta[party], sizeof(sh_beta[party]));
         // H2(... || sh_v[party] ...)
-        sdith_hash_digest_update(msg_commit_ctx, sh_v[party], sizeof(sh_v[party]));
+        sdith_hash_digest_update(&msg_commit_ctx, sh_v[party], sizeof(sh_v[party]));
       }
     }
   }
 
   // Obtain H2
   hash_t h2;
-  sdith_hash_final(msg_commit_ctx, h2);
-  sdith_hash_free_hash_ctx(msg_commit_ctx);
+  sdith_hash_final(&msg_commit_ctx, h2);
+  sdith_hash_free_hash_ctx(&msg_commit_ctx);
   if (memcmp(h2, signature.h2, PARAM_hash_size)) {
 #ifndef NDEBUG
   fprintf(stderr, "Verification failed: H2 should be equal.\n");
@@ -1489,27 +1494,3 @@ void field_init() {
   gf256_init(0);
   gf2p32_mul_init();
 }
-
-const char *hexmem(void const *x, uint64_t nbytes) {
-  static __thread char *last_reps = NULL;
-  if (last_reps != 0)
-    free(last_reps);
-  last_reps = (char*)malloc(2 * nbytes + 1);
-  memset(last_reps, 0, 2 * nbytes + 1);
-  char *const dr = last_reps;
-  uint8_t const *const dx = (uint8_t const *)x;
-  for (uint64_t i = 0; i < nbytes; ++i) {
-    snprintf(dr + (2 * i), 3, "%02x", dx[i]);
-  }
-  return last_reps;
-}
-
-const char* hashmem(void const* x, uint64_t nbytes) {
-  //minihash for debugging only
-  HASH_CTX* ctx = sdith_hash_create_hash_ctx(0);
-  sdith_hash_digest_update(ctx, x, nbytes);
-  uint8_t minihash[PARAM_hash_size];
-  sdith_hash_final(ctx, minihash);
-  return hexmem(minihash, 8);
-}
-
