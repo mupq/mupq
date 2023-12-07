@@ -401,20 +401,21 @@ void commit_leaf(void* commitment, void const* leaf_seed, void const* leaf_rho, 
 }
 
 void commit4_leaf(void **commitment, void **leaf_seed, void **leaf_rho, void * salt, uint16_t iteration, uint16_t *leaf_idx) {
-  HASH4_CTX* share_commit4_ctx = sdith_hash_create_hash4_ctx(HASH_COM);
+  HASH4_CTX share_commit4_ctx;
+  sdith_hash_create_hash4_ctx(&share_commit4_ctx, HASH_COM);
   // H0(salt || e || i ...)
   void *salts[4] = {salt, salt, salt, salt};
-  sdith_hash4_digest_update(share_commit4_ctx, salts, PARAM_salt_size);
+  sdith_hash4_digest_update(&share_commit4_ctx, salts, PARAM_salt_size);
   void *iters[4] = {&iteration, &iteration, &iteration, &iteration};
-  sdith_hash4_digest_update(share_commit4_ctx, iters, sizeof(iteration));
+  sdith_hash4_digest_update(&share_commit4_ctx, iters, sizeof(iteration));
   void *leaves[4] = {&leaf_idx[0], &leaf_idx[1], &leaf_idx[2], &leaf_idx[3]};
-  sdith_hash4_digest_update(share_commit4_ctx, leaves, sizeof(uint16_t));
+  sdith_hash4_digest_update(&share_commit4_ctx, leaves, sizeof(uint16_t));
   // H0(... || rho ...)
-  sdith_hash4_digest_update(share_commit4_ctx, leaf_rho, PARAM_rho_size);
+  sdith_hash4_digest_update(&share_commit4_ctx, leaf_rho, PARAM_rho_size);
   // H0(... || state)
-  sdith_hash4_digest_update(share_commit4_ctx, leaf_seed, PARAM_seed_size);
-  sdith_hash4_final(share_commit4_ctx, commitment);
-  sdith_hash_free_hash4_ctx(share_commit4_ctx);
+  sdith_hash4_digest_update(&share_commit4_ctx, leaf_seed, PARAM_seed_size);
+  sdith_hash4_final(&share_commit4_ctx, commitment);
+  sdith_hash_free_hash4_ctx(&share_commit4_ctx);
 }
 
 /**

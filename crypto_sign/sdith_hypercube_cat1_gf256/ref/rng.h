@@ -21,8 +21,12 @@ void sdith_hash_digest_update(HASH_CTX *ctx, void const *in, int inBytes);
 void sdith_hash_final(HASH_CTX *ctx, void *dest);
 void sdith_hash(uint8_t prefix, void *dest, void const *data, int dataBytes);
 
-typedef struct HASH4_struct HASH4_CTX;
-HASH4_CTX *sdith_hash_create_hash4_ctx(uint8_t prefix);
+typedef struct {
+    sha3_256incctx states[4];
+} HASH4_CTX;
+
+
+void sdith_hash_create_hash4_ctx(HASH4_CTX *ctx, uint8_t prefix);
 void sdith_hash_free_hash4_ctx(HASH4_CTX *ctx);
 void sdith_hash4_digest_update(HASH4_CTX *ctx, void **in, int inBytes);
 void sdith_hash4_final(HASH4_CTX *ctx, void **dest);
