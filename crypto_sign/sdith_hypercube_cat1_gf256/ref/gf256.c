@@ -130,34 +130,10 @@ uint8_t mul_gf256_table(uint8_t x, uint8_t y) {
   return sdith_gf256_dexp_table[l];
 }
 
-extern uint8_t dexp8_table_precomputed[];
-extern uint8_t dlog8_table_precomputed[];
+extern const uint8_t dexp8_table_precomputed[];
+extern const uint8_t dlog8_table_precomputed[];
 
 void gf256_create_log_tables() {
-  // don't re-create the tables if they are already initialized
-  if (sdith_gf256_dlog_table) return;
-#ifdef NO_PRECOMPUTE_TABLES
-  uint8_t* dlog8_table = malloc(sizeof(uint8_t)*(1ul << 8));
-  uint8_t* dexp8_table = malloc(sizeof(uint8_t)*(1ul << 8));
-  // create the dlog table over gf2p8
-  dexp8_table[0] = 1;
-  for (uint64_t i = 1; i < 255; ++i) {
-    dexp8_table[i] = mul_gf256_naive(dexp8_table[i-1], SDITH_GEN_GF256);
-  }
-  dexp8_table[255] = 0;
-  for (uint64_t i = 0; i < 256; ++i) {
-    dlog8_table[dexp8_table[i]] = i;
-  }
-#ifndef NDEBUG
-  for (uint64_t i = 0; i < (1ul << 8); ++i) {
-    REQUIRE_DRAMATICALLY(dlog8_table[dexp8_table[i]] == i, "bug: %ld %ld %ld\n", i, (uint64_t)(dexp8_table[i]),
-                         (uint64_t)(dlog8_table[dexp8_table[i]]));
-  }
-#endif
-  sdith_gf256_dexp_table = dexp8_table;
-  sdith_gf256_dlog_table = dlog8_table;
-#else
   sdith_gf256_dexp_table = dexp8_table_precomputed;
   sdith_gf256_dlog_table = dlog8_table_precomputed;
-#endif
 }

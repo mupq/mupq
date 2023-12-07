@@ -43,10 +43,10 @@ EXPORT uint32_t gf2p32_mul_naive(uint32_t x, uint32_t y);
 /** @brief naive (divide and conquer) pow in gf2p32 (constant time in x, not in n) */
 EXPORT uint32_t gf2p32_pow_naive(uint32_t x, uint64_t n);
 
-EXPORT_DECL uint16_t sdith_gf2p16_logtable[65536];
-EXPORT_DECL uint16_t sdith_gf2p16_exptable[65536];
-EXPORT_DECL uint32_t sdith_gf2p32_log1table[65536];     // for x=u+Y: table of log16(u) -> log32(u+Y)
-EXPORT_DECL uint16_t sdith_gf2p32_exp1table[65537][2];  // table of p -> (log16(u),log16(v))  where gen32^p = u+vY
+EXPORT_DECL const uint16_t sdith_gf2p16_logtable[65536];
+EXPORT_DECL const uint16_t sdith_gf2p16_exptable[65536];
+EXPORT_DECL const uint32_t sdith_gf2p32_log1table[65536];     // for x=u+Y: table of log16(u) -> log32(u+Y)
+EXPORT_DECL const uint16_t sdith_gf2p32_exp1table[65537][2];  // table of p -> (log16(u),log16(v))  where gen32^p = u+vY
 
 /** @brief lookup-table based discrete log in gf2p32 (non constant time)
  * Please initialize the gf2p32 log tables once before using this function */

@@ -1,18 +1,18 @@
 #include "gf2p32.h"
 
-static int sdith_gf2p16_tables_initialized = 0;
-static int sdith_gf2p32_tables_initialized = 0;
-#ifdef NO_PRECOMPUTE_TABLES
-uint16_t sdith_gf2p16_logtable[65536];
-uint16_t sdith_gf2p16_exptable[65536];
-uint32_t sdith_gf2p32_log1table[65536];     // for x=u+Y: table of log16(u) -> log32(u+Y)
-uint16_t sdith_gf2p32_exp1table[65537][2];  // table of p -> (log16(u),log16(v))  where gen32^p = u+vY
-#else
-extern uint16_t sdith_gf2p16_logtable[];
-extern uint16_t sdith_gf2p16_exptable[];
-extern uint32_t sdith_gf2p32_log1table[];
-extern uint16_t sdith_gf2p32_exp1table[65537][2];
-#endif
+// static int sdith_gf2p16_tables_initialized = 0;
+// static int sdith_gf2p32_tables_initialized = 0;
+// #ifdef NO_PRECOMPUTE_TABLES
+// uint16_t sdith_gf2p16_logtable[65536];
+// uint16_t sdith_gf2p16_exptable[65536];
+// uint32_t sdith_gf2p32_log1table[65536];     // for x=u+Y: table of log16(u) -> log32(u+Y)
+// uint16_t sdith_gf2p32_exp1table[65537][2];  // table of p -> (log16(u),log16(v))  where gen32^p = u+vY
+// #else
+extern const uint16_t sdith_gf2p16_logtable[];
+extern const uint16_t sdith_gf2p16_exptable[];
+extern const uint32_t sdith_gf2p32_log1table[];
+extern const uint16_t sdith_gf2p32_exp1table[65537][2];
+// #endif
 
 /** @brief naive multiplication in gf2p16 */
 uint16_t gf2p16_mul_naive(uint16_t x, uint16_t y) {
@@ -84,7 +84,7 @@ extern uint16_t gf2p16_logtable_precomputed[];
 extern uint16_t gf2p16_exptable_precomputed[];
 
 void create_gf2p16_log_tables() {
-  if (sdith_gf2p16_tables_initialized) return;
+// if (sdith_gf2p16_tables_initialized) return;
 #ifdef NO_PRECOMPUTE_TABLES
   gf256_create_log_tables();
   sdith_gf2p16_exptable[0xFFFF] = 0;
@@ -108,11 +108,11 @@ void create_gf2p16_log_tables() {
     sdith_gf2p16_logtable[sdith_gf2p16_exptable[i]] = i;
   }
 #endif
-  sdith_gf2p16_tables_initialized = 1;
+//  sdith_gf2p16_tables_initialized = 1;
 }
 
 void create_gf2p32_log_tables() {
-  if (sdith_gf2p32_tables_initialized) return;
+//  if (sdith_gf2p32_tables_initialized) return;
 #ifdef NO_PRECOMPUTE_TABLES
   create_gf2p16_log_tables();
   uint32_t z = 1;
@@ -135,7 +135,7 @@ void create_gf2p32_log_tables() {
     // sdith_gf2p16_exptable[ldiff], "XXXX")
   }
 #endif
-  sdith_gf2p32_tables_initialized = 1;
+//  sdith_gf2p32_tables_initialized = 1;
 }
 
 uint32_t gf2p32_dlog_pow_l32(uint32_t logx, uint32_t p) {
