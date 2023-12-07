@@ -675,7 +675,7 @@ void walk_tree_prg_bfs(const seed_t root_seed, const salt_t salt,
                        seed_t tree_prg_seeds[PARAM_D],
                        commit_t chal_commit) {
   const uint64_t num_leafs = (1ul << PARAM_D);
-  seed_t *seeds = malloc(PARAM_seed_size * 3);
+  seed_t seeds[3];
   //posix_memalign((void**)&seeds, 32, PARAM_seed_size * 3);
   uint8_t *const prev_seed = seeds[0];
   seed_t *const cur_seeds = seeds + 1;
@@ -724,7 +724,6 @@ void walk_tree_prg_bfs(const seed_t root_seed, const salt_t salt,
   //   std::cout << "Wchall: " << path << " " << hexmem(chal_seed, params::seed_size) << std::endl;
   //   std::cout << "Wcommit: " << path << " " << hexmem(chal_commit, params::seed_size) << std::endl;
   // #endif
-  free(seeds);
   sdith_free_tree_prg_ctx(tree_ctx);
 }
 
@@ -744,9 +743,9 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
                                            uint8_t iteration, commit_t com, aux_share_t const* aux,
                                            mpc_share_t (*main_party_shares)[/* N= */ 2]) {
   const uint64_t num_leafs = (1ul << PARAM_D);
-  seed_t *seeds = malloc(num_leafs * PARAM_seed_size * 2);
+  seed_t seeds[num_leafs * 2];
   //posix_memalign((void**)&seeds, 32, num_leafs * PARAM_seed_size * 2);
-  commit_t *commits = malloc(num_leafs * PARAM_commit_size);
+  commit_t commits[num_leafs];
   //posix_memalign((void**)&commits, 32, num_leafs * PARAM_commit_size);
 
   // Initialize TreePRG state
@@ -842,8 +841,6 @@ void expand_seed_binary_tree_with_hint_bfs(seed_t *seed_hint, uint32_t hint,
   // finally, generate the commitment hash
   sdith_hash_digest_update(msg_commit_ctx, commits, num_leafs * PARAM_commit_size);
   sdith_free_tree_prg_ctx(tree_ctx);
-  free(seeds);
-  free(commits);
 }
 
 #define compressed_helper_t 16  // TODO generalize or not?
