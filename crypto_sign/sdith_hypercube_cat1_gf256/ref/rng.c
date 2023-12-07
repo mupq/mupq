@@ -33,7 +33,7 @@ EXPORT void sdith_xof_next_bytes(XOF_CTX *ctx, void *out, int outLen) {
 EXPORT void sdith_xof_next_bytes_mod251(XOF_CTX *ctx, void *out, int outLen) {
   // Roughly sample 1.03x of original length, which is greater than 256/251.
   int len = outLen + (outLen >> 5);
-  uint8_t *buf = (uint8_t *)malloc(len);
+  uint8_t buf[len];
   sdith_xof_next_bytes(ctx, buf, len);
   int bytes_remaining = len;
   uint8_t *buf_ptr = buf;
@@ -51,7 +51,6 @@ EXPORT void sdith_xof_next_bytes_mod251(XOF_CTX *ctx, void *out, int outLen) {
       buf_ptr = buf;
     }
   }
-  free(buf);
 }
 
 // TODO: move this outside
@@ -102,7 +101,7 @@ EXPORT void sdith_xof4_next_bytes_mod251(XOF4_CTX *ctx, void **out,
                                          int outLen) {
   // Roughly sample 1.03x of original length, which is greater than 256/251.
   int len = outLen + (outLen >> 5);
-  uint8_t *buf = (uint8_t *)malloc(len * 4);
+  uint8_t buf[len * 4];
   uint8_t *bufs[4] = {&buf[0], &buf[len], &buf[len * 2], &buf[len * 3]};
   int bytes_counter[4] = {0};
   while (bytes_counter[0] + bytes_counter[1] + bytes_counter[2] +
@@ -125,5 +124,4 @@ EXPORT void sdith_xof4_next_bytes_mod251(XOF4_CTX *ctx, void **out,
       }
     }
   }
-  free(buf);
 }

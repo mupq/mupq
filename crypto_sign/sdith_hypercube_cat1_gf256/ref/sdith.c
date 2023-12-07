@@ -32,7 +32,7 @@ isd_instance_t generate_inhomogeneous_sd_instance(sdith_compressed_key_t const* 
   isd_instance_t reps;
   ASSERT_DRAMATICALLY(((uint64_t) (reps.H_a[0])) % 32 == 0, "bug!");
   XOF_CTX *rng_ctx = sdith_rng_create_xof_ctx((void*)sk->m_seed, PARAM_seed_size);
-  uint8_t* random_tape = (uint8_t*)aligned_alloc(32, 8192);
+  uint8_t random_tape[8192];
   memset(random_tape, 0, 8192);
   sdith_xof_next_bytes(rng_ctx, random_tape, 8192);
 
@@ -229,7 +229,6 @@ isd_instance_t generate_inhomogeneous_sd_instance(sdith_compressed_key_t const* 
 #endif
   sdith_rng_free_xof_ctx(rng_ctx);
   memcpy(reps.H_a_seed, H_a_seed, PARAM_seed_size);
-  free(random_tape);
   return reps;
 }
 
@@ -877,7 +876,7 @@ void mpc_compute_plain_broadcasts(mpc_share_t const *share, mpc_helper_t const h
                             sdith_full_pubkey_t const* pk, fpoints_t alphas[PARAM_d][PARAM_t],
                             uint32_t betas [PARAM_d][PARAM_t]) {
   // x = s_A || s_B
-  uint8_t* x = malloc(PARAM_k + PAR_ha_nslice * 128);
+  uint8_t x[PARAM_k + PAR_ha_nslice * 128];
   //posix_memalign((void**)&x, 32, PARAM_k + PAR_ha_nslice * 128);
   uint8_t* s_A = x;
   uint8_t* s_B = x + PARAM_k;
@@ -908,8 +907,6 @@ void mpc_compute_plain_broadcasts(mpc_share_t const *share, mpc_helper_t const h
       betas[i_d][i_t] = share->b[i_d][i_t] ^ s_r[i_t];
     }
   }
-
-  free(x);
   return;
 }
 
@@ -918,7 +915,7 @@ void mpc_compute_communications(mpc_share_t const* share, bool with_offsets, mpc
                                 const fpoints_t betas[PARAM_d][PARAM_t], fpoints_t alpha[PARAM_d][PARAM_t], fpoints_t beta[PARAM_d][PARAM_t],
                                 fpoints_t v[PARAM_t], bool CONSTANT_TIME) {
   // x = s_A || s_B
-  uint8_t* x = malloc(PARAM_k + PAR_ha_nslice * 128);
+  uint8_t x[PARAM_k + PAR_ha_nslice * 128];
   //posix_memalign((void**)&x, 32, PARAM_k + PAR_ha_nslice * 128);
   uint8_t* s_A = x;
   uint8_t* s_B = x + PARAM_k;
@@ -990,7 +987,6 @@ void mpc_compute_communications(mpc_share_t const* share, bool with_offsets, mpc
       }
     }
   }
-  free(x);
 }
 
 typedef struct sdith_ctx_struct {
