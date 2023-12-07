@@ -351,8 +351,9 @@ void expand_mpc_share_from_seed(mpc_share_t* share, const seed_t seed) {
 
 void expand_mpc_share_from_seed4(mpc_share_t** share, seed_t *seed) {
   
-  XOF4_CTX* rng_ctx = sdith_rng_create_xof4_ctx((void**)seed, PARAM_seed_size);
-  sdith_xof4_next_bytes(rng_ctx, (void**)share, sizeof(mpc_share_t));
+  XOF4_CTX rng_ctx;
+  sdith_rng_create_xof4_ctx(&rng_ctx, (void**)seed, PARAM_seed_size);
+  sdith_xof4_next_bytes(&rng_ctx, (void**)share, sizeof(mpc_share_t));
   for (uint64_t k = 0; k < 4; ++k) {
     for (uint64_t i_d=0; i_d < PARAM_d; ++i_d) {
       for (uint64_t i = 0; i < PARAM_t; i++) {
@@ -362,8 +363,7 @@ void expand_mpc_share_from_seed4(mpc_share_t** share, seed_t *seed) {
       }
     }
   }
-  sdith_rng_free_xof4_ctx(rng_ctx);
-  
+  sdith_rng_free_xof4_ctx(&rng_ctx);
 }
 
 /** @brief expand the random part of the last leaf share (i.e. a and b) from seed */

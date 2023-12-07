@@ -50,9 +50,12 @@ EXPORT void sdith_xof_next_bytes(XOF_CTX *ctx, void *out, int outLen);
 EXPORT void sdith_xof_next_bytes_mod251(XOF_CTX *ctx, void *out, int outLen);
 
 /** @brief opaque structure that represents a XOF context */
-typedef struct XOF4_struct XOF4_CTX; // opaque structure
+typedef struct {
+    shake128incctx states[4];
+} XOF4_CTX;
+
 /** @brief creates a xof context for randomness expansion */
-EXPORT XOF4_CTX *sdith_rng_create_xof4_ctx(void **in, int inBytes);
+EXPORT void sdith_rng_create_xof4_ctx(XOF4_CTX *ctx, void **in, int inBytes);
 /** @brief deletes a rng context instantiated with sdith_rng_create_xof_ctx */
 EXPORT void sdith_rng_free_xof4_ctx(XOF4_CTX *ctx);
 /** @brief produces the next random bytes out of this context */
