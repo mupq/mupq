@@ -1009,9 +1009,6 @@ typedef struct sdith_ctx_struct {
 #endif
 } sdith_ctx_t;
 
-sdith_ctx_t* new_sdith_ctx() { return (sdith_ctx_t*) malloc(sizeof(sdith_ctx_t)); }
-
-void free_sdith_ctx(sdith_ctx_t* ctx) { free(ctx); }
 
 void sign_offline(sdith_ctx_t* ctx, sdith_full_pubkey_t __attribute__((unused)) const* pk, sdith_full_key_t const* sk) {
 
@@ -1262,13 +1259,13 @@ void sign_online(sdith_ctx_t* ctx, sdith_full_pubkey_t const* pk, sdith_full_key
 
 void sign(sdith_full_pubkey_t const* pk, sdith_full_key_t const* sk, void const* msg, int msgBytes,
           void* sig, int* sigBytes) {
-  sdith_ctx_t *ctx = new_sdith_ctx();
+  sdith_ctx_t ctx;
 
 #ifdef BENCHMARK
   sdith_bench_timer_init(&t3);
   sdith_bench_timer_start(&t3);
 #endif
-  sign_offline(ctx, pk, sk);
+  sign_offline(&ctx, pk, sk);
 #ifdef BENCHMARK
 #ifndef IDS_3_ROUND
   sdith_bench_timer_end(&t3);
@@ -1277,8 +1274,7 @@ void sign(sdith_full_pubkey_t const* pk, sdith_full_key_t const* sk, void const*
   sdith_bench_timer_start(&t4);
 #endif
 #endif
-  sign_online(ctx, pk, sk, msg, msgBytes, sig, sigBytes);
-  free(ctx);
+  sign_online(&ctx, pk, sk, msg, msgBytes, sig, sigBytes);
 #ifdef BENCHMARK
   sdith_bench_timer_end(&t4);
   sdith_bench_timer_count(&t4);
