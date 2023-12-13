@@ -6,12 +6,11 @@
 
 #include "parsing.h"
 #include "parameters.h"
+#include "parsing_permutations.h"
 
-#include <gmp.h>
 #include <string.h>
 #include "arithmetic.h"
 #include "data_structures.h"
-#include "rank_unrank_table.h"
 #include "symmetric.h"
 
 /**
@@ -79,111 +78,6 @@ static inline uint16_t load_10bit_from_bytearray(const uint8_t* sb, int i) {
     }
 
     return val;
-}
-
-#define PARAM_RANK_UNRANK_LEN_T \
-    ((1 << (PARAM_RANK_UNRANK_K + 1)) - 1) /**< Length of list used in rank/unrank compression */
-
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#if __has_feature(address_sanitizer)
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-void sig_perk_perm_encode(const perm_t in_p, uint8_t* out_buff) {
-    mpz_t mul, code;
-    mpz_inits(mul, code, NULL);
-
-    uint8_t T[PARAM_RANK_UNRANK_LEN_T] = {0};
-    mpz_set_ui(code, 0);
-    for (int i = 0; i < PARAM_N1; ++i) {
-        uint8_t ctr = in_p[i];
-        uint16_t node = (1 << PARAM_RANK_UNRANK_K) + in_p[i];
-        for (int j = 0; j < PARAM_RANK_UNRANK_K; ++j) {
-            if (node & 0x1) {
-                ctr -= T[(node >> 1) << 1];
-            }
-            T[node] += 1;
-            node = node >> 1;
-        }
-        T[node] += 1;
-        mpz_mul_ui(mul, code, PARAM_N1 - i);
-        mpz_add_ui(code, mul, ctr);
-    }
-
-    if (mpz_sgn(code) == 0) {
-        memset(out_buff, 0, PARAM_PERM_COMPRESSION_BYTES);
-    } else {
-        size_t count;
-        mpz_export(out_buff, &count, -1, 1, 1, 0, code);
-        memset(out_buff + count, 0, PARAM_PERM_COMPRESSION_BYTES - count);
-    }
-    mpz_clears(mul, code, NULL);
-}
-
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#if __has_feature(address_sanitizer)
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-int sig_perk_perm_decode(const uint8_t* in_buff, perm_t out_p) {
-    mpz_t code, fact, tmp;
-    mpz_inits(code, fact, tmp, NULL);
-
-    mpz_import(code, PARAM_PERM_COMPRESSION_BYTES, -1, 1, 1, 0, in_buff);
-
-    // validate the permutation encoding to be < n!
-    mpz_set_str(fact, factorial[PARAM_N1], 62);
-    if (mpz_cmp(fact, code) < 1) {
-        mpz_clears(code, fact, tmp, NULL);
-        return EXIT_FAILURE;
-    }
-
-    mpz_set_str(fact, factorial[PARAM_N1 - 1], 62);
-    mpz_divmod(code, tmp, code, fact);
-
-    out_p[0] = mpz_get_ui(code);
-
-    for (int i = 1; i < PARAM_N1 - 1; ++i) {
-        mpz_set_str(fact, factorial[PARAM_N1 - i - 1], 62);
-        mpz_divmod(code, tmp, tmp, fact);
-        out_p[i] = mpz_get_ui(code);
-    }
-
-    mpz_set_str(fact, factorial[0], 62);
-    mpz_div(code, tmp, fact);
-    out_p[PARAM_N1 - 1] = mpz_get_ui(code);
-
-    mpz_clears(code, fact, tmp, NULL);
-
-    uint8_t T[PARAM_RANK_UNRANK_LEN_T] = {0};
-    for (int i = 0; i <= PARAM_RANK_UNRANK_K; ++i) {
-        for (int j = 0; j < (1 << i); ++j) {
-            T[((1 << i)) + j - 1] = 1 << (PARAM_RANK_UNRANK_K - i);
-        }
-    }
-
-    for (int i = 0; i < PARAM_N1; ++i) {
-        int digit = out_p[i];
-        uint16_t node = 1;
-        for (int j = 0; j < PARAM_RANK_UNRANK_K; ++j) {
-            T[node] -= 1;
-            node <<= 1;
-            if (digit >= T[node]) {
-                digit -= T[node];
-                node += 1;
-            }
-        }
-        T[node] = 0;
-        out_p[i] = node - (1 << PARAM_RANK_UNRANK_K);
-    }
-
-    return EXIT_SUCCESS;
 }
 
 void sig_perk_private_key_to_bytes(uint8_t sk_bytes[PRIVATE_KEY_BYTES], const perk_private_key_t* sk) {
@@ -277,10 +171,8 @@ void sig_perk_signature_to_bytes(uint8_t sb[SIGNATURE_BYTES], const perk_signatu
     }
     sb += (PARAM_TAU * PARAM_N1 * PARAM_Q_BITS + 7) / 8;
 
-    for (int i = 0; i < (PARAM_TAU); i++) {
-        sig_perk_perm_encode(signature->responses[i].z2_pi, sb);
-        sb += PARAM_PERM_COMPRESSION_BYTES;
-    }
+    // compress and store permutations
+    sig_perk_signature_perm_to_bytes(sb, signature);
 }
 
 #define Z1_USED_BITS (uint8_t)((PARAM_TAU * PARAM_N1 * PARAM_Q_BITS + 7) % 8 + 1)
@@ -320,12 +212,6 @@ int sig_perk_signature_from_bytes(perk_signature_t* signature, const uint8_t sb[
 
     sb += 1;
 
-    for (int i = 0; i < PARAM_TAU; i++) {
-        if (sig_perk_perm_decode(sb, signature->responses[i].z2_pi) != EXIT_SUCCESS) {
-            return EXIT_FAILURE;
-        }
-        sb += PARAM_PERM_COMPRESSION_BYTES;
-    }
-
-    return EXIT_SUCCESS;
+    // Load and decompress permutations
+    return sig_perk_signature_perm_from_bytes(signature, sb);
 }

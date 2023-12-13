@@ -13,39 +13,6 @@
 #include "signature.h"
 
 /**
- * @brief Permutation rank encoding. Encode a permutation into a bytearray.
- *
- * @param in_p      input permutation
- * @param out_buff  output buffer byte string
- */
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#if __has_feature(address_sanitizer)
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-void sig_perk_perm_encode(const perm_t in_p, uint8_t* out_buff);
-
-/**
- * @brief Permutation unrank decoding. Decode a bytearray into a permutation.
- *
- * @param in_buff input buffer byte string
- * @param out_p   output permutation
- * @return EXIT_SUCCESS or EXIT_FAILURE
- */
-#if defined(__has_feature)
-#if __has_feature(memory_sanitizer)
-__attribute__((no_sanitize("memory")))
-#endif
-#if __has_feature(address_sanitizer)
-__attribute__((no_sanitize("address")))
-#endif
-#endif
-int sig_perk_perm_decode(const uint8_t* in_buff, perm_t out_p);
-
-/**
  * @brief Parse a private key into a string
  *
  * As technicality, the public key is appended to the private key in order to respect NIST API.
