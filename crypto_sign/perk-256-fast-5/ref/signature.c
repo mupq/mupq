@@ -8,6 +8,7 @@
 #include "parameters.h"
 
 #include <stdio.h>
+#include <string.h>
 #include "common.h"
 #include "crypto_memset.h"
 #include "data_structures.h"

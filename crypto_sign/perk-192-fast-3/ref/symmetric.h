@@ -8,7 +8,7 @@
 #define SIG_PERK_SYMMETRIC_H
 
 #include <stdint.h>
-#include "KeccakHash.h"
+#include "fips202.h"
 #include "parameters.h"
 
 // domains for hash and prg
@@ -48,8 +48,40 @@ typedef uint8_t seed_t[SEED_BYTES];
 #define PRNG_BLOCK_SIZE 136  // SHAKE256 Block Size
 #endif
 
-typedef Keccak_HashInstance sig_perk_prg_state_t;
-typedef Keccak_HashInstance sig_perk_hash_state_t;
+#if (SECURITY_BYTES == 16)
+#define Keccak_HashInitialize_SHAKE(state)              shake128_inc_init(state)
+#define Keccak_HashUpdate_SHAKE(state, input, inlen)    shake128_inc_absorb(state, input, inlen)
+#define Keccak_HashFinal_SHAKE(state)                   shake128_inc_finalize(state)
+#define Keccak_HashSqueeze_SHAKE(state, output, outlen) shake128_inc_squeeze(output, outlen, state)
+#define Keccak_HashInitialize_SHA3(state)               sha3_256_inc_init(state)
+#define Keccak_HashUpdate_SHA3(state, input, inlen)     sha3_256_inc_absorb(state, input, inlen)
+#define Keccak_HashFinal_SHA3(state, digest)            sha3_256_inc_finalize(digest, state)
+
+typedef shake128incctx sig_perk_prg_state_t;
+typedef sha3_256incctx sig_perk_hash_state_t;
+#elif (SECURITY_BYTES == 24)
+#define Keccak_HashInitialize_SHAKE(state)              shake256_inc_init(state)
+#define Keccak_HashUpdate_SHAKE(state, input, inlen)    shake256_inc_absorb(state, input, inlen)
+#define Keccak_HashFinal_SHAKE(state)                   shake256_inc_finalize(state)
+#define Keccak_HashSqueeze_SHAKE(state, output, outlen) shake256_inc_squeeze(output, outlen, state)
+#define Keccak_HashInitialize_SHA3(state)               sha3_384_inc_init(state)
+#define Keccak_HashUpdate_SHA3(state, input, inlen)     sha3_384_inc_absorb(state, input, inlen)
+#define Keccak_HashFinal_SHA3(state, digest)            sha3_384_inc_finalize(digest, state)
+
+typedef shake256incctx sig_perk_prg_state_t;
+typedef sha3_384incctx sig_perk_hash_state_t;
+#elif (SECURITY_BYTES == 32)
+#define Keccak_HashInitialize_SHAKE(state)              shake256_inc_init(state)
+#define Keccak_HashUpdate_SHAKE(state, input, inlen)    shake256_inc_absorb(state, input, inlen)
+#define Keccak_HashFinal_SHAKE(state)                   shake256_inc_finalize(state)
+#define Keccak_HashSqueeze_SHAKE(state, output, outlen) shake256_inc_squeeze(output, outlen, state)
+#define Keccak_HashInitialize_SHA3(state)               sha3_512_inc_init(state)
+#define Keccak_HashUpdate_SHA3(state, input, inlen)     sha3_512_inc_absorb(state, input, inlen)
+#define Keccak_HashFinal_SHA3(state, digest)            sha3_512_inc_finalize(digest, state)
+
+typedef shake256incctx sig_perk_prg_state_t;
+typedef sha3_512incctx sig_perk_hash_state_t;
+#endif
 
 /**
  * @brief Initialize a PRNG

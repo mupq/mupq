@@ -5,6 +5,7 @@
  */
 
 #include "theta_tree.h"
+#include <string.h>
 #include "symmetric.h"
 
 void sig_perk_expand_theta_tree(salt_t salt, perk_theta_seeds_tree_t theta_tree) {

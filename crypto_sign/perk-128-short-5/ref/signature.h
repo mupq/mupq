@@ -8,7 +8,6 @@
 #define SIG_PERK_SIGNATURE_H
 
 #include <stdint.h>
-#include "KeccakHash.h"
 #include "data_structures.h"
 
 /** @struct challenge_t

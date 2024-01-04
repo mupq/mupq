@@ -6,6 +6,7 @@
 
 #include "arithmetic.h"
 #include <stdint.h>
+#include <string.h>
 #include "permutation.h"
 #include "symmetric.h"
 
