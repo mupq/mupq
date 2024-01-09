@@ -17,14 +17,6 @@ typedef struct mpc_share_t {
 #define PARAM_SHARE_SIZE (PARAM_WIT_SIZE+PARAM_UNIF_SIZE+PARAM_HINT_SIZE)
 #define PARAM_BR_SIZE (sizeof(mpc_broadcast_t))
 
-static inline mpc_challenge_1_t* new_challenge_1(void) {
-    return (mpc_challenge_1_t*) malloc(sizeof(mpc_challenge_1_t));
-}
-
-static inline mpc_challenge_2_t* new_challenge_2(void) {
-    return (mpc_challenge_2_t*) malloc(sizeof(mpc_challenge_2_t));
-}
-
 static inline mpc_wit_t* get_wit(mpc_share_t* sh) {
     return (mpc_wit_t*) sh;
 }
