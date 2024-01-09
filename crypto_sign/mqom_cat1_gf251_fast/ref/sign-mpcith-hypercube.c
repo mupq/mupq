@@ -103,7 +103,7 @@ static void hash_for_mpc_challenge_2(uint8_t challenge_hash[PARAM_DIGEST_SIZE], 
 }
 
 static void hash_for_view_challenge(uint8_t challenge_hash[PARAM_DIGEST_SIZE], const uint8_t mpc_challenge_hash_2[PARAM_DIGEST_SIZE],
-    mpc_broadcast_t* broadcast[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION], mpc_broadcast_t* plain_broadcast[], 
+    mpc_broadcast_t broadcast[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION], mpc_broadcast_t plain_broadcast[PARAM_NB_EXECUTIONS], 
     const uint8_t* salt, const uint8_t* message, size_t mlen)
 {
     hash_context ctx;
@@ -114,9 +114,9 @@ static void hash_for_view_challenge(uint8_t challenge_hash[PARAM_DIGEST_SIZE], c
     hash_update(&ctx, mpc_challenge_hash_2, PARAM_DIGEST_SIZE);
     for (size_t e=0; e<PARAM_NB_EXECUTIONS; e++)
         for(size_t i=0; i<PARAM_HYPERCUBE_DIMENSION; i++)
-            hash_update(&ctx, (uint8_t*) broadcast[e][i], PARAM_BR_SIZE);
+            hash_update(&ctx, (uint8_t*) &broadcast[e][i], PARAM_BR_SIZE);
     for (size_t e=0; e<PARAM_NB_EXECUTIONS; e++)
-        hash_update(&ctx, (uint8_t*) plain_broadcast[e], PARAM_UNIF_SIZE); // We do not commit the v's zero values
+        hash_update(&ctx, (uint8_t*) &plain_broadcast[e], PARAM_UNIF_SIZE); // We do not commit the v's zero values
     hash_final(&ctx, challenge_hash);
 }
 
@@ -180,29 +180,26 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     // We manipulate here pointers
     //    to avoid & when using
     //    to be more consistant with plain_wit
-    mpc_share_t* mshares[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION];
+    mpc_share_t mshares[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION];
     for(e=0; e<PARAM_NB_EXECUTIONS; e++)
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++) {
-            mshares[e][p] = new_share();
-            vec_set_zero(mshares[e][p], PARAM_SHARE_SIZE);
+            vec_set_zero(&mshares[e][p], PARAM_SHARE_SIZE);
         }
-    mpc_unif_t* plain_unif[PARAM_NB_EXECUTIONS];
-    mpc_hint_t* plain_hint[PARAM_NB_EXECUTIONS];
+    mpc_unif_t plain_unif[PARAM_NB_EXECUTIONS];
+    mpc_hint_t plain_hint[PARAM_NB_EXECUTIONS];
 
     /********************************************/
     /********   COMMIT PARTIES' INPUTS   ********/
     /********************************************/
 
-    mpc_share_t* shares[4];
-    for(j=0; j<4; j++)
-        shares[j] = new_share();
-    mpc_share_t* share = shares[0];
-    mpc_share_t* acc = new_share();
+    mpc_share_t shares[4];
+    mpc_share_t* share = &shares[0];
+    mpc_share_t acc;
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         // Build the seed tree of the current execution
         expand_seed_tree(seeds_tree[e], rseed[e], ssig->salt);
         uint8_t** seeds = get_leaves(seeds_tree[e]);
-        vec_set_zero(acc, PARAM_SHARE_SIZE);
+        vec_set_zero(&acc, PARAM_SHARE_SIZE);
 
         i=0;
         // Let us treat the parties four by four...
@@ -216,13 +213,13 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
             //    collisions of the leave seeds
             prg_init_x4_array(entropy_ctx_x4, ptr_seeds, NULL);
             for(j=0; j<4; j++)
-                vec_rnd((void*) shares[j], PARAM_SHARE_SIZE, &entropy_x4[j]);
+                vec_rnd((void*) &shares[j], PARAM_SHARE_SIZE, &entropy_x4[j]);
             #endif /* PARAM_RND_EXPANSION_X4 */
             for(j=0; j<4; j++) {
-                vec_add(acc, shares[j], PARAM_SHARE_SIZE);
+                vec_add(&acc, &shares[j], PARAM_SHARE_SIZE);
                 for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
                     if((((i+j)>>p) & 1) == 0) // If pth bit of i is zero
-                        vec_add(mshares[e][p], shares[j], PARAM_SHARE_SIZE);
+                        vec_add(&mshares[e][p], &shares[j], PARAM_SHARE_SIZE);
             }
             uint8_t* digests[4] = {
                 seed_commitments[e][i+0], seed_commitments[e][i+1],
@@ -239,28 +236,27 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
             if(i != PARAM_NB_PARTIES-1) {
                 // Expand the input share from seed
                 vec_rnd(share, PARAM_SHARE_SIZE, &entropy);
-                vec_add(acc, share, PARAM_SHARE_SIZE);
+                vec_add(&acc, share, PARAM_SHARE_SIZE);
 
                 // Aggregate to get the shares of the "main parties"
                 for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
                     if(((i>>p) & 1) == 0) // If pth bit of i is zero
-                        vec_add(mshares[e][p], share, PARAM_SHARE_SIZE);
+                        vec_add(&mshares[e][p], share, PARAM_SHARE_SIZE);
             
                 // Commit to the party's input (by committing to its seed)
                 commit_seed(seed_commitments[e][i], seeds[i], ssig->salt, (uint16_t)e, (uint16_t)i);
             } else {
                 // Compute plain unif
-                plain_unif[e] = new_unif();
-                vec_rnd(plain_unif[e], PARAM_UNIF_SIZE, &entropy);
-                vec_add(plain_unif[e], get_unif(acc), PARAM_UNIF_SIZE);
-                vec_normalize(plain_unif[e], PARAM_UNIF_SIZE);
+                vec_rnd(&plain_unif[e], PARAM_UNIF_SIZE, &entropy);
+                vec_add(&plain_unif[e], get_unif(&acc), PARAM_UNIF_SIZE);
+                vec_normalize(&plain_unif[e], PARAM_UNIF_SIZE);
 
                 // For the moment, ssig->proofs[e].hint just contains the hint accumulator
-                vec_set(ssig->proofs[e].hint, get_hint(acc), PARAM_HINT_SIZE);
+                vec_set(ssig->proofs[e].hint, get_hint(&acc), PARAM_HINT_SIZE);
 
                 // Compute aux
                 vec_set(ssig->proofs[e].wit, plain_wit, PARAM_WIT_SIZE);
-                vec_sub(ssig->proofs[e].wit, get_wit(acc), PARAM_WIT_SIZE);
+                vec_sub(ssig->proofs[e].wit, get_wit(&acc), PARAM_WIT_SIZE);
                 vec_normalize(ssig->proofs[e].wit, PARAM_WIT_SIZE);
 
                 // Commit to the party's input
@@ -268,10 +264,6 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
             }
         }
     }
-    free(acc);
-    for(j=0; j<4; j++)
-        free(shares[j]);
-
 
     // Expand the MPC challenge N°1
     mpc_challenge_1_t* mpc_challenges_1[PARAM_NB_EXECUTIONS];
@@ -285,10 +277,9 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     /********************************************/
 
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        plain_hint[e] = new_hint();
-        compute_hint(plain_hint[e], plain_wit, plain_unif[e], ssk.inst, mpc_challenges_1[e]);
+        compute_hint(&plain_hint[e], plain_wit, &plain_unif[e], ssk.inst, mpc_challenges_1[e]);
         vec_neg(ssig->proofs[e].hint, PARAM_HINT_SIZE);
-        vec_add(ssig->proofs[e].hint, plain_hint[e], PARAM_HINT_SIZE);
+        vec_add(ssig->proofs[e].hint, &plain_hint[e], PARAM_HINT_SIZE);
         commit_hint(hint_commitments[e], ssig->proofs[e].hint, ssig->salt, (uint16_t)e, PARAM_NB_PARTIES);
         memcpy(ssig->proofs[e].hint_digest, hint_commitments[e], PARAM_DIGEST_SIZE);
     }
@@ -304,27 +295,24 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     /*********  SIMULATE MPC PROTOCOL  **********/
     /********************************************/
 
-    mpc_broadcast_t* plain_broadcast[PARAM_NB_EXECUTIONS];
-    mpc_broadcast_t* broadcast[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION];
+    mpc_broadcast_t plain_broadcast[PARAM_NB_EXECUTIONS];
+    mpc_broadcast_t broadcast[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION];
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        mpc_share_t* plain = new_share();
-        vec_set(get_wit(plain), plain_wit, PARAM_WIT_SIZE);
-        vec_set(get_unif(plain), plain_unif[e], PARAM_UNIF_SIZE);
-        vec_set(get_hint(plain), plain_hint[e], PARAM_HINT_SIZE);
+        mpc_share_t plain;
+        vec_set(get_wit(&plain), plain_wit, PARAM_WIT_SIZE);
+        vec_set(get_unif(&plain), &plain_unif[e], PARAM_UNIF_SIZE);
+        vec_set(get_hint(&plain), &plain_hint[e], PARAM_HINT_SIZE);
 
         // Compute the values open by the parties
-        plain_broadcast[e] = new_br();
-        mpc_compute_plain_broadcast(plain_broadcast[e], mpc_challenges_1[e], mpc_challenges_2[e], plain, ssk.inst);
-        vec_set(ssig->proofs[e].plain_broadcast, plain_broadcast[e], PARAM_BR_SIZE);
+        mpc_compute_plain_broadcast(&plain_broadcast[e], mpc_challenges_1[e], mpc_challenges_2[e], &plain, ssk.inst);
+        vec_set(ssig->proofs[e].plain_broadcast, &plain_broadcast[e], PARAM_BR_SIZE);
     
         // Compute the broadcast messages of the main parties
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++) {
-            broadcast[e][p] = new_br();
-            vec_normalize(mshares[e][p], PARAM_SHARE_SIZE);
-            mpc_compute_communications(broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], mshares[e][p], ssig->proofs[e].plain_broadcast, ssk.inst, 0);
+            vec_normalize(&mshares[e][p], PARAM_SHARE_SIZE);
+            mpc_compute_communications(&broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], &mshares[e][p], ssig->proofs[e].plain_broadcast, ssk.inst, 0);
         }
 
-        free(plain);
     }
 
     // Expand the view challenge
@@ -350,13 +338,6 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
         free_seed_tree(seeds_tree[e]);
     mqom_free_keys_internal(NULL, &ssk);
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++) {
-            free(mshares[e][p]);
-            free(broadcast[e][p]);
-        }
-        free(plain_unif[e]);
-        free(plain_hint[e]);
-        free(plain_broadcast[e]);
         free(mpc_challenges_1[e]);
         free(mpc_challenges_2[e]);
     }
@@ -421,21 +402,12 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
         mpc_challenges_2[e] = new_challenge_2();
     expand_mpc_challenge_hash_2(mpc_challenges_2, ssig->mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, ppk.inst);
 
-    mpc_share_t* shares[4];
-    for(j=0; j<4; j++)
-        shares[j] = new_share();
-    mpc_share_t* share = shares[0];
-    mpc_share_t* mshares[PARAM_HYPERCUBE_DIMENSION];
-    for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
-        mshares[p] = new_share();
-    mpc_broadcast_t* plain_broadcast[PARAM_NB_EXECUTIONS];
-    mpc_broadcast_t* broadcast[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION];
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        plain_broadcast[e] = new_br();
-        for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
-            broadcast[e][p] = new_br();
-    }
-
+    mpc_share_t shares[4];
+    mpc_share_t* share = &shares[0];
+    mpc_share_t mshares[PARAM_HYPERCUBE_DIMENSION];
+    mpc_broadcast_t plain_broadcast[PARAM_NB_EXECUTIONS];
+    mpc_broadcast_t broadcast[PARAM_NB_EXECUTIONS][PARAM_HYPERCUBE_DIMENSION];
+    
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         // Get the open leaf seeds
         seed_tree_t* seed_tree = malloc_seed_tree(PARAM_HYPERCUBE_DIMENSION);
@@ -449,11 +421,11 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
             commit_hint(hint_commitments[e], ssig->proofs[e].hint, ssig->salt, (uint16_t)e, PARAM_NB_PARTIES);
 
         // Get the plain broadcast
-        vec_set(plain_broadcast[e], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
+        vec_set(&plain_broadcast[e], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
 
         // Get the share of the main parties
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
-            vec_set_zero(mshares[p], PARAM_SHARE_SIZE);
+            vec_set_zero(&mshares[p], PARAM_SHARE_SIZE);
 
         i=0;
         // Let us treat the parties four by four...
@@ -473,7 +445,7 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
             //    collisions of the leave seeds
             prg_init_x4_array(entropy_ctx_x4, ptr_seeds, NULL);
             for(j=0; j<4; j++)
-                vec_rnd((void*) shares[j], PARAM_SHARE_SIZE, &entropy_x4[j]);
+                vec_rnd((void*) &shares[j], PARAM_SHARE_SIZE, &entropy_x4[j]);
             #endif /* PARAM_RND_EXPANSION_X4 */
             for(j=0; j<4; j++) {
                 if(i+j != hidden_views[e]) {
@@ -481,7 +453,7 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                     uint16_t xor = (((uint16_t)(i+j)) ^ hidden_views[e]);
                     for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
                         if(((xor>>p) & 1) == 1) // If the pth bit of i* is different of the pth bit of i
-                            vec_add(mshares[p], shares[j], PARAM_SHARE_SIZE);
+                            vec_add(&mshares[p], &shares[j], PARAM_SHARE_SIZE);
                 } else {
                     memcpy(seed_commitments[e][i+j], ssig->proofs[e].unopened_digest, PARAM_DIGEST_SIZE);
                 }
@@ -514,30 +486,26 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
             uint16_t xor = (((uint16_t)i) ^ hidden_views[e]);
             for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
                 if(((xor>>p) & 1) == 1) // If the pth bit of i* is different of the pth bit of i
-                    vec_add(mshares[p], share, PARAM_SHARE_SIZE);
+                    vec_add(&mshares[p], share, PARAM_SHARE_SIZE);
         }
 
         // Re-emulate the computation of the open main parties
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++) {
-            vec_normalize(mshares[p], PARAM_SHARE_SIZE);
+            vec_normalize(&mshares[p], PARAM_SHARE_SIZE);
             if(((hidden_views[e]>>p) & 1) == 1) {
                 // It the index of the hidden mparty is set,
                 //    it implies that the current mshare is for the mparty with unset bit.
-                mpc_compute_communications(broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 0);
+                mpc_compute_communications(&broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 0);
             } else {
-                mpc_compute_communications(broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 1);
-                vec_neg(broadcast[e][p], PARAM_BR_SIZE);
-                vec_add(broadcast[e][p], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
-                vec_normalize(broadcast[e][p], PARAM_BR_SIZE);
+                mpc_compute_communications(&broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 1);
+                vec_neg(&broadcast[e][p], PARAM_BR_SIZE);
+                vec_add(&broadcast[e][p], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
+                vec_normalize(&broadcast[e][p], PARAM_BR_SIZE);
             }
         }
 
         free_seed_tree(seed_tree);
     }
-    for(j=0; j<4; j++)
-        free(shares[j]);
-    for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
-        free(mshares[p]);
 
     // Recompute the hash digests of the challenges
     //    and check they are consistent with the ones in the signature
@@ -552,9 +520,6 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
     mqom_free_keys_internal(&ppk, NULL);
     free_const_signature(ssig);
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
-            free(broadcast[e][p]);
-        free(plain_broadcast[e]);
         free(mpc_challenges_1[e]);
         free(mpc_challenges_2[e]);
     }
