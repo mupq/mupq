@@ -209,7 +209,7 @@ void mpc_compute_communications(mpc_broadcast_t* broadcast,
     run_multiparty_computation(broadcast, mpc_challenge_1, mpc_challenge_2, share, plain_br, inst, has_sharing_offset, 1);
 }
 
-void expand_mpc_challenge_hash_1(mpc_challenge_1_t** challenges, const uint8_t* digest, size_t nb, instance_t* inst) {
+void expand_mpc_challenge_hash_1(mpc_challenge_1_t challenges[PARAM_NB_EXECUTIONS], const uint8_t* digest, size_t nb, instance_t* inst) {
 
     xof_context entropy_ctx;
     xof_init(&entropy_ctx);
@@ -217,19 +217,19 @@ void expand_mpc_challenge_hash_1(mpc_challenge_1_t** challenges, const uint8_t* 
     samplable_t entropy = xof_to_samplable(&entropy_ctx);
 
     for(size_t num=0; num<nb; num++) {
-        vec_rnd((uint8_t*) challenges[num]->gamma, sizeof((*challenges)->gamma), &entropy);
+        vec_rnd((uint8_t*) challenges[num].gamma, PARAM_m*PARAM_eta, &entropy);
 
         #ifdef PARAM_PRECOMPUTE_LIN_A
             uint8_t gamma_[PARAM_eta][PARAM_m];
             uint8_t linA_[PARAM_eta][PARAM_MATRIX_BYTESIZE] = {0};
             for(unsigned int i=0; i<PARAM_eta; i++) {
                 for(unsigned int j=0; j<PARAM_m; j++)
-                    gamma_[i][j] = challenges[num]->gamma[j][i];
+                    gamma_[i][j] = challenges[num].gamma[j][i];
 
                 mat128cols_muladd(linA_[i], gamma_[i], (*inst->A), PARAM_m, PARAM_MATRIX_BYTESIZE);
 
                 for(unsigned int j=0; j<PARAM_MATRIX_BYTESIZE; j++)
-                        challenges[num]->linA[j][i] = linA_[i][j];
+                        challenges[num].linA[j][i] = linA_[i][j];
             }
         #else
         (void) inst;
@@ -237,7 +237,7 @@ void expand_mpc_challenge_hash_1(mpc_challenge_1_t** challenges, const uint8_t* 
     }
 }
 
-void expand_mpc_challenge_hash_2(mpc_challenge_2_t** challenges, const uint8_t* digest, size_t nb, instance_t* inst) {
+void expand_mpc_challenge_hash_2(mpc_challenge_2_t challenges[PARAM_NB_EXECUTIONS], const uint8_t* digest, size_t nb, instance_t* inst) {
 
     xof_context entropy_ctx;
     xof_init(&entropy_ctx);
@@ -249,27 +249,27 @@ void expand_mpc_challenge_hash_2(mpc_challenge_2_t** challenges, const uint8_t* 
     for(size_t num=0; num<nb; num++) {
         unsigned int valid_challenge = 0;
         while(!valid_challenge) {
-            vec_rnd((uint8_t*) challenges[num]->r, sizeof((*challenges)->r), &entropy);
+            vec_rnd((uint8_t*) challenges[num].r, PARAM_eta, &entropy);
 
             uint8_t val = 0;
             for(unsigned int i=1; i<PARAM_eta; i++)
-                val |= challenges[num]->r[i];
-            valid_challenge = !((val == 0) && (challenges[num]->r[0] < PARAM_n1));
+                val |= challenges[num].r[i];
+            valid_challenge = !((val == 0) && (challenges[num].r[0] < PARAM_n1));
         }
     }
 
     for(size_t num=0; num<nb; num++) {
-        uint8_t* point = challenges[num]->r;
+        uint8_t* point = challenges[num].r;
         // powers[0] = 1
-        memset(&challenges[num]->r_powers[0], 0, PARAM_eta);
-        challenges[num]->r_powers[0][0] = 1;
+        memset(&challenges[num].r_powers[0], 0, PARAM_eta);
+        challenges[num].r_powers[0][0] = 1;
         // powers[1] = point
-        memcpy(&challenges[num]->r_powers[1], point, PARAM_eta);
+        memcpy(&challenges[num].r_powers[1], point, PARAM_eta);
         // powers[i] = evals[i-1]*point
         for(unsigned int i=2; i<2*PARAM_n1; i++)
             mul_points_ext(
-                challenges[num]->r_powers[i],
-                challenges[num]->r_powers[i-1],
+                challenges[num].r_powers[i],
+                challenges[num].r_powers[i-1],
                 point
             );
     }

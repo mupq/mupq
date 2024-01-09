@@ -10,10 +10,10 @@
  ********************************************************/
 
 // Expand a hash digest to several MPC challenges
-void expand_mpc_challenge_hash_1(mpc_challenge_1_t** challenges, const uint8_t* digest, size_t nb, instance_t* inst);
+void expand_mpc_challenge_hash_1(mpc_challenge_1_t challenges[PARAM_NB_EXECUTIONS], const uint8_t* digest, size_t nb, instance_t* inst);
 
 // Expand a hash digest to several MPC challenges
-void expand_mpc_challenge_hash_2(mpc_challenge_2_t** challenges, const uint8_t* digest, size_t nb, instance_t* inst);
+void expand_mpc_challenge_hash_2(mpc_challenge_2_t challenges[PARAM_NB_EXECUTIONS], const uint8_t* digest, size_t nb, instance_t* inst);
 
 // Compute the correlated part of the plain input given the witness and the plain random component
 void compute_hint(mpc_hint_t* hint, const mpc_wit_t* wit, const mpc_unif_t* unif, const instance_t* inst, mpc_challenge_1_t* mpc_challenge_1);

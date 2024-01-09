@@ -266,9 +266,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     }
 
     // Expand the MPC challenge N°1
-    mpc_challenge_1_t* mpc_challenges_1[PARAM_NB_EXECUTIONS];
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++)
-        mpc_challenges_1[e] = new_challenge_1();
+    mpc_challenge_1_t mpc_challenges_1[PARAM_NB_EXECUTIONS];
     hash_for_mpc_challenge_1(ssig->mpc_challenge_1_hash, seed_commitments, ssk.inst, ssig->salt, NULL, 0);
     expand_mpc_challenge_hash_1(mpc_challenges_1, ssig->mpc_challenge_1_hash, PARAM_NB_EXECUTIONS, ssk.inst);
 
@@ -277,7 +275,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     /********************************************/
 
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        compute_hint(&plain_hint[e], plain_wit, &plain_unif[e], ssk.inst, mpc_challenges_1[e]);
+        compute_hint(&plain_hint[e], plain_wit, &plain_unif[e], ssk.inst, &mpc_challenges_1[e]);
         vec_neg(ssig->proofs[e].hint, PARAM_HINT_SIZE);
         vec_add(ssig->proofs[e].hint, &plain_hint[e], PARAM_HINT_SIZE);
         commit_hint(hint_commitments[e], ssig->proofs[e].hint, ssig->salt, (uint16_t)e, PARAM_NB_PARTIES);
@@ -285,9 +283,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     }
 
     // Expand the MPC challenge N°2
-    mpc_challenge_2_t* mpc_challenges_2[PARAM_NB_EXECUTIONS];
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++)
-        mpc_challenges_2[e] = new_challenge_2();
+    mpc_challenge_2_t mpc_challenges_2[PARAM_NB_EXECUTIONS];
     hash_for_mpc_challenge_2(ssig->mpc_challenge_2_hash, ssig->mpc_challenge_1_hash, hint_commitments, ssig->salt, NULL, 0);
     expand_mpc_challenge_hash_2(mpc_challenges_2, ssig->mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, ssk.inst);
 
@@ -304,13 +300,13 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
         vec_set(get_hint(&plain), &plain_hint[e], PARAM_HINT_SIZE);
 
         // Compute the values open by the parties
-        mpc_compute_plain_broadcast(&plain_broadcast[e], mpc_challenges_1[e], mpc_challenges_2[e], &plain, ssk.inst);
+        mpc_compute_plain_broadcast(&plain_broadcast[e], &mpc_challenges_1[e], &mpc_challenges_2[e], &plain, ssk.inst);
         vec_set(ssig->proofs[e].plain_broadcast, &plain_broadcast[e], PARAM_BR_SIZE);
     
         // Compute the broadcast messages of the main parties
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++) {
             vec_normalize(&mshares[e][p], PARAM_SHARE_SIZE);
-            mpc_compute_communications(&broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], &mshares[e][p], ssig->proofs[e].plain_broadcast, ssk.inst, 0);
+            mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[e][p], ssig->proofs[e].plain_broadcast, ssk.inst, 0);
         }
 
     }
@@ -337,11 +333,6 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     for(e=0; e<PARAM_NB_EXECUTIONS; e++)
         free_seed_tree(seeds_tree[e]);
     mqom_free_keys_internal(NULL, &ssk);
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        free(mpc_challenges_1[e]);
-        free(mpc_challenges_2[e]);
-    }
-
     if(ret < 0)
         return ret;
     *siglen = (size_t) ret;
@@ -392,14 +383,10 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
     #endif /* PARAM_RND_EXPANSION_X4 */
 
     // Expand MPC Challenge
-    mpc_challenge_1_t* mpc_challenges_1[PARAM_NB_EXECUTIONS];
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++)
-        mpc_challenges_1[e] = new_challenge_1();
+    mpc_challenge_1_t mpc_challenges_1[PARAM_NB_EXECUTIONS];
     expand_mpc_challenge_hash_1(mpc_challenges_1, ssig->mpc_challenge_1_hash, PARAM_NB_EXECUTIONS, ppk.inst);
 
-    mpc_challenge_2_t* mpc_challenges_2[PARAM_NB_EXECUTIONS];
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++)
-        mpc_challenges_2[e] = new_challenge_2();
+    mpc_challenge_2_t mpc_challenges_2[PARAM_NB_EXECUTIONS];
     expand_mpc_challenge_hash_2(mpc_challenges_2, ssig->mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, ppk.inst);
 
     mpc_share_t shares[4];
@@ -495,9 +482,9 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
             if(((hidden_views[e]>>p) & 1) == 1) {
                 // It the index of the hidden mparty is set,
                 //    it implies that the current mshare is for the mparty with unset bit.
-                mpc_compute_communications(&broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 0);
+                mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 0);
             } else {
-                mpc_compute_communications(&broadcast[e][p], mpc_challenges_1[e], mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 1);
+                mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, ppk.inst, 1);
                 vec_neg(&broadcast[e][p], PARAM_BR_SIZE);
                 vec_add(&broadcast[e][p], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
                 vec_normalize(&broadcast[e][p], PARAM_BR_SIZE);
@@ -519,10 +506,6 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
 
     mqom_free_keys_internal(&ppk, NULL);
     free_const_signature(ssig);
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
-        free(mpc_challenges_1[e]);
-        free(mpc_challenges_2[e]);
-    }
     return ret;
 }
 
