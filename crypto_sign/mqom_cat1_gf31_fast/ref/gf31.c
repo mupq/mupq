@@ -458,7 +458,7 @@ int gf31to11_eq(const uint8_t a[11], const uint8_t b[11]) {
 
 void gf31_random_elements(uint8_t points[], uint32_t nb_points, samplable_t* entropy) {
     uint32_t buffer_size = 5*((nb_points+(nb_points>>4)+7)>>3);
-    uint8_t* buffer = malloc(buffer_size);
+    uint8_t  buffer[buffer_size];
     uint32_t pos = 0;
     uint8_t buf[8];
     uint32_t i,j;
@@ -487,12 +487,11 @@ void gf31_random_elements(uint8_t points[], uint32_t nb_points, samplable_t* ent
             cur+=5;
         }
     } while(!ok);
-    free(buffer);
 }
 
 void gf31_random_elements_x4(uint8_t* const* points, uint32_t nb_points, samplable_x4_t* entropy) {
     uint32_t buffer_size = 5*((nb_points+(nb_points>>4)+7)>>3);
-    uint8_t* buffer_mem = malloc(4*buffer_size);
+    uint8_t buffer_mem[buffer_size];
     uint8_t* buffer[4] = {
         &buffer_mem[0],             &buffer_mem[  buffer_size],
         &buffer_mem[2*buffer_size], &buffer_mem[3*buffer_size]
@@ -530,6 +529,5 @@ void gf31_random_elements_x4(uint8_t* const* points, uint32_t nb_points, samplab
             }
         }
     } while(nb_ok < 4);
-    free(buffer_mem);
 }
 #endif
