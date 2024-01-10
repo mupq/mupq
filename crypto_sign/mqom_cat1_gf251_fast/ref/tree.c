@@ -75,7 +75,7 @@ void get_seed_path(uint8_t* path, const seed_tree_t* tree, uint16_t hidden_leaf)
 }
 
 void reconstruct_tree(seed_tree_t* tree, uint16_t hidden_leaf, const uint8_t* path, const uint8_t* salt) {
-    uint16_t* pos = (uint16_t*) malloc(tree->height*sizeof(uint16_t));
+    uint16_t pos[tree->height];
 
     uint32_t hidden_node = hidden_leaf + (1<<tree->height);
 
@@ -127,6 +127,4 @@ void reconstruct_tree(seed_tree_t* tree, uint16_t hidden_leaf, const uint8_t* pa
         }
     }
     memcpy(get_node(tree,pos[tree->height-1]), path, PARAM_SEED_SIZE);
-    
-    free(pos);
 }
