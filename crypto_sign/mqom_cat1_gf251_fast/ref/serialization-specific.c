@@ -24,10 +24,8 @@ void serialize_instance_solution(uint8_t* buf, const solution_t* sol) {
     memcpy(buf, sol->x, PARAM_n);
 }
 
-solution_t* deserialize_instance_solution(const uint8_t* buf) {
-    solution_t* sol = (solution_t*) malloc(sizeof(solution_t));
+void deserialize_instance_solution(solution_t* sol, const uint8_t* buf) {
     memcpy(sol->x, buf, PARAM_n);
-    return sol;
 }
 
 void compress_plain_broadcast(uint8_t* buf, const mpc_broadcast_t* plain_br) {

@@ -26,7 +26,7 @@ typedef struct mqom_public_key_t {
 
 typedef struct mqom_secret_key_t {
     instance_t* inst;
-    solution_t* wit;
+    solution_t wit;
 } mqom_secret_key_t;
 
 int mqom_keygen_internal(mqom_public_key_t* pk, mqom_secret_key_t* sk);
