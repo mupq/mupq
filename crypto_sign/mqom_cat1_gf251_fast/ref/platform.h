@@ -16,6 +16,4 @@
 #define ALIGN(x)
 #endif
 
-#define ALIGNED_ALLOC(alignment,size) aligned_alloc(alignment,size)
-
 #endif /* MQOM_ALL_PARAMETERS_H */
