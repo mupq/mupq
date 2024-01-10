@@ -34,7 +34,14 @@ typedef struct signature_hypercube_7r_t {
     uint8_t* mpc_challenge_2_hash;
     uint8_t* view_challenge_hash;
     proof_hypercube_7r_t proofs[PARAM_NB_EXECUTIONS];
-    uint8_t* allocated_memory; // Just to manage the memory
+    uint8_t allocated_memory[PARAM_NB_EXECUTIONS*(
+        PARAM_HYPERCUBE_DIMENSION*PARAM_SEED_SIZE // seed tree
+         + PARAM_DIGEST_SIZE // unopen commitment
+         + PARAM_BR_SIZE // plain broadcast
+         + PARAM_WIT_SIZE // wit of last party
+         + PARAM_HINT_SIZE // hint of last party
+         + PARAM_DIGEST_SIZE // hint commitment
+    )];
 } signature_hypercube_7r_t;
 
 // For parsing
@@ -57,7 +64,9 @@ typedef struct const_signature_hypercube_7r_t {
     const uint8_t* mpc_challenge_2_hash;
     const uint8_t* view_challenge_hash;
     const_proof_hypercube_7r_t proofs[PARAM_NB_EXECUTIONS];
-    uint8_t* allocated_memory; // Just to manage the memory
+    uint8_t allocated_memory[PARAM_NB_EXECUTIONS*(
+        PARAM_BR_SIZE+PARAM_WIT_PARSED_SIZE+PARAM_HINT_PARSED_SIZE
+    )];
 } const_signature_hypercube_7r_t;
 
 // Free signature structure
@@ -508,14 +517,10 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
  ***********************************************/
 
 void free_signature(signature_hypercube_7r_t* sig) {
-    if(sig->allocated_memory != NULL)
-        free(sig->allocated_memory);
     free(sig);
 }
 
 void free_const_signature(const_signature_hypercube_7r_t* sig) {
-    if(sig->allocated_memory != NULL)
-        free(sig->allocated_memory);
     free(sig);
 }
 
@@ -543,12 +548,6 @@ const_signature_hypercube_7r_t* parse_signature(const uint8_t* buf, size_t bufle
         free(sig);
         return NULL;
     }
-
-    sig->allocated_memory = malloc(
-        PARAM_NB_EXECUTIONS*(
-            PARAM_BR_SIZE+PARAM_WIT_PARSED_SIZE+PARAM_HINT_PARSED_SIZE
-        )
-    );
     uint8_t* buf_ = sig->allocated_memory;
     for(size_t e=0; e<PARAM_NB_EXECUTIONS; e++) {
         sig->proofs[e].unopened_digest = buf;
@@ -588,16 +587,6 @@ signature_hypercube_7r_t* init_signature_structure(const uint8_t* salt, uint8_t*
     sig->view_challenge_hash = buf;  buf += PARAM_DIGEST_SIZE;
     memcpy(sig->salt, salt, PARAM_SALT_SIZE);
 
-    sig->allocated_memory = malloc(
-        PARAM_NB_EXECUTIONS*(
-            PARAM_HYPERCUBE_DIMENSION*PARAM_SEED_SIZE // seed tree
-             + PARAM_DIGEST_SIZE // unopen commitment
-             + PARAM_BR_SIZE // plain broadcast
-             + PARAM_WIT_SIZE // wit of last party
-             + PARAM_HINT_SIZE // hint of last party
-             + PARAM_DIGEST_SIZE // hint commitment
-        )
-    );
     uint8_t* buf_ = sig->allocated_memory;
     for(size_t e=0; e<PARAM_NB_EXECUTIONS; e++) {
         sig->proofs[e].unopened_digest = buf_;
