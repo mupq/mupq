@@ -69,16 +69,13 @@ typedef struct const_signature_hypercube_7r_t {
     )];
 } const_signature_hypercube_7r_t;
 
-// Free signature structure
-void free_signature(signature_hypercube_7r_t* sig);
-void free_const_signature(const_signature_hypercube_7r_t* sig);
 
 // For signing
-signature_hypercube_7r_t* init_signature_structure(const uint8_t* salt, uint8_t* buf, size_t buflen);
+int init_signature_structure(signature_hypercube_7r_t* sig, const uint8_t* salt, uint8_t* buf, size_t buflen);
 int build_signature(const signature_hypercube_7r_t* sig, uint8_t* buf, size_t buflen, uint16_t hidden_views[PARAM_NB_EXECUTIONS]);
 
 // For verification
-const_signature_hypercube_7r_t* parse_signature(const uint8_t* buf, size_t buflen, uint16_t hidden_views[PARAM_NB_EXECUTIONS]);
+int parse_signature(const_signature_hypercube_7r_t *sig, const uint8_t* buf, size_t buflen, uint16_t hidden_views[PARAM_NB_EXECUTIONS]);
 
 /***********************************************
  *             Hash for challenge              *
@@ -158,7 +155,8 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     mpc_wit_t* plain_wit = &ssk.wit;
 
     // Signature Structure
-    signature_hypercube_7r_t* ssig = init_signature_structure(salt, sig, PARAM_SIGNATURE_SIZEBYTES);
+    signature_hypercube_7r_t ssig;
+    init_signature_structure(&ssig, salt, sig, PARAM_SIGNATURE_SIZEBYTES);
 
     /********************************************/
     /**********     INITIALIZATION     **********/
@@ -183,7 +181,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
 
     // Derive the root seeds for all parallel executions
     uint8_t rseed[PARAM_NB_EXECUTIONS][PARAM_SEED_SIZE];
-    prg_init(&entropy_ctx, seed, ssig->salt);
+    prg_init(&entropy_ctx, seed, ssig.salt);
     byte_sample(&entropy, (uint8_t*) rseed, PARAM_NB_EXECUTIONS*PARAM_SEED_SIZE);
 
     // We manipulate here pointers
@@ -206,7 +204,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     mpc_share_t acc;
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         // Build the seed tree of the current execution
-        expand_seed_tree(&seeds_tree[e], rseed[e], ssig->salt);
+        expand_seed_tree(&seeds_tree[e], rseed[e], ssig.salt);
         uint8_t* seeds = get_leaves(&seeds_tree[e]);
         vec_set_zero(&acc, PARAM_SHARE_SIZE);
 
@@ -235,7 +233,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
                 seed_commitments[e][i+2], seed_commitments[e][i+3], 
             };
             const uint16_t is[4] = {(uint16_t)i, (uint16_t)(i+1), (uint16_t)(i+2), (uint16_t)(i+3)};
-            commit_seed_x4(digests, &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, is);
+            commit_seed_x4(digests, &seeds[i*PARAM_SEED_SIZE], ssig.salt, (uint16_t)e, is);
         }
         // Now we treat the last parties
         for(;i<PARAM_NB_PARTIES; i++) {
@@ -253,31 +251,31 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
                         vec_add(&mshares[e][p], share, PARAM_SHARE_SIZE);
             
                 // Commit to the party's input (by committing to its seed)
-                commit_seed(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig.salt, (uint16_t)e, (uint16_t)i);
             } else {
                 // Compute plain unif
                 vec_rnd(&plain_unif[e], PARAM_UNIF_SIZE, &entropy);
                 vec_add(&plain_unif[e], get_unif(&acc), PARAM_UNIF_SIZE);
                 vec_normalize(&plain_unif[e], PARAM_UNIF_SIZE);
 
-                // For the moment, ssig->proofs[e].hint just contains the hint accumulator
-                vec_set(ssig->proofs[e].hint, get_hint(&acc), PARAM_HINT_SIZE);
+                // For the moment, ssig.proofs[e].hint just contains the hint accumulator
+                vec_set(ssig.proofs[e].hint, get_hint(&acc), PARAM_HINT_SIZE);
 
                 // Compute aux
-                vec_set(ssig->proofs[e].wit, plain_wit, PARAM_WIT_SIZE);
-                vec_sub(ssig->proofs[e].wit, get_wit(&acc), PARAM_WIT_SIZE);
-                vec_normalize(ssig->proofs[e].wit, PARAM_WIT_SIZE);
+                vec_set(ssig.proofs[e].wit, plain_wit, PARAM_WIT_SIZE);
+                vec_sub(ssig.proofs[e].wit, get_wit(&acc), PARAM_WIT_SIZE);
+                vec_normalize(ssig.proofs[e].wit, PARAM_WIT_SIZE);
 
                 // Commit to the party's input
-                commit_seed_and_wit(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->proofs[e].wit, ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed_and_wit(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig.proofs[e].wit, ssig.salt, (uint16_t)e, (uint16_t)i);
             }
         }
     }
 
     // Expand the MPC challenge N°1
     mpc_challenge_1_t mpc_challenges_1[PARAM_NB_EXECUTIONS];
-    hash_for_mpc_challenge_1(ssig->mpc_challenge_1_hash, seed_commitments, &ssk.inst, ssig->salt, NULL, 0);
-    expand_mpc_challenge_hash_1(mpc_challenges_1, ssig->mpc_challenge_1_hash, PARAM_NB_EXECUTIONS, &ssk.inst);
+    hash_for_mpc_challenge_1(ssig.mpc_challenge_1_hash, seed_commitments, &ssk.inst, ssig.salt, NULL, 0);
+    expand_mpc_challenge_hash_1(mpc_challenges_1, ssig.mpc_challenge_1_hash, PARAM_NB_EXECUTIONS, &ssk.inst);
 
     /********************************************/
     /*********    COMPUTE THE HINTS    **********/
@@ -285,16 +283,16 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
 
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         compute_hint(&plain_hint[e], plain_wit, &plain_unif[e], &ssk.inst, &mpc_challenges_1[e]);
-        vec_neg(ssig->proofs[e].hint, PARAM_HINT_SIZE);
-        vec_add(ssig->proofs[e].hint, &plain_hint[e], PARAM_HINT_SIZE);
-        commit_hint(hint_commitments[e], ssig->proofs[e].hint, ssig->salt, (uint16_t)e, PARAM_NB_PARTIES);
-        memcpy(ssig->proofs[e].hint_digest, hint_commitments[e], PARAM_DIGEST_SIZE);
+        vec_neg(ssig.proofs[e].hint, PARAM_HINT_SIZE);
+        vec_add(ssig.proofs[e].hint, &plain_hint[e], PARAM_HINT_SIZE);
+        commit_hint(hint_commitments[e], ssig.proofs[e].hint, ssig.salt, (uint16_t)e, PARAM_NB_PARTIES);
+        memcpy(ssig.proofs[e].hint_digest, hint_commitments[e], PARAM_DIGEST_SIZE);
     }
 
     // Expand the MPC challenge N°2
     mpc_challenge_2_t mpc_challenges_2[PARAM_NB_EXECUTIONS];
-    hash_for_mpc_challenge_2(ssig->mpc_challenge_2_hash, ssig->mpc_challenge_1_hash, hint_commitments, ssig->salt, NULL, 0);
-    expand_mpc_challenge_hash_2(mpc_challenges_2, ssig->mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, &ssk.inst);
+    hash_for_mpc_challenge_2(ssig.mpc_challenge_2_hash, ssig.mpc_challenge_1_hash, hint_commitments, ssig.salt, NULL, 0);
+    expand_mpc_challenge_hash_2(mpc_challenges_2, ssig.mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, &ssk.inst);
 
     /********************************************/
     /*********  SIMULATE MPC PROTOCOL  **********/
@@ -310,20 +308,20 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
 
         // Compute the values open by the parties
         mpc_compute_plain_broadcast(&plain_broadcast[e], &mpc_challenges_1[e], &mpc_challenges_2[e], &plain, &ssk.inst);
-        vec_set(ssig->proofs[e].plain_broadcast, &plain_broadcast[e], PARAM_BR_SIZE);
+        vec_set(ssig.proofs[e].plain_broadcast, &plain_broadcast[e], PARAM_BR_SIZE);
     
         // Compute the broadcast messages of the main parties
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++) {
             vec_normalize(&mshares[e][p], PARAM_SHARE_SIZE);
-            mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[e][p], ssig->proofs[e].plain_broadcast, &ssk.inst, 0);
+            mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[e][p], ssig.proofs[e].plain_broadcast, &ssk.inst, 0);
         }
 
     }
 
     // Expand the view challenge
     uint16_t hidden_views[PARAM_NB_EXECUTIONS];
-    hash_for_view_challenge(ssig->view_challenge_hash, ssig->mpc_challenge_2_hash, broadcast, plain_broadcast, ssig->salt, m, mlen);
-    expand_view_challenge_hash((uint16_t*) hidden_views, ssig->view_challenge_hash, PARAM_NB_EXECUTIONS, 1);
+    hash_for_view_challenge(ssig.view_challenge_hash, ssig.mpc_challenge_2_hash, broadcast, plain_broadcast, ssig.salt, m, mlen);
+    expand_view_challenge_hash((uint16_t*) hidden_views, ssig.view_challenge_hash, PARAM_NB_EXECUTIONS, 1);
 
     /********************************************/
     /**********   FINALIZE SIGNATURE   **********/
@@ -331,13 +329,12 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
 
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         uint16_t num_unopened_party = hidden_views[e];
-        get_seed_path(ssig->proofs[e].seed_info, &seeds_tree[e], num_unopened_party);
-        memcpy(ssig->proofs[e].unopened_digest, seed_commitments[e][num_unopened_party], PARAM_DIGEST_SIZE);
+        get_seed_path(ssig.proofs[e].seed_info, &seeds_tree[e], num_unopened_party);
+        memcpy(ssig.proofs[e].unopened_digest, seed_commitments[e][num_unopened_party], PARAM_DIGEST_SIZE);
     }
 
     // Serialize the signature
-    ret = build_signature(ssig, sig, PARAM_SIGNATURE_SIZEBYTES, hidden_views);
-    free_signature(ssig);
+    ret = build_signature(&ssig, sig, PARAM_SIGNATURE_SIZEBYTES, hidden_views);
 
     if(ret < 0)
         return ret;
@@ -366,8 +363,9 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
     // Parse the signature
     // Note: while parsing, it expands the view challenge.
     uint16_t hidden_views[PARAM_NB_EXECUTIONS];
-    const_signature_hypercube_7r_t* ssig = parse_signature(sig, siglen, hidden_views);
-    if(ssig == NULL) {
+    const_signature_hypercube_7r_t ssig;
+    ret = parse_signature(&ssig, sig, siglen, hidden_views);
+    if(ret != 0) {
         ret = -1;
         return ret;
     }
@@ -389,10 +387,10 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
 
     // Expand MPC Challenge
     mpc_challenge_1_t mpc_challenges_1[PARAM_NB_EXECUTIONS];
-    expand_mpc_challenge_hash_1(mpc_challenges_1, ssig->mpc_challenge_1_hash, PARAM_NB_EXECUTIONS, &ppk.inst);
+    expand_mpc_challenge_hash_1(mpc_challenges_1, ssig.mpc_challenge_1_hash, PARAM_NB_EXECUTIONS, &ppk.inst);
 
     mpc_challenge_2_t mpc_challenges_2[PARAM_NB_EXECUTIONS];
-    expand_mpc_challenge_hash_2(mpc_challenges_2, ssig->mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, &ppk.inst);
+    expand_mpc_challenge_hash_2(mpc_challenges_2, ssig.mpc_challenge_2_hash, PARAM_NB_EXECUTIONS, &ppk.inst);
 
     mpc_share_t shares[4];
     mpc_share_t* share = &shares[0];
@@ -404,17 +402,17 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
         // Get the open leaf seeds
         seed_tree_t seed_tree;
         init_seed_tree(&seed_tree, PARAM_HYPERCUBE_DIMENSION);
-        reconstruct_tree(&seed_tree, hidden_views[e], ssig->proofs[e].seed_info, ssig->salt);
+        reconstruct_tree(&seed_tree, hidden_views[e], ssig.proofs[e].seed_info, ssig.salt);
         uint8_t* seeds = get_leaves(&seed_tree);
 
         // Get the commitment of the hint
         if(hidden_views[e] == PARAM_NB_PARTIES-1)
-            memcpy(hint_commitments[e], ssig->proofs[e].hint_digest, PARAM_DIGEST_SIZE);
+            memcpy(hint_commitments[e], ssig.proofs[e].hint_digest, PARAM_DIGEST_SIZE);
         else
-            commit_hint(hint_commitments[e], ssig->proofs[e].hint, ssig->salt, (uint16_t)e, PARAM_NB_PARTIES);
+            commit_hint(hint_commitments[e], ssig.proofs[e].hint, ssig.salt, (uint16_t)e, PARAM_NB_PARTIES);
 
         // Get the plain broadcast
-        vec_set(&plain_broadcast[e], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
+        vec_set(&plain_broadcast[e], ssig.proofs[e].plain_broadcast, PARAM_BR_SIZE);
 
         // Get the share of the main parties
         for(p=0; p<PARAM_HYPERCUBE_DIMENSION; p++)
@@ -428,7 +426,7 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                 seed_commitments[e][i+2], seed_commitments[e][i+3], 
             };
             const uint16_t is[4] = {(uint16_t)i, (uint16_t)(i+1), (uint16_t)(i+2), (uint16_t)(i+3)};
-            commit_seed_x4(digests, &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, is);
+            commit_seed_x4(digests, &seeds[i*PARAM_SEED_SIZE], ssig.salt, (uint16_t)e, is);
             const uint8_t* ptr_seeds[4] = {&seeds[i*PARAM_SEED_SIZE], &seeds[(i+1)*PARAM_SEED_SIZE], &seeds[(i+2)*PARAM_SEED_SIZE], &seeds[(i+3)*PARAM_SEED_SIZE]};
             #ifdef PARAM_RND_EXPANSION_X4
             prg_init_x4(&entropy_ctx_x4, ptr_seeds, NULL);
@@ -448,14 +446,14 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                         if(((xor>>p) & 1) == 1) // If the pth bit of i* is different of the pth bit of i
                             vec_add(&mshares[p], &shares[j], PARAM_SHARE_SIZE);
                 } else {
-                    memcpy(seed_commitments[e][i+j], ssig->proofs[e].unopened_digest, PARAM_DIGEST_SIZE);
+                    memcpy(seed_commitments[e][i+j], ssig.proofs[e].unopened_digest, PARAM_DIGEST_SIZE);
                 }
             }
         }
         // Now we treat the last parties
         for(; i<PARAM_NB_PARTIES; i++) {
             if(i == hidden_views[e]) {
-                memcpy(seed_commitments[e][i], ssig->proofs[e].unopened_digest, PARAM_DIGEST_SIZE);
+                memcpy(seed_commitments[e][i], ssig.proofs[e].unopened_digest, PARAM_DIGEST_SIZE);
                 continue;
             }
             prg_init(&entropy_ctx, &seeds[i*PARAM_SEED_SIZE], NULL);
@@ -464,15 +462,15 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                 vec_rnd(share, PARAM_SHARE_SIZE, &entropy);
 
                 // Recompute the party's commitment
-                commit_seed(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig.salt, (uint16_t)e, (uint16_t)i);
             } else {
                 // Get the party's input share
                 vec_rnd(get_unif(share), PARAM_UNIF_SIZE, &entropy);
-                vec_set(get_wit(share), ssig->proofs[e].wit, PARAM_WIT_SIZE);
-                vec_set(get_hint(share), ssig->proofs[e].hint, PARAM_HINT_SIZE);
+                vec_set(get_wit(share), ssig.proofs[e].wit, PARAM_WIT_SIZE);
+                vec_set(get_hint(share), ssig.proofs[e].hint, PARAM_HINT_SIZE);
 
                 // Recompute the party's commitment
-                commit_seed_and_wit(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->proofs[e].wit, ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed_and_wit(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig.proofs[e].wit, ssig.salt, (uint16_t)e, (uint16_t)i);
             }
 
             // Aggregate to get the shares of the "main parties"
@@ -488,11 +486,11 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
             if(((hidden_views[e]>>p) & 1) == 1) {
                 // It the index of the hidden mparty is set,
                 //    it implies that the current mshare is for the mparty with unset bit.
-                mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, &ppk.inst, 0);
+                mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[p], ssig.proofs[e].plain_broadcast, &ppk.inst, 0);
             } else {
-                mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[p], ssig->proofs[e].plain_broadcast, &ppk.inst, 1);
+                mpc_compute_communications(&broadcast[e][p], &mpc_challenges_1[e], &mpc_challenges_2[e], &mshares[p], ssig.proofs[e].plain_broadcast, &ppk.inst, 1);
                 vec_neg(&broadcast[e][p], PARAM_BR_SIZE);
-                vec_add(&broadcast[e][p], ssig->proofs[e].plain_broadcast, PARAM_BR_SIZE);
+                vec_add(&broadcast[e][p], ssig.proofs[e].plain_broadcast, PARAM_BR_SIZE);
                 vec_normalize(&broadcast[e][p], PARAM_BR_SIZE);
             }
         }
@@ -501,14 +499,13 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
     // Recompute the hash digests of the challenges
     //    and check they are consistent with the ones in the signature
     uint8_t mpc_challenge_1_hash[PARAM_DIGEST_SIZE], mpc_challenge_2_hash[PARAM_DIGEST_SIZE], view_challenge_hash[PARAM_DIGEST_SIZE];
-    hash_for_mpc_challenge_1(mpc_challenge_1_hash, seed_commitments, &ppk.inst, ssig->salt, NULL, 0);
-    hash_for_mpc_challenge_2(mpc_challenge_2_hash, ssig->mpc_challenge_1_hash, hint_commitments, ssig->salt, NULL, 0);
-    hash_for_view_challenge(view_challenge_hash, ssig->mpc_challenge_2_hash, broadcast, plain_broadcast, ssig->salt, m, mlen);
-    ret = (memcmp(mpc_challenge_1_hash, ssig->mpc_challenge_1_hash, PARAM_DIGEST_SIZE) != 0);
-    ret |= (memcmp(mpc_challenge_2_hash, ssig->mpc_challenge_2_hash, PARAM_DIGEST_SIZE) != 0);
-    ret |= (memcmp(view_challenge_hash, ssig->view_challenge_hash, PARAM_DIGEST_SIZE) != 0);
+    hash_for_mpc_challenge_1(mpc_challenge_1_hash, seed_commitments, &ppk.inst, ssig.salt, NULL, 0);
+    hash_for_mpc_challenge_2(mpc_challenge_2_hash, ssig.mpc_challenge_1_hash, hint_commitments, ssig.salt, NULL, 0);
+    hash_for_view_challenge(view_challenge_hash, ssig.mpc_challenge_2_hash, broadcast, plain_broadcast, ssig.salt, m, mlen);
+    ret = (memcmp(mpc_challenge_1_hash, ssig.mpc_challenge_1_hash, PARAM_DIGEST_SIZE) != 0);
+    ret |= (memcmp(mpc_challenge_2_hash, ssig.mpc_challenge_2_hash, PARAM_DIGEST_SIZE) != 0);
+    ret |= (memcmp(view_challenge_hash, ssig.view_challenge_hash, PARAM_DIGEST_SIZE) != 0);
 
-    free_const_signature(ssig);
     return ret;
 }
 
@@ -516,21 +513,12 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
  *             About Serialization             *
  ***********************************************/
 
-void free_signature(signature_hypercube_7r_t* sig) {
-    free(sig);
-}
-
-void free_const_signature(const_signature_hypercube_7r_t* sig) {
-    free(sig);
-}
-
-const_signature_hypercube_7r_t* parse_signature(const uint8_t* buf, size_t buflen, uint16_t hidden_views[PARAM_NB_EXECUTIONS]) {
+int parse_signature(const_signature_hypercube_7r_t *sig, const uint8_t* buf, size_t buflen, uint16_t hidden_views[PARAM_NB_EXECUTIONS]) {
     size_t bytes_required = 3*PARAM_DIGEST_SIZE + PARAM_SALT_SIZE;
     if(buflen < bytes_required) {
-        return NULL;
+        return -1;
     }
 
-    const_signature_hypercube_7r_t* sig = malloc(sizeof(const_signature_hypercube_7r_t));
     sig->salt = buf;                  buf += PARAM_SALT_SIZE;
     sig->mpc_challenge_1_hash = buf;  buf += PARAM_DIGEST_SIZE;
     sig->mpc_challenge_2_hash = buf;  buf += PARAM_DIGEST_SIZE;
@@ -545,8 +533,7 @@ const_signature_hypercube_7r_t* parse_signature(const uint8_t* buf, size_t bufle
             bytes_required += PARAM_DIGEST_SIZE;
     }
     if(buflen != bytes_required) {
-        free(sig);
-        return NULL;
+        return -1;
     }
     uint8_t* buf_ = sig->allocated_memory;
     for(size_t e=0; e<PARAM_NB_EXECUTIONS; e++) {
@@ -571,16 +558,15 @@ const_signature_hypercube_7r_t* parse_signature(const uint8_t* buf, size_t bufle
         }
     }
 
-    return sig;
+    return 0;
 }
 
-signature_hypercube_7r_t* init_signature_structure(const uint8_t* salt, uint8_t* buf, size_t buflen) {
+int init_signature_structure(signature_hypercube_7r_t *sig, const uint8_t* salt, uint8_t* buf, size_t buflen) {
     size_t bytes_required = 3*PARAM_DIGEST_SIZE + PARAM_SALT_SIZE;
     if(buflen < bytes_required) {
-        return NULL;
+        return -1;
     }
 
-    signature_hypercube_7r_t* sig = malloc(sizeof(signature_hypercube_7r_t));
     sig->salt = buf;               buf += PARAM_SALT_SIZE;
     sig->mpc_challenge_1_hash = buf;   buf += PARAM_DIGEST_SIZE;
     sig->mpc_challenge_2_hash = buf;   buf += PARAM_DIGEST_SIZE;
@@ -600,7 +586,7 @@ signature_hypercube_7r_t* init_signature_structure(const uint8_t* salt, uint8_t*
         sig->proofs[e].hint_digest = buf_;   buf_ += PARAM_DIGEST_SIZE;
     }
 
-    return sig;
+    return 0;
 }
 
 int build_signature(const signature_hypercube_7r_t* sig, uint8_t* buf, size_t buflen, uint16_t hidden_views[PARAM_NB_EXECUTIONS]) {
