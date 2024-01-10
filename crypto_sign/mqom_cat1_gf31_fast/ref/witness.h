@@ -40,12 +40,12 @@ typedef struct solution_t {
 // "PARAM_INSTANCE_SIZE" corresponds to the size
 //   in bytes of the structure of type "instance_t"
 //   when serialized.
-#define PARAM_INSTANCE_SIZE (PARAM_SEED_SIZE+PARAM_m)
+#define PARAM_INSTANCE_SIZE (PARAM_SEED_SIZE+(((PARAM_m)*5+7)>>3))
 
 // "PARAM_SOL_SIZE" corresponds to the size
 //   in bytes of the structure of type "solution_t"
 //   when serialized.
-#define PARAM_SOL_SIZE (PARAM_n)
+#define PARAM_SOL_SIZE (((PARAM_n)*5+7)>>3)
 
 
 
@@ -59,7 +59,7 @@ typedef struct solution_t {
  * @param sol a pointer to the solution.
  * @param entropy a entropy source of type "samplable_t"
  */
-void generate_instance_with_solution(instance_t* inst, solution_t *sol, samplable_t* entropy);
+void generate_instance_with_solution(instance_t* inst, solution_t* sol, samplable_t* entropy);
 
 /**
  * @brief Check if "sol" is a valid extended solution of
