@@ -11,13 +11,9 @@ void serialize_instance(uint8_t* buf, const instance_t* inst) {
     memcpy(buf + PARAM_SEED_SIZE, inst->y, PARAM_m);
 }
 
-instance_t* deserialize_instance(const uint8_t* buf) {
-    instance_t* inst = (instance_t*) malloc(sizeof(instance_t));
-    inst->A = NULL;
-    inst->b = NULL;
+void deserialize_instance(instance_t* inst, const uint8_t* buf) {
     memcpy(inst->seed, buf, PARAM_SEED_SIZE);
     memcpy(inst->y, buf + PARAM_SEED_SIZE, PARAM_m);
-    return inst;
 }
 
 void serialize_instance_solution(uint8_t* buf, const solution_t* sol) {

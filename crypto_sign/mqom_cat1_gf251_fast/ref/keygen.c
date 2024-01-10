@@ -17,28 +17,17 @@ int mqom_keygen_internal(mqom_public_key_t* pk, mqom_secret_key_t* sk) {
     return 0;
 }
 
-int mqom_validate_keys_internal(const mqom_public_key_t* pk, const mqom_secret_key_t* sk) {
+int mqom_validate_keys_internal(const mqom_public_key_t* pk, mqom_secret_key_t* sk) {
     // Check the consistency between PK and SK
     if(pk != NULL) {
-        if(!are_same_instances(pk->inst, sk->inst)) {
+        if(!are_same_instances(&pk->inst, &sk->inst)) {
             printf("Error: Values from PK are not consistent with SK.\n");
             return -1;
         }
     }
 
     // Check the consistency of the SK
-    return (is_correct_solution(sk->inst, &sk->wit) == 0);
-}
-
-int mqom_free_keys_internal(mqom_public_key_t* pk, mqom_secret_key_t* sk) {
-    if(sk != NULL) {
-        free_instance(sk->inst);
-    }
-    if(pk != NULL) {
-        if(sk == NULL || (pk->inst != sk->inst))
-            free_instance(pk->inst);
-    }
-    return 0;
+    return (is_correct_solution(&sk->inst, &sk->wit) == 0);
 }
 
 int deserialize_public_key(mqom_public_key_t* key, const uint8_t* buf, size_t buflen) {
@@ -49,7 +38,7 @@ int deserialize_public_key(mqom_public_key_t* key, const uint8_t* buf, size_t bu
     if (buflen < bytes_expected)
         return -1;
 
-    key->inst = deserialize_instance(buf);
+    deserialize_instance(&key->inst, buf);
     return 0;
 }
 
@@ -61,7 +50,7 @@ int serialize_public_key(uint8_t* buf, const mqom_public_key_t* key, size_t bufl
     if (buflen < bytes_required)
         return -1;
 
-    serialize_instance(buf, key->inst);
+    serialize_instance(buf, &key->inst);
     return (int) bytes_required;
 }
 
@@ -73,7 +62,7 @@ int deserialize_secret_key(mqom_secret_key_t* key, const uint8_t* buf, size_t bu
     if (buflen < bytes_expected)
         return -1;
 
-    key->inst = deserialize_instance(buf);
+    deserialize_instance(&key->inst, buf);
     deserialize_instance_solution(&key->wit, buf + PARAM_INSTANCE_SIZE);
     return 0;
 }
@@ -86,7 +75,7 @@ int serialize_secret_key(uint8_t* buf, const mqom_secret_key_t* key, size_t bufl
     if (buflen < bytes_required)
         return -1;
 
-    serialize_instance(buf, key->inst);
+    serialize_instance(buf, &key->inst);
     serialize_instance_solution(buf + PARAM_INSTANCE_SIZE, &key->wit);
     return (int) bytes_required;
 }
@@ -115,7 +104,6 @@ int mqom_keygen(unsigned char *pk, unsigned char *sk) {
         printf("Error: Pair (PK, SK) invalid.\n");
 #endif
 
-    mqom_free_keys_internal(&ppk, &ssk);
     return 0;
 }
 
@@ -133,7 +121,6 @@ int mqom_validate_keys(const unsigned char *pk, const unsigned char *sk) {
     if(pk != NULL) {
         ret = deserialize_public_key(&ppk, pk, PARAM_INSTANCE_SIZE);
         if (ret < 0) {
-            mqom_free_keys_internal(NULL, &ssk);
             return -1;
         }
     }
@@ -141,10 +128,8 @@ int mqom_validate_keys(const unsigned char *pk, const unsigned char *sk) {
     // Validate the key(s)
     if(pk != NULL) {
         ret = mqom_validate_keys_internal(&ppk, &ssk);
-        mqom_free_keys_internal(&ppk, &ssk);
     } else {
         ret = mqom_validate_keys_internal(NULL, &ssk);
-        mqom_free_keys_internal(NULL, &ssk);
     }
 
     return ret;

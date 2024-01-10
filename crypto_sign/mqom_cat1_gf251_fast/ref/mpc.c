@@ -143,7 +143,7 @@ static void run_multiparty_computation(mpc_broadcast_t* broadcast,
         // [[z]] = sum_{j=1}^m gamma_j * (y_j - b_j^T [[x]])
         uint8_t z[PARAM_eta] = {0};
         for(int j=0; j<PARAM_m; j++) {
-            uint8_t res = innerproduct_points((*inst->b)[j], share->wit.x, PARAM_n);
+            uint8_t res = innerproduct_points(inst->b[j], share->wit.x, PARAM_n);
             if(has_sharing_offset)
                 res = sub_points(inst->y[j], res);
             else
