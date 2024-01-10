@@ -19,8 +19,8 @@
 typedef struct instance_t {
     uint8_t seed[PARAM_SEED_SIZE];
     uint8_t y[PARAM_m];
-    uint8_t (*A)[PARAM_m][PARAM_MATRIX_BYTESIZE];
-    uint8_t (*b)[PARAM_m][PARAM_n];
+    uint8_t A[PARAM_m][PARAM_MATRIX_BYTESIZE];
+    uint8_t b[PARAM_m][PARAM_n];
 } instance_t;
 
 // Solution Definition
@@ -55,12 +55,11 @@ typedef struct solution_t {
  *    "inst" is a problem instance and "sol" is one of
  *    its extended solution.
  * 
- * @param inst a pointer which will point where a memory block
- *     containing a problem instance after the call to this function.
+ * @param inst a pointer to the instance.
  * @param sol a pointer to the solution.
  * @param entropy a entropy source of type "samplable_t"
  */
-void generate_instance_with_solution(instance_t** inst, solution_t*sol, samplable_t* entropy);
+void generate_instance_with_solution(instance_t* inst, solution_t*sol, samplable_t* entropy);
 
 /**
  * @brief Check if "sol" is a valid extended solution of
@@ -80,7 +79,7 @@ int is_correct_solution(instance_t* inst, const solution_t* sol);
  * @param inst2 the second tested instance
  * @return 1 if it is the case, 0 otherwise
  */
-int are_same_instances(instance_t* inst1, instance_t* inst2);
+int are_same_instances(const instance_t* inst1, const instance_t* inst2);
 
 /**
  * @brief Serialize a instance structure in a byte buffer
@@ -97,7 +96,7 @@ void serialize_instance(uint8_t* buf, const instance_t* inst);
  * @param buf the buffer containing the instance to deserialize
  * @return the deserialized instance
  */
-instance_t* deserialize_instance(const uint8_t* buf);
+void deserialize_instance(instance_t* inst, const uint8_t* buf);
 
 /**
  * @brief Update a hash context by putting in the hash input
@@ -134,13 +133,5 @@ void deserialize_instance_solution(solution_t* sol, const uint8_t* buf);
 void uncompress_instance(instance_t* inst);
 
 
-/**
- * @brief Deallocates the memory previously allocated
- *    for a instance by a call to generate_instance_with_solution
- *    or deserialize_instance.
- *
- * @param inst the pointer to a memory block previously allocated for a instance.
- */
-void free_instance(instance_t* inst);
 
 #endif /* MQOM_WITNESS_H */

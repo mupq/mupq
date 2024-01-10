@@ -5,19 +5,13 @@
 #include "field.h"
 
 void uncompress_instance(instance_t* inst) {
-    if(inst->A == NULL) {
-        // We assume here that
-        //   inst->A == NULL iff inst->b == NULL
-        inst->A = (void*) malloc(PARAM_m*PARAM_MATRIX_BYTESIZE);
-        inst->b = (void*) malloc(PARAM_m*PARAM_n);
-        prg_context entropy_ctx;
-        samplable_t entropy = prg_to_samplable(&entropy_ctx);
-        prg_init(&entropy_ctx, inst->seed, NULL);
-        memset(*inst->A, 0, PARAM_m*PARAM_MATRIX_BYTESIZE);
-        for(unsigned int i=0; i<PARAM_m; i++)
-            random_points((*inst->A)[i], (PARAM_n*(PARAM_n+1))/2, &entropy);
-        random_points(*inst->b, PARAM_m*PARAM_n, &entropy);
-    }
+    prg_context entropy_ctx;
+    samplable_t entropy = prg_to_samplable(&entropy_ctx);
+    prg_init(&entropy_ctx, inst->seed, NULL);
+    memset(inst->A, 0, PARAM_m*PARAM_MATRIX_BYTESIZE);
+    for(unsigned int i=0; i<PARAM_m; i++)
+        random_points((inst->A)[i], (PARAM_n*(PARAM_n+1))/2, &entropy);
+    random_points(inst->b, PARAM_m*PARAM_n, &entropy);
 }
 
 static void compute_the_mq_equations_outputs(
@@ -41,41 +35,24 @@ static void compute_the_mq_equations_outputs(
     }
 }
 
-void generate_instance_with_solution(instance_t** inst, solution_t* sol, samplable_t* entropy) {
-    // Allocate
-    *inst = (instance_t*) malloc(sizeof(instance_t));
-    (*inst)->A = NULL;
-    (*inst)->b = NULL;
-
+void generate_instance_with_solution(instance_t* inst, solution_t* sol, samplable_t* entropy) {
     // Extended Witness
     random_points(sol->x, PARAM_n, entropy);
 
     // Sample a seed
-    byte_sample(entropy, (*inst)->seed, PARAM_SEED_SIZE);
+    byte_sample(entropy, inst->seed, PARAM_SEED_SIZE);
 
     // Build random matrices
-    uncompress_instance(*inst);
+    uncompress_instance(inst);
 
     // Build y
     compute_the_mq_equations_outputs(
-        (*inst)->y, sol->x,
-        (*(*inst)->A), (*(*inst)->b)
+        inst->y, sol->x,
+        inst->A, inst->b
     );
 }
 
-void free_instance(instance_t* inst) {
-    if(inst->A) {
-        free(inst->A);
-        inst->A = NULL;
-    }
-    if(inst->b) {
-        free(inst->b);
-        inst->b = NULL;
-    }
-    free(inst);
-}
-
-int are_same_instances(instance_t* inst1, instance_t* inst2) {
+int are_same_instances(const instance_t* inst1, const instance_t* inst2) {
     int ret = 0;
     ret |= memcmp(inst1->seed, inst2->seed, PARAM_SEED_SIZE);
     ret |= memcmp(inst1->y, inst2->y, PARAM_m);
@@ -89,7 +66,7 @@ int is_correct_solution(instance_t* inst, const solution_t* sol) {
     uint8_t y_candidate[PARAM_m];
     compute_the_mq_equations_outputs(
         y_candidate, sol->x,
-        (*inst->A), (*inst->b)
+        inst->A, inst->b
     );
     ret = memcmp(inst->y, y_candidate, PARAM_m);
 
