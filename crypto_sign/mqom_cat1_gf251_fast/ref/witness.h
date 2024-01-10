@@ -55,13 +55,12 @@ typedef struct solution_t {
  *    "inst" is a problem instance and "sol" is one of
  *    its extended solution.
  * 
- * @param inst a pointer to a pointer which will point where a memory block
+ * @param inst a pointer which will point where a memory block
  *     containing a problem instance after the call to this function.
- * @param sol a pointer to a pointer which will point where a memory block
- *     containing a solution after the call to this function.
+ * @param sol a pointer to the solution.
  * @param entropy a entropy source of type "samplable_t"
  */
-void generate_instance_with_solution(instance_t** inst, solution_t** sol, samplable_t* entropy);
+void generate_instance_with_solution(instance_t** inst, solution_t*sol, samplable_t* entropy);
 
 /**
  * @brief Check if "sol" is a valid extended solution of
@@ -71,7 +70,7 @@ void generate_instance_with_solution(instance_t** inst, solution_t** sol, sampla
  * @param sol the tested solution
  * @return 1 if it is the case, 0 otherwise
  */
-int is_correct_solution(instance_t* inst, solution_t* sol);
+int is_correct_solution(instance_t* inst, const solution_t* sol);
 
 /**
  * @brief Check if "inst1" and "inst2" corresponds to
@@ -124,7 +123,7 @@ void serialize_instance_solution(uint8_t* buf, const solution_t* sol);
  * @param buf the buffer containing the solution to deserialize
  * @return the deserialized solution
  */
-solution_t* deserialize_instance_solution(const uint8_t* buf);
+void deserialize_instance_solution(solution_t* sol, const uint8_t* buf);
 
 /**
  * @brief Uncompress a instance structure. If some of the members
@@ -134,14 +133,6 @@ solution_t* deserialize_instance_solution(const uint8_t* buf);
  */
 void uncompress_instance(instance_t* inst);
 
-/**
- * @brief Deallocates the memory previously allocated
- *    for a solution by a call to generate_instance_with_solution
- *    or deserialize_instance_solution.
- * 
- * @param sol the pointer to a memory block previously allocated for a solution.
- */
-void free_instance_solution(solution_t* sol);
 
 /**
  * @brief Deallocates the memory previously allocated

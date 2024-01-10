@@ -27,12 +27,11 @@ int mqom_validate_keys_internal(const mqom_public_key_t* pk, const mqom_secret_k
     }
 
     // Check the consistency of the SK
-    return (is_correct_solution(sk->inst, sk->wit) == 0);
+    return (is_correct_solution(sk->inst, &sk->wit) == 0);
 }
 
 int mqom_free_keys_internal(mqom_public_key_t* pk, mqom_secret_key_t* sk) {
     if(sk != NULL) {
-        free_instance_solution(sk->wit);
         free_instance(sk->inst);
     }
     if(pk != NULL) {
@@ -75,7 +74,7 @@ int deserialize_secret_key(mqom_secret_key_t* key, const uint8_t* buf, size_t bu
         return -1;
 
     key->inst = deserialize_instance(buf);
-    key->wit = deserialize_instance_solution(buf + PARAM_INSTANCE_SIZE);
+    deserialize_instance_solution(&key->wit, buf + PARAM_INSTANCE_SIZE);
     return 0;
 }
 
@@ -88,7 +87,7 @@ int serialize_secret_key(uint8_t* buf, const mqom_secret_key_t* key, size_t bufl
         return -1;
 
     serialize_instance(buf, key->inst);
-    serialize_instance_solution(buf + PARAM_INSTANCE_SIZE, key->wit);
+    serialize_instance_solution(buf + PARAM_INSTANCE_SIZE, &key->wit);
     return (int) bytes_required;
 }
 

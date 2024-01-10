@@ -146,7 +146,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     if(ret < 0)
         return ret;
     uncompress_instance(ssk.inst);
-    mpc_wit_t* plain_wit = ssk.wit;
+    mpc_wit_t* plain_wit = &ssk.wit;
 
     // Signature Structure
     signature_hypercube_7r_t* ssig = init_signature_structure(salt, sig, PARAM_SIGNATURE_SIZEBYTES);
