@@ -51,7 +51,8 @@ void commit_share_x4(uint8_t** digest,  mpc_share_t const* const* share, const u
     commit_string_x4(digest, (uint8_t const* const*) share, sizeof(mpc_share_t), salt, e, i);
 }
 
-void commit_seed_x4(uint8_t** digest, uint8_t const* const* seed, const uint8_t* salt, uint16_t e, const uint16_t* i) {
+void commit_seed_x4(uint8_t** digest, uint8_t *seeds, const uint8_t* salt, uint16_t e, const uint16_t* i) {
+    const uint8_t *seed[4] = {&seeds[0*PARAM_SEED_SIZE],&seeds[1*PARAM_SEED_SIZE],&seeds[2*PARAM_SEED_SIZE],&seeds[3*PARAM_SEED_SIZE]};
     commit_string_x4(digest, seed, PARAM_SEED_SIZE, salt, e, i);
 }
 
