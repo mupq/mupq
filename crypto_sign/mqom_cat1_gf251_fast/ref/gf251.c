@@ -297,7 +297,7 @@ void gf251_random_elements(uint8_t points[], uint32_t nb_points, samplable_t* en
 
 void gf251_random_elements_x4(uint8_t* const* points, uint32_t nb_points, samplable_x4_t* entropy) {
     uint32_t buffer_size = nb_points+(nb_points>>4);
-    uint8_t* buffer_mem = malloc(4*buffer_size);
+    uint8_t buffer_mem[4*buffer_size];
     uint8_t* const buffer[4] = {
         &buffer_mem[0],             &buffer_mem[  buffer_size],
         &buffer_mem[2*buffer_size], &buffer_mem[3*buffer_size]
@@ -342,6 +342,5 @@ void gf251_random_elements_x4(uint8_t* const* points, uint32_t nb_points, sampla
             }
         }
     } while(nb_ok < 4);
-    free(buffer_mem);
 }
 #endif

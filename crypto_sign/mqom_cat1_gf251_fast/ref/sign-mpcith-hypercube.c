@@ -166,9 +166,9 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     for(j=0; j<4; j++)
         entropy_x4[j]= prg_to_samplable(&entropy_ctx_x4[j]);
     #endif /* PARAM_RND_EXPANSION_X4 */
-    seed_tree_t* seeds_tree[PARAM_NB_EXECUTIONS];
+    seed_tree_t seeds_tree[PARAM_NB_EXECUTIONS];
     for(e=0; e<PARAM_NB_EXECUTIONS; e++)
-        seeds_tree[e] = malloc_seed_tree(PARAM_HYPERCUBE_DIMENSION);
+        init_seed_tree(&seeds_tree[e], PARAM_HYPERCUBE_DIMENSION);
     uint8_t seed_commitments[PARAM_NB_EXECUTIONS][PARAM_NB_PARTIES][PARAM_DIGEST_SIZE];
     uint8_t hint_commitments[PARAM_NB_EXECUTIONS][PARAM_DIGEST_SIZE];
 
@@ -197,14 +197,14 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     mpc_share_t acc;
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         // Build the seed tree of the current execution
-        expand_seed_tree(seeds_tree[e], rseed[e], ssig->salt);
-        uint8_t** seeds = get_leaves(seeds_tree[e]);
+        expand_seed_tree(&seeds_tree[e], rseed[e], ssig->salt);
+        uint8_t* seeds = get_leaves(&seeds_tree[e]);
         vec_set_zero(&acc, PARAM_SHARE_SIZE);
 
         i=0;
         // Let us treat the parties four by four...
         for(; (i+3)+1<PARAM_NB_PARTIES; i+=4) {
-            const uint8_t* ptr_seeds[4] = {seeds[i], seeds[i+1], seeds[i+2], seeds[i+3]};
+            const uint8_t* ptr_seeds[4] = {&seeds[i*PARAM_SEED_SIZE], &seeds[(i+1)*PARAM_SEED_SIZE], &seeds[(i+2)*PARAM_SEED_SIZE], &seeds[(i+3)*PARAM_SEED_SIZE]};
             #ifdef PARAM_RND_EXPANSION_X4
             prg_init_x4(&entropy_ctx_x4, ptr_seeds, NULL);
             vec_rnd_x4((void**) shares, PARAM_SHARE_SIZE, &entropy_x4);
@@ -226,13 +226,13 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
                 seed_commitments[e][i+2], seed_commitments[e][i+3], 
             };
             const uint16_t is[4] = {(uint16_t)i, (uint16_t)(i+1), (uint16_t)(i+2), (uint16_t)(i+3)};
-            commit_seed_x4(digests, (uint8_t const*const*) &seeds[i], ssig->salt, (uint16_t)e, is);
+            commit_seed_x4(digests, &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, is);
         }
         // Now we treat the last parties
         for(;i<PARAM_NB_PARTIES; i++) {
             // No need of the salt, we do not care about
             //    collisions of the leave seeds
-            prg_init(&entropy_ctx, seeds[i], NULL);
+            prg_init(&entropy_ctx, &seeds[i*PARAM_SEED_SIZE], NULL);
             if(i != PARAM_NB_PARTIES-1) {
                 // Expand the input share from seed
                 vec_rnd(share, PARAM_SHARE_SIZE, &entropy);
@@ -244,7 +244,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
                         vec_add(&mshares[e][p], share, PARAM_SHARE_SIZE);
             
                 // Commit to the party's input (by committing to its seed)
-                commit_seed(seed_commitments[e][i], seeds[i], ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, (uint16_t)i);
             } else {
                 // Compute plain unif
                 vec_rnd(&plain_unif[e], PARAM_UNIF_SIZE, &entropy);
@@ -260,7 +260,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
                 vec_normalize(ssig->proofs[e].wit, PARAM_WIT_SIZE);
 
                 // Commit to the party's input
-                commit_seed_and_wit(seed_commitments[e][i], seeds[i], ssig->proofs[e].wit, ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed_and_wit(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->proofs[e].wit, ssig->salt, (uint16_t)e, (uint16_t)i);
             }
         }
     }
@@ -322,7 +322,7 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
 
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         uint16_t num_unopened_party = hidden_views[e];
-        get_seed_path(ssig->proofs[e].seed_info, seeds_tree[e], num_unopened_party);
+        get_seed_path(ssig->proofs[e].seed_info, &seeds_tree[e], num_unopened_party);
         memcpy(ssig->proofs[e].unopened_digest, seed_commitments[e][num_unopened_party], PARAM_DIGEST_SIZE);
     }
 
@@ -330,8 +330,6 @@ int mpcith_hypercube_7r_sign(uint8_t* sig, size_t* siglen,
     ret = build_signature(ssig, sig, PARAM_SIGNATURE_SIZEBYTES, hidden_views);
     free_signature(ssig);
 
-    for(e=0; e<PARAM_NB_EXECUTIONS; e++)
-        free_seed_tree(seeds_tree[e]);
     mqom_free_keys_internal(NULL, &ssk);
     if(ret < 0)
         return ret;
@@ -397,9 +395,10 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
     
     for(e=0; e<PARAM_NB_EXECUTIONS; e++) {
         // Get the open leaf seeds
-        seed_tree_t* seed_tree = malloc_seed_tree(PARAM_HYPERCUBE_DIMENSION);
-        reconstruct_tree(seed_tree, hidden_views[e], ssig->proofs[e].seed_info, ssig->salt);
-        uint8_t** seeds = get_leaves(seed_tree);
+        seed_tree_t seed_tree;
+        init_seed_tree(&seed_tree, PARAM_HYPERCUBE_DIMENSION);
+        reconstruct_tree(&seed_tree, hidden_views[e], ssig->proofs[e].seed_info, ssig->salt);
+        uint8_t* seeds = get_leaves(&seed_tree);
 
         // Get the commitment of the hint
         if(hidden_views[e] == PARAM_NB_PARTIES-1)
@@ -422,8 +421,8 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                 seed_commitments[e][i+2], seed_commitments[e][i+3], 
             };
             const uint16_t is[4] = {(uint16_t)i, (uint16_t)(i+1), (uint16_t)(i+2), (uint16_t)(i+3)};
-            commit_seed_x4(digests, (uint8_t const*const*) &seeds[i], ssig->salt, (uint16_t)e, is);
-            const uint8_t* ptr_seeds[4] = {seeds[i], seeds[i+1], seeds[i+2], seeds[i+3]};
+            commit_seed_x4(digests, &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, is);
+            const uint8_t* ptr_seeds[4] = {&seeds[i*PARAM_SEED_SIZE], &seeds[(i+1)*PARAM_SEED_SIZE], &seeds[(i+2)*PARAM_SEED_SIZE], &seeds[(i+3)*PARAM_SEED_SIZE]};
             #ifdef PARAM_RND_EXPANSION_X4
             prg_init_x4(&entropy_ctx_x4, ptr_seeds, NULL);
             vec_rnd_x4((void**) shares, PARAM_SHARE_SIZE, &entropy_x4);
@@ -452,13 +451,13 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                 memcpy(seed_commitments[e][i], ssig->proofs[e].unopened_digest, PARAM_DIGEST_SIZE);
                 continue;
             }
-            prg_init(&entropy_ctx, seeds[i], NULL);
+            prg_init(&entropy_ctx, &seeds[i*PARAM_SEED_SIZE], NULL);
             if(i != PARAM_NB_PARTIES-1) {
                 // Expand the input share from seed
                 vec_rnd(share, PARAM_SHARE_SIZE, &entropy);
 
                 // Recompute the party's commitment
-                commit_seed(seed_commitments[e][i], seeds[i], ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->salt, (uint16_t)e, (uint16_t)i);
             } else {
                 // Get the party's input share
                 vec_rnd(get_unif(share), PARAM_UNIF_SIZE, &entropy);
@@ -466,7 +465,7 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                 vec_set(get_hint(share), ssig->proofs[e].hint, PARAM_HINT_SIZE);
 
                 // Recompute the party's commitment
-                commit_seed_and_wit(seed_commitments[e][i], seeds[i], ssig->proofs[e].wit, ssig->salt, (uint16_t)e, (uint16_t)i);
+                commit_seed_and_wit(seed_commitments[e][i], &seeds[i*PARAM_SEED_SIZE], ssig->proofs[e].wit, ssig->salt, (uint16_t)e, (uint16_t)i);
             }
 
             // Aggregate to get the shares of the "main parties"
@@ -490,8 +489,6 @@ int mpcith_hypercube_7r_sign_verify(const uint8_t* sig, size_t siglen,
                 vec_normalize(&broadcast[e][p], PARAM_BR_SIZE);
             }
         }
-
-        free_seed_tree(seed_tree);
     }
 
     // Recompute the hash digests of the challenges

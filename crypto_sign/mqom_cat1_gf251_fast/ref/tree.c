@@ -4,37 +4,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define get_node(tree,idx) tree->nodes[(idx)-1]
-seed_tree_t* malloc_seed_tree(uint32_t height) {
-    seed_tree_t* tree = (seed_tree_t*) malloc(sizeof(seed_tree_t));
-
+#define get_node(tree,idx) (&tree->nodes[((idx)-1)*PARAM_SEED_SIZE])
+void init_seed_tree(seed_tree_t *tree, uint32_t height) {
     uint32_t nb_leaf_seeds = 1<<height;
     uint32_t nb_nodes = 2*nb_leaf_seeds - 1;
 
     tree->height = height;
     tree->nb_leaves = nb_leaf_seeds;
     tree->nb_nodes = nb_nodes;
-    tree->nodes = (uint8_t**) malloc(nb_nodes * sizeof(uint8_t*));
-
-    uint8_t* slab = malloc(nb_nodes*PARAM_SEED_SIZE);
-    for (uint32_t i=1; i <= nb_nodes; i++) {
-        get_node(tree, i) = slab;
-        slab += PARAM_SEED_SIZE;
-    }
-
-    return tree;
 }
 
-void free_seed_tree(seed_tree_t* tree) {
-    if (tree != NULL) {
-        free(tree->nodes[0]);
-        free(tree->nodes);
-        free(tree);
-    }
-}
 
-uint8_t** get_leaves(seed_tree_t* tree) {
-    return &tree->nodes[tree->nb_nodes - tree->nb_leaves];
+uint8_t* get_leaves(seed_tree_t* tree) {
+    return &tree->nodes[(tree->nb_nodes - tree->nb_leaves)*PARAM_SEED_SIZE];
 }
 
 void expand_seed_tree(seed_tree_t* tree, const uint8_t* root_seed, const uint8_t* salt) {
