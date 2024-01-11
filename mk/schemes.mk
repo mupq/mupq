@@ -60,7 +60,9 @@ endif
 
 # These are small macros to be called with the $(call) mechanism of make
 # Derives a name for a scheme from its path.
-schemename = $(subst /,_,$(1))
+implname = $(subst /,_,$(1))
+# Derives a name for the implementation from its path.
+schemename = $(word $(words $(subst /, ,$(1))),head $(subst /, ,$(1)))
 # Derives the list of source files from a path.
 schemesrc = $(wildcard $(1)/*.c) $(wildcard $(1)/*.s) $(wildcard $(1)/*.S)
 # Derives a namespace for the implementation (pqclean uses namespaced function
@@ -118,6 +120,10 @@ tests: elf/$(2)_test.elf elf/$(2)_speed.elf elf/$(2)_hashing.elf elf/$(2)_stack.
 tests-bin: bin/$(2)_test.bin bin/$(2)_speed.bin bin/$(2)_hashing.bin bin/$(2)_stack.bin bin/$(2)_testvectors.bin
 tests-hex: bin/$(2)_test.hex bin/$(2)_speed.hex bin/$(2)_hashing.hex bin/$(2)_stack.hex bin/$(2)_testvectors.hex
 
+$(call schemename,$(1)): elf/$(2)_test.elf elf/$(2)_speed.elf elf/$(2)_hashing.elf elf/$(2)_stack.elf elf/$(2)_testvectors.elf
+$(call schemename,$(1))-bin: bin/$(2)_test.bin bin/$(2)_speed.bin bin/$(2)_hashing.bin bin/$(2)_stack.bin bin/$(2)_testvectors.bin
+$(call schemename,$(1))-hex: bin/$(2)_test.hex bin/$(2)_speed.hex bin/$(2)_hashing.hex bin/$(2)_stack.hex bin/$(2)_testvectors.hex
+
 ifneq ($(filter $(HOST_IMPLEMENTATIONS),$(2)),)
 bin-host/$(2)_testvectors: HOST_CPPFLAGS+=-I$(1)
 bin-host/$(2)_testvectors: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
@@ -127,7 +133,7 @@ testvectors: bin-host/$(2)_testvectors
 endif
 
 # For each scheme a Makefile with special scheme-specific options can be placed
-# under <schemefolder>/config.mk and mk/<schemename>.mk. If such a file does not
+# under <schemefolder>/config.mk and mk/<implname>.mk. If such a file does not
 # exist, nothing will happen. The former is meant for platform-independent
 # scheme options, the latter for platform specific options.
 -include $(1)/config.mk
@@ -138,18 +144,13 @@ endef
 
 # Now, for all schemes, the template above is evaluated.
 $(foreach scheme,$(KEM_SCHEMES), \
-	$(eval $(call schemelib,$(scheme),$(call schemename,$(scheme)),kem)))
+	$(eval $(call schemelib,$(scheme),$(call implname,$(scheme)),kem)))
 $(foreach scheme,$(SIGN_SCHEMES), \
-	$(eval $(call schemelib,$(scheme),$(call schemename,$(scheme)),sign)))
+	$(eval $(call schemelib,$(scheme),$(call implname,$(scheme)),sign)))
 
 # If the platform can be executed with QEMU, we also define a
 # run-{speed,stack,hashing}-tests target.
 ifeq ($(ENABLE_QEMU_TESTS),1)
-
-benchmarks/%/frommake:
-	@echo "  RUN     $<"
-	$(Q)[ -d $(@D) ] || mkdir -p $(@D); \
-	$(QEMU) $(QEMUFLAGS) -kernel $< > $@ < /dev/null
 
 benchmarks/stack/%/frommake:
 	@echo "  RUN     $<"
@@ -157,15 +158,21 @@ benchmarks/stack/%/frommake:
 	$(SIZE) $< > $@; \
 	$(QEMU) $(QEMUFLAGS) -kernel $< >> $@ < /dev/null
 
+benchmarks/%/frommake:
+	@echo "  RUN     $<"
+	$(Q)[ -d $(@D) ] || mkdir -p $(@D); \
+	$(QEMU) $(QEMUFLAGS) -kernel $< > $@ < /dev/null
+
 define runtest
-benchmarks/$(3)/$(1)/frommake: elf/$(2)_$(3).elf
-run-$(3)-tests: benchmarks/$(3)/$(1)/frommake
+benchmarks/$(4)/$(1)/frommake: elf/$(2)_$(4).elf
+run-$(4)-tests: benchmarks/$(4)/$(1)/frommake
+run-$(3)-$(4)-tests: benchmarks/$(4)/$(1)/frommake
 endef
 
 $(foreach test,speed stack hashing, \
 	$(foreach scheme,$(KEM_SCHEMES), \
-		$(eval $(call runtest,$(scheme),$(call schemename,$(scheme)),$(test)))) \
+		$(eval $(call runtest,$(scheme),$(call implname,$(scheme)),$(call schemename,$(scheme)),$(test)))) \
 	$(foreach scheme,$(SIGN_SCHEMES), \
-		$(eval $(call runtest,$(scheme),$(call schemename,$(scheme)),$(test)))))
+		$(eval $(call runtest,$(scheme),$(call implname,$(scheme)),$(call schemename,$(scheme)),$(test)))))
 
 endif
