@@ -102,7 +102,7 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
   hash_update(&ctx, iv, BLOCK_SIZE);
   hash_final(&ctx);
 
-  uint8_t* out = malloc(TAPE_LEN);
+  uint8_t out[TAPE_LEN];
   uint8_t* out_ptr;
 
   for (size_t num = 0; num < NUM_INPUT_SBOX; num++)
@@ -173,8 +173,6 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
 
   // generate vector B
   hash_squeeze(&ctx, (uint8_t*)vector_b, BLOCK_SIZE);
-
-  free(out);
 }
 
 void generate_matrix_LU(const uint8_t* iv, GF** matrix_A, GF vector_b)

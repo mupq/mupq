@@ -61,9 +61,9 @@ int _aimer_sign(const aimer_instance_t*   instance,
   GF pt_GF = {0,};
   GF vector_b = {0,};
 
-  uint8_t* iv = malloc(block_size);
-  uint8_t* pt = malloc(block_size);
-  uint8_t* ct = malloc(block_size);
+  uint8_t iv[block_size];
+  uint8_t pt[block_size];
+  uint8_t ct[block_size];
 
   /////////////////////////////////////////////////////////////////////////////
   // Phase 1: Committing to the seeds and the execution views of the parties.
@@ -130,7 +130,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   GF* repetition_shared_dot_a = malloc(tau * N * instance->field_size);
   GF* repetition_shared_dot_c = malloc(tau * N * instance->field_size);
 
-  uint8_t* pt_delta = malloc(block_size);
+  uint8_t pt_delta[block_size];
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
     proof_t* proof = &sig->proofs[repetition];
@@ -200,7 +200,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
     aim_mpc(shared_pt_offset, (const GF**)matrix_A, vector_b, ct,
             N, shared_z_offset, shared_x_offset);
   }
-  free(pt_delta);
 
   GF a = {0,};
   for (size_t repetition = 0; repetition < tau; repetition++)
@@ -337,10 +336,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
     free(matrix_A[i]);
   }
   free(matrix_A);  
-
-  free(iv);
-  free(pt);
-  free(ct);
   free(sbox_outputs);
   free(master_seed);
   free(seed_trees);
@@ -546,7 +541,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   random_tapes->tape = malloc(tau * N * random_tape_size);
   random_tapes->random_tape_size = random_tape_size;
 
-  uint8_t* dummy = calloc(seed_size, 1);
+  uint8_t dummy[seed_size];
   uint8_t *seed0, *seed1, *seed2, *seed3;
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
@@ -598,7 +593,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
            (repetition * N + missing_parties[repetition]) * digest_size,
            proof->missing_commitment, digest_size);
   }
-  free(dummy);
 
   // Recompute commitments to executions of block cipher
   uint8_t* repetition_shared_pt = malloc(tau * N * block_size);
@@ -607,8 +601,8 @@ int _aimer_verify(const aimer_instance_t*  instance,
   GF* repetition_shared_dot_a = malloc(tau * N * instance->field_size);
   GF* repetition_shared_dot_c = malloc(tau * N * instance->field_size);
 
-  uint8_t* iv = malloc(block_size);
-  uint8_t* ct = malloc(block_size);
+  uint8_t iv[block_size];
+  uint8_t ct[block_size];
 
   memcpy(iv, public_key->data, block_size);
   memcpy(ct, public_key->data + block_size, block_size);
@@ -778,8 +772,8 @@ int _aimer_verify(const aimer_instance_t*  instance,
   }
 
   // Recompute h_1 and h_2
-  uint8_t* h_1_prime = malloc(digest_size);
-  uint8_t* h_2_prime = malloc(digest_size);
+  uint8_t h_1_prime[digest_size];
+  uint8_t h_2_prime[digest_size];
 
   h_1_commitment(instance, sig, public_key, message, message_len,
                  party_seed_commitments, h_1_prime);
@@ -823,12 +817,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
   free(party_seed_commitments);
   free(random_tapes->tape);
   free(random_tapes);
-
-  free(h_1_prime);
-  free(h_2_prime);
-  free(iv);
-  free(ct);
-
   return ret;
 }
 

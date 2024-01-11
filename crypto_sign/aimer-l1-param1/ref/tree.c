@@ -169,7 +169,6 @@ tree_t* make_seed_tree(const uint8_t* seed, const size_t seed_size,
 
   size_t   tree_depth = 1 + ceil_log2(num_leaves);
   size_t   last_non_leaf, num_nodes;
-  uint8_t* buffer;
 
   tree->num_nodes  = ((1 << (tree_depth)) - 1) -
                      ((1 << (tree_depth - 1)) - num_leaves);
@@ -199,7 +198,7 @@ tree_t* make_seed_tree(const uint8_t* seed, const size_t seed_size,
   tree->have_value[0] = 1;
   memcpy(tree->data, seed, seed_size);
 
-  buffer        = malloc(2 * 4 * seed_size);
+  uint8_t buffer[2 * 4 * seed_size];
   last_non_leaf = get_parent(num_nodes - 1);
 
   for (i = 0; i <= MIN(last_non_leaf, 2); i++)
@@ -224,7 +223,7 @@ tree_t* make_seed_tree(const uint8_t* seed, const size_t seed_size,
     }
   }
 
-  uint8_t* seeds = malloc(4 * seed_size);
+  uint8_t seeds[4 * seed_size];
   for (; i < (last_non_leaf / 4) * 4; i += 4)
   {
     memset(seeds, 0x00, 4 * seed_size);
@@ -261,8 +260,6 @@ tree_t* make_seed_tree(const uint8_t* seed, const size_t seed_size,
       }
     } 
   }
-  free(seeds);
-
   for (; i <= last_non_leaf; i++)
   {
     if (!node_exists(tree, i))
@@ -284,7 +281,6 @@ tree_t* make_seed_tree(const uint8_t* seed, const size_t seed_size,
       memcpy(&tree->data[(2 * i + 1) * seed_size], buffer, seed_size);
     }
   }
-  free(buffer);
   return tree;
 }
 
@@ -298,7 +294,6 @@ tree_t* reconstruct_seed_tree(const reveal_list_t* reveal_list,
 
   size_t   tree_depth = 1 + ceil_log2(num_leaves);
   size_t   last_non_leaf, seed_size, num_nodes;
-  uint8_t* buffer;
 
   tree->num_nodes  = ((1 << (tree_depth)) - 1) -
                      ((1 << (tree_depth - 1)) - num_leaves);
@@ -344,7 +339,7 @@ tree_t* reconstruct_seed_tree(const reveal_list_t* reveal_list,
     path_index++;
   }
 
-  buffer        = malloc(2 * 4 * seed_size);
+  uint8_t buffer[2 * 4 * seed_size];
   last_non_leaf = get_parent(num_nodes - 1);
 
   for (i = 0; i <= MIN(last_non_leaf, 2); i++)
@@ -369,7 +364,7 @@ tree_t* reconstruct_seed_tree(const reveal_list_t* reveal_list,
     }
   }
 
-  uint8_t* seeds = malloc(4 * seed_size);
+  uint8_t seeds[4 * seed_size];
   for (; i < (last_non_leaf / 4) * 4; i += 4)
   {
     memset(seeds, 0x00, 4 * seed_size);
@@ -406,7 +401,6 @@ tree_t* reconstruct_seed_tree(const reveal_list_t* reveal_list,
       }     
     } 
   }
-  free(seeds);
 
   for (; i <= last_non_leaf; i++)
   {
@@ -429,7 +423,6 @@ tree_t* reconstruct_seed_tree(const reveal_list_t* reveal_list,
       memcpy(&tree->data[(2 * i + 1) * seed_size], buffer, seed_size);
     }
   }
-  free(buffer);
   return tree;
 }
 
