@@ -14,7 +14,10 @@
 
 typedef struct random_tape_t 
 {
-  uint8_t* tape;
+  uint8_t tape[AIMER_T * AIMER_N * (AIMER_BLOCK_SIZE +
+                                  AIMER_NUM_INPUT_SBOXES * AIMER_FIELD_SIZE +
+                                  AIMER_FIELD_SIZE +
+                                  AIMER_FIELD_SIZE)];
   size_t  random_tape_size;
 } random_tape_t;
 

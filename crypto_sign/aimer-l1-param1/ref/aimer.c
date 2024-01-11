@@ -49,10 +49,10 @@ int _aimer_sign(const aimer_instance_t*   instance,
 {
   const size_t L                = instance->aim_params.num_input_sboxes;
   const size_t block_size       = instance->aim_params.block_size;
-  const size_t random_tape_size = block_size +
-                                  L * instance->field_size +
-                                  instance->field_size +
-                                  instance->field_size;
+  const size_t random_tape_size = AIMER_BLOCK_SIZE +
+                                  AIMER_NUM_INPUT_SBOXES * AIMER_FIELD_SIZE +
+                                  AIMER_FIELD_SIZE +
+                                  AIMER_FIELD_SIZE;
   const size_t tau              = instance->num_repetitions;
   const size_t N                = AIMER_N;
   const size_t digest_size      = instance->digest_size;
@@ -85,9 +85,8 @@ int _aimer_sign(const aimer_instance_t*   instance,
   tree_t seed_trees[tau];
   uint8_t* party_seed_commitments = malloc(tau * N * digest_size);
 
-  random_tape_t* random_tapes    = malloc(sizeof(random_tape_t));
-  random_tapes->tape             = malloc(tau * N * random_tape_size);
-  random_tapes->random_tape_size = random_tape_size;
+  random_tape_t random_tapes;
+  random_tapes.random_tape_size = random_tape_size;
 
   uint8_t* master_seed = malloc(instance->seed_size);
   for (size_t repetition = 0; repetition < tau; repetition++)
@@ -108,7 +107,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
       commit_to_seed_and_expand_tape_x4(instance, seed0, seed1, seed2, seed3,
                                         sig->salt, repetition, party,
                                         party_seed_commitments,
-                                        random_tapes);
+                                        &random_tapes);
     }
 
     for (; party < N; party++)
@@ -118,7 +117,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
       commit_to_seed_and_expand_tape(instance, seed0, sig->salt,
                                      repetition, party,
                                      party_seed_commitments,
-                                     random_tapes);
+                                     &random_tapes);
     }
   }
 
@@ -141,7 +140,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
       uint8_t* shared_pt =
         repetition_shared_pt + (repetition * N + party) * block_size;
       uint8_t* random_share =
-        random_tapes->tape + (repetition * N + party) * random_tape_size;
+        random_tapes.tape + (repetition * N + party) * random_tape_size;
 
       memcpy(shared_pt, random_share, block_size);
       for (size_t i = 0; i < block_size; i++)
@@ -171,7 +170,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
         repetition_shared_z + (repetition * N + party) * (L + 1);
 
       uint8_t* random_z_shares =
-        random_tapes->tape + (repetition * N + party) * random_tape_size +
+        random_tapes.tape + (repetition * N + party) * random_tape_size +
         block_size;
 
       for (size_t ell = 0; ell < L; ell++)
@@ -208,7 +207,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
     GF_set0(proof->c_delta);
     for (size_t party = 0; party < N; party++)
     {
-      uint8_t* random_triple = random_tapes->tape +
+      uint8_t* random_triple = random_tapes.tape +
         ((repetition * N + party) * random_tape_size +
           block_size + L * instance->field_size);
 
@@ -336,8 +335,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   free(sbox_outputs);
   free(master_seed);
   free(party_seed_commitments);
-  free(random_tapes->tape);
-  free(random_tapes);
   free(repetition_shared_pt);
   free(repetition_shared_x);
   free(repetition_shared_z);
@@ -505,10 +502,10 @@ int _aimer_verify(const aimer_instance_t*  instance,
 {
   const size_t L                = instance->aim_params.num_input_sboxes;
   const size_t block_size       = instance->aim_params.block_size;
-  const size_t random_tape_size = block_size +
-                                  L * instance->field_size +
-                                  instance->field_size +
-                                  instance->field_size;
+  const size_t random_tape_size = AIMER_BLOCK_SIZE +
+                                  AIMER_NUM_INPUT_SBOXES * AIMER_FIELD_SIZE +
+                                  AIMER_FIELD_SIZE +
+                                  AIMER_FIELD_SIZE;
   const size_t tau              = instance->num_repetitions;
   const size_t N                = instance->num_MPC_parties;
   const size_t digest_size      = instance->digest_size;
@@ -525,9 +522,8 @@ int _aimer_verify(const aimer_instance_t*  instance,
   tree_t seed_trees[tau];
   uint8_t* party_seed_commitments = malloc(tau * N * digest_size);
 
-  random_tape_t* random_tapes = malloc(sizeof(random_tape_t));
-  random_tapes->tape = malloc(tau * N * random_tape_size);
-  random_tapes->random_tape_size = random_tape_size;
+  random_tape_t random_tapes;
+  random_tapes.random_tape_size = random_tape_size;
 
   uint8_t dummy[seed_size];
   uint8_t *seed0, *seed1, *seed2, *seed3;
@@ -562,7 +558,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
       commit_to_seed_and_expand_tape_x4(instance, seed0, seed1, seed2, seed3,
                                         sig->salt, repetition, party,
                                         party_seed_commitments,
-                                        random_tapes);
+                                        &random_tapes);
     }
 
     for (; party < N; party++)
@@ -574,7 +570,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
       }
       commit_to_seed_and_expand_tape(instance, seed0, sig->salt, repetition, party, 
                                      party_seed_commitments,
-                                     random_tapes);
+                                     &random_tapes);
     }
     memcpy(party_seed_commitments +
            (repetition * N + missing_parties[repetition]) * digest_size,
@@ -608,7 +604,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
       uint8_t* shared_pt =
         repetition_shared_pt + (repetition * N + party) * block_size;
       uint8_t* random_share =
-        random_tapes->tape + (repetition * N + party) * random_tape_size;
+        random_tapes.tape + (repetition * N + party) * random_tape_size;
 
       memcpy(shared_pt, random_share, block_size);
     }
@@ -626,7 +622,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
     {
       GF* shared_z = repetition_shared_z + (repetition * N + party) * (L + 1);
       uint8_t* random_z_shares =
-        random_tapes->tape + (repetition * N + party) * random_tape_size +
+        random_tapes.tape + (repetition * N + party) * random_tape_size +
         block_size;
 
       for (size_t ell = 0; ell < L; ell++)
@@ -663,7 +659,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
       if (party != missing_parties[repetition])
       {
         uint8_t* random_triple =
-          random_tapes->tape +
+          random_tapes.tape +
           ((repetition * N + party) * random_tape_size +
           block_size + L * instance->field_size);
 
@@ -800,8 +796,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
   free(repetition_shared_dot_c);
 
   free(party_seed_commitments);
-  free(random_tapes->tape);
-  free(random_tapes);
   return ret;
 }
 
