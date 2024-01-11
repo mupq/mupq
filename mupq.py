@@ -386,7 +386,7 @@ class TestVectors(BoardTestCase):
                             [hostbin],
                             stderr=subprocess.DEVNULL,
                         ))
-                except e:
+                except Exception as e:
                     self.log.error("Generating testvector for %s failed with exception: %s", impl, e)
                 self.testvectorhash[impl.scheme] = checksum
                 pb.update()
