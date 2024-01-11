@@ -76,10 +76,10 @@ int _aimer_sign(const aimer_instance_t*   instance,
 
   randombytes(sig->salt, instance->salt_size);
 
-  GF sbox_outputs[(AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
+  GF sbox_outputs[(AIMER_NUM_INPUT_SBOXES + 1)];
   compute_sbox_outputs(pt, sbox_outputs);
 
-  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE];
+  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS];
   generate_matrix_LU(iv, matrix_A, vector_b);
 
   tree_t seed_trees[tau];
@@ -123,11 +123,10 @@ int _aimer_sign(const aimer_instance_t*   instance,
 
   uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE];
 
-  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
-  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
-  GF repetition_shared_dot_a [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
-  GF repetition_shared_dot_c [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
-
+  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
+  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
+  GF repetition_shared_dot_a [AIMER_T * AIMER_N];
+  GF repetition_shared_dot_c [AIMER_T * AIMER_N];
 
   uint8_t pt_delta[block_size];
   for (size_t repetition = 0; repetition < tau; repetition++)
@@ -247,8 +246,8 @@ int _aimer_sign(const aimer_instance_t*   instance,
   // Phase 3: Committing to the simulation of the checking protocol.
   //////////////////////////////////////////////////////////////////////////////
 
-  GF repetition_alpha_shares[AIMER_N*AIMER_N*AIMER_FIELD_SIZE] = {0};
-  GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE];
+  GF repetition_alpha_shares[AIMER_N*AIMER_N] = {0};
+  GF v_shares[AIMER_T][AIMER_N];
 
   GF alpha = {0,}, pt_share = {0,}, temp = {0,};
   for (size_t repetition = 0; repetition < tau; repetition++)
@@ -555,10 +554,10 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
   // Recompute commitments to executions of block cipher
   uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE];
-  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
-  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
-  GF repetition_shared_dot_a [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
-  GF repetition_shared_dot_c [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
+  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
+  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
+  GF repetition_shared_dot_a [AIMER_T * AIMER_N];
+  GF repetition_shared_dot_c [AIMER_T * AIMER_N];
 
   uint8_t iv[block_size];
   uint8_t ct[block_size];
@@ -567,7 +566,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   memcpy(ct, public_key->data + block_size, block_size);
 
   // generate linear layer for AIM mpc
-  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE];
+  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS];
   GF vector_b = {0,};
   generate_matrix_LU(iv, matrix_A, vector_b);
 
@@ -657,8 +656,8 @@ int _aimer_verify(const aimer_instance_t*  instance,
   }
 
   // Recompute views of sacrificing checks
-  GF repetition_alpha_shares[AIMER_N*AIMER_N*AIMER_FIELD_SIZE] = {0};
-  GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE] = {0};
+  GF repetition_alpha_shares[AIMER_N*AIMER_N] = {0};
+  GF v_shares[AIMER_T][AIMER_N] = {0};
   GF alpha = {0,};
   GF temp = {0,};
   for (size_t repetition = 0; repetition < tau; repetition++)

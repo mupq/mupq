@@ -26,7 +26,7 @@ typedef struct
   reveal_list_t reveal_list;
   uint8_t      missing_commitment[AIMER_DIGEST_SIZE];
   uint8_t      pt_delta[AIMER_BLOCK_SIZE];
-  GF           z_delta[AIMER_FIELD_SIZE*AIMER_NUM_INPUT_SBOXES];
+  GF           z_delta[AIMER_NUM_INPUT_SBOXES];
   GF            c_delta;
   GF            missing_alpha_share;
 } proof_t;
@@ -64,7 +64,7 @@ void h_1_expand(const aimer_instance_t* instance, const uint8_t* h_1,
 
 void h_2_commitment(const aimer_instance_t* instance, const uint8_t* salt,
                     const uint8_t* h_1, const GF* repetition_alpha_shares,
-                    const GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE], uint8_t* h_2);
+                    const GF v_shares[AIMER_T][AIMER_N], uint8_t* h_2);
 
 void h_2_expand(const aimer_instance_t* instance, const uint8_t* h_2,
                 uint16_t* opened_parties);
