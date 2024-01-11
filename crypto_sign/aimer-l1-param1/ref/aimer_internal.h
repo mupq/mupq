@@ -30,10 +30,10 @@ typedef struct
 
 typedef struct
 {
-  uint8_t* salt;
-  uint8_t* h_1;
-  uint8_t* h_2;
-  proof_t* proofs;
+  uint8_t salt[AIMER_SALT_SIZE];
+  uint8_t h_1[AIMER_DIGEST_SIZE];
+  uint8_t h_2[AIMER_DIGEST_SIZE];
+  proof_t proofs[AIMER_T];
 } signature_t;
 
 void allocate_proof(const aimer_instance_t* instance, proof_t* proof);

@@ -16,32 +16,12 @@ void allocate_proof(const aimer_instance_t* instance, proof_t* proof)
     malloc(instance->aim_params.num_input_sboxes * instance->field_size);
 }
 
-void allocate_signature(const aimer_instance_t* instance, signature_t* sig)
-{
-  sig->salt   = malloc(instance->salt_size);
-  sig->h_1    = malloc(instance->digest_size);
-  sig->h_2    = malloc(instance->digest_size);
-  sig->proofs = malloc(instance->num_repetitions * sizeof(proof_t));
-}
-
 void free_proof(proof_t* proof)
 {
   free(proof->reveal_list.data);
   free(proof->missing_commitment);
   free(proof->pt_delta);
   free(proof->z_delta);
-}
-
-void free_signature(const aimer_instance_t* instance, signature_t* sig)
-{
-  for (size_t i = 0; i < instance->num_repetitions; i++)
-  {
-    free_proof(&sig->proofs[i]);
-  }
-  free(sig->proofs);
-  free(sig->h_1);
-  free(sig->h_2);
-  free(sig->salt);
 }
 
 void commit_to_seed_and_expand_tape(const aimer_instance_t* instance,

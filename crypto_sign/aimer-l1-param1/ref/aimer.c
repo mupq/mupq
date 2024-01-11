@@ -423,23 +423,19 @@ int aimer_sign(const aimer_publickey_t*  public_key,
     return -1;
   }
 
-  allocate_signature(instance, &sig);
   ret =
     _aimer_sign(instance, public_key, private_key, message, message_len, &sig);
   if (ret == -1)
   {
-    free_signature(instance, &sig);
     return -1;
   }
 
   ret = serialize_signature(instance, &sig, signature, signature_len);
   if (ret == -1)
   {
-    free_signature(instance, &sig);
     return -1;
   }
 
-  free_signature(instance, &sig);
   return ret;
 }
 
@@ -831,12 +827,10 @@ int aimer_verify(const aimer_publickey_t* public_key,
   uint16_t* missing_parties =
     malloc(instance->num_repetitions * sizeof(uint16_t));
 
-  allocate_signature(instance, &sig);
   ret = deserialize_signature(instance, signature, signature_len, &sig,
                               missing_parties);
   if (ret == -1)
   {
-    free_signature(instance, &sig);
     free(missing_parties);
     return -1;
   }
@@ -845,12 +839,10 @@ int aimer_verify(const aimer_publickey_t* public_key,
                       message_len);
   if (ret == -1)
   {
-    free_signature(instance, &sig);
     free(missing_parties);
     return -1;
   }
 
-  free_signature(instance, &sig);
   free(missing_parties);
   return ret;
 }
