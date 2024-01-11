@@ -144,7 +144,7 @@ static const GF e2_power_matrix[128] = {
   {0xea4566673052ba63, 0xdc0fb68b0ab97a19},
 };
 
-void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b);
+void generate_matrices_L_and_U(const uint8_t* iv, GF temp_matrix[2*AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS], GF vector_b);
 void generate_matrix_LU(const uint8_t* iv, GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE], GF vector_b);
 void compute_sbox_outputs(const uint8_t* pt, GF* sbox_outputs);
 

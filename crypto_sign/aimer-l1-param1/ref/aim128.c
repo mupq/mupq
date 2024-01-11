@@ -90,7 +90,7 @@ void mersenne_exp_27(const GF in, GF out)
   GF_mul(t1, t2, out);
 }
 
-void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
+void generate_matrices_L_and_U(const uint8_t* iv, GF matrix_A[2*AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS], GF vector_b)
 {
   hash_instance ctx;
   size_t field_size = sizeof(GF);
@@ -110,8 +110,6 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
     hash_squeeze(&ctx, out, TAPE_LEN);
 
     // Lower
-    matrix_A[2 * num] = calloc(NUMBITS_FIELD, field_size);
-
     squeeze_len = 8;
     block_index = 0;
 
@@ -141,8 +139,6 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
     }
 
     // Upper
-    matrix_A[2 * num + 1] = calloc(NUMBITS_FIELD, field_size);
-
     squeeze_len = 0;
     block_index = 0;
     for (size_t row = 0; row < NUMBITS_FIELD; row++)
@@ -178,7 +174,7 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
 void generate_matrix_LU(const uint8_t* iv, GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE], GF vector_b)
 {
   size_t field_size = sizeof(GF);
-  GF** temp_matrix = malloc(2 * NUM_INPUT_SBOX * sizeof(GF*));
+  GF temp_matrix[2*AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS] = {0};
 
   generate_matrices_L_and_U(iv, temp_matrix, vector_b);
 
@@ -189,10 +185,7 @@ void generate_matrix_LU(const uint8_t* iv, GF matrix_A[AIMER_NUM_INPUT_SBOXES][A
       GF_transposed_matmul(temp_matrix[2 * i + 1][j], temp_matrix[2 * i],
                            matrix_A[i][j]);
     }
-    free(temp_matrix[2 * i]);
-    free(temp_matrix[2 * i + 1]);
   }
-  free(temp_matrix);
 }
 
 void compute_sbox_outputs(const uint8_t* pt, GF* sbox_outputs)
@@ -211,7 +204,7 @@ void aim(const uint8_t* pt, const uint8_t* iv, uint8_t* ct)
   GF state[NUM_INPUT_SBOX] = {0,};
   GF pt_GF = {0,};
   GF vector_b = {0,};
-  GF **matrix_A = malloc(2 * NUM_INPUT_SBOX * sizeof(GF*));
+  GF matrix_A[2*AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS] = {0};
 
   GF_from_bytes(pt, pt_GF);
 
@@ -240,12 +233,6 @@ void aim(const uint8_t* pt, const uint8_t* iv, uint8_t* ct)
 
   // ct conversion
   GF_to_bytes(state[0], ct);
-
-  for (size_t i = 0; i < 2 * NUM_INPUT_SBOX; i++)
-  {
-    free(matrix_A[i]);
-  }
-  free(matrix_A);
 }
 
 void aim_mpc(const uint8_t* pt, const GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE],
