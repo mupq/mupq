@@ -79,7 +79,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   GF sbox_outputs[(AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
   compute_sbox_outputs(pt, sbox_outputs);
 
-  GF **matrix_A = malloc(L * sizeof(GF*));
+  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE];
   generate_matrix_LU(iv, matrix_A, vector_b);
 
   tree_t seed_trees[tau];
@@ -195,7 +195,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
     uint8_t* shared_pt_offset =
       repetition_shared_pt + (repetition * N * block_size);
 
-    aim_mpc(shared_pt_offset, (const GF**)matrix_A, vector_b, ct,
+    aim_mpc(shared_pt_offset, matrix_A, vector_b, ct,
             N, shared_z_offset, shared_x_offset);
   }
 
@@ -319,15 +319,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
     GF_copy(repetition_alpha_shares[repetition * N + missing_party],
             proof->missing_alpha_share);
   }
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Free memory allocations
-  //////////////////////////////////////////////////////////////////////////////
-  for (size_t i = 0; i < L; i++)
-  {
-    free(matrix_A[i]);
-  }
-  free(matrix_A);  
 
   return ret;
 }
@@ -576,7 +567,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   memcpy(ct, public_key->data + block_size, block_size);
 
   // generate linear layer for AIM mpc
-  GF** matrix_A = malloc(L * sizeof(GF*));
+  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE];
   GF vector_b = {0,};
   generate_matrix_LU(iv, matrix_A, vector_b);
 
@@ -630,7 +621,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
     uint8_t* shared_pt_offset =
       repetition_shared_pt + (repetition * N * block_size);
 
-    aim_mpc(shared_pt_offset, (const GF**)matrix_A, vector_b, ct,
+    aim_mpc(shared_pt_offset, matrix_A, vector_b, ct,
             N, shared_z_offset, shared_x_offset);
   }
 
@@ -758,12 +749,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
     ret = -1;
   }
 
-
-  for (size_t i = 0; i < L; i++)
-  {
-    free(matrix_A[i]);
-  }
-  free(matrix_A);
   return ret;
 }
 

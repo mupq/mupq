@@ -410,7 +410,6 @@ void reconstruct_seed_tree(tree_t * tree, const reveal_list_t* reveal_list,
   }
 }
 
-// TODO: allocate outside so we do not have to pass a struct
 void reveal_all_but(reveal_list_t *reveal_list, const tree_t* tree, size_t leaf_index)
 {
   // Calculate path up to root for missing leaf

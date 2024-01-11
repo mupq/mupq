@@ -175,7 +175,7 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF** matrix_A, GF vector_b)
   hash_squeeze(&ctx, (uint8_t*)vector_b, BLOCK_SIZE);
 }
 
-void generate_matrix_LU(const uint8_t* iv, GF** matrix_A, GF vector_b)
+void generate_matrix_LU(const uint8_t* iv, GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE], GF vector_b)
 {
   size_t field_size = sizeof(GF);
   GF** temp_matrix = malloc(2 * NUM_INPUT_SBOX * sizeof(GF*));
@@ -184,7 +184,6 @@ void generate_matrix_LU(const uint8_t* iv, GF** matrix_A, GF vector_b)
 
   for (size_t i = 0; i < NUM_INPUT_SBOX; i++)
   {
-    matrix_A[i] = malloc(NUMBITS_FIELD * field_size);
     for (size_t j = 0; j < NUMBITS_FIELD; j++)
     {
       GF_transposed_matmul(temp_matrix[2 * i + 1][j], temp_matrix[2 * i],
@@ -249,7 +248,7 @@ void aim(const uint8_t* pt, const uint8_t* iv, uint8_t* ct)
   free(matrix_A);
 }
 
-void aim_mpc(const uint8_t* pt, const GF** matrix_A,
+void aim_mpc(const uint8_t* pt, const GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS*AIMER_FIELD_SIZE],
              const GF vector_b, const uint8_t* ct,
              const size_t num_parties, GF *z_shares, GF *x_shares)
 {
