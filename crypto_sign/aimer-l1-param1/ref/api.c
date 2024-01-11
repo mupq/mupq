@@ -5,7 +5,6 @@
 #include "aimer_instances.h"
 #include "tree.h"
 
-#define AIMER_INSTANCE AIMER_L1_PARAM1
 
 int
 crypto_sign_keypair(unsigned char *pk, unsigned char *sk)

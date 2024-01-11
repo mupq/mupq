@@ -54,7 +54,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
                                   instance->field_size +
                                   instance->field_size;
   const size_t tau              = instance->num_repetitions;
-  const size_t N                = instance->num_MPC_parties;
+  const size_t N                = AIMER_N;
   const size_t digest_size      = instance->digest_size;
 
   int ret = 0;
@@ -82,7 +82,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   GF **matrix_A = malloc(L * sizeof(GF*));
   generate_matrix_LU(iv, matrix_A, vector_b);
 
-  tree_t** seed_trees = malloc(tau * sizeof(tree_t*));
+  tree_t seed_trees[tau];
   uint8_t* party_seed_commitments = malloc(tau * N * digest_size);
 
   random_tape_t* random_tapes    = malloc(sizeof(random_tape_t));
@@ -93,18 +93,17 @@ int _aimer_sign(const aimer_instance_t*   instance,
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
     randombytes(master_seed, instance->seed_size);
-    seed_trees[repetition] =
-      make_seed_tree(master_seed, instance->seed_size, sig->salt,
+    make_seed_tree(&seed_trees[repetition], master_seed, instance->seed_size, sig->salt,
                      instance->salt_size, N, repetition);
 
     size_t party = 0;
     uint8_t *seed0, *seed1, *seed2, *seed3;
     for (; party < (N / 4) * 4; party += 4)
     {
-      seed0 = get_leaf(seed_trees[repetition], party);
-      seed1 = get_leaf(seed_trees[repetition], party + 1);
-      seed2 = get_leaf(seed_trees[repetition], party + 2);
-      seed3 = get_leaf(seed_trees[repetition], party + 3);
+      seed0 = get_leaf(&seed_trees[repetition], party);
+      seed1 = get_leaf(&seed_trees[repetition], party + 1);
+      seed2 = get_leaf(&seed_trees[repetition], party + 2);
+      seed3 = get_leaf(&seed_trees[repetition], party + 3);
 
       commit_to_seed_and_expand_tape_x4(instance, seed0, seed1, seed2, seed3,
                                         sig->salt, repetition, party,
@@ -114,7 +113,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
 
     for (; party < N; party++)
     {
-      seed0 = get_leaf(seed_trees[repetition], party);
+      seed0 = get_leaf(&seed_trees[repetition], party);
 
       commit_to_seed_and_expand_tape(instance, seed0, sig->salt,
                                      repetition, party,
@@ -310,7 +309,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
     proof_t* proof = &sig->proofs[repetition];
 
     size_t missing_party = missing_parties[repetition];
-    proof->reveal_list = reveal_all_but(seed_trees[repetition], missing_party);
+    proof->reveal_list = reveal_all_but(&seed_trees[repetition], missing_party);
 
     memcpy(proof->missing_commitment,
            party_seed_commitments +
@@ -326,7 +325,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   //////////////////////////////////////////////////////////////////////////////
   for (size_t i = 0; i < tau; i++)
   {
-    free_tree(seed_trees[i]);
 
     free(epsilons[i]);
     free(v_shares[i]);
@@ -338,7 +336,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   free(matrix_A);  
   free(sbox_outputs);
   free(master_seed);
-  free(seed_trees);
   free(party_seed_commitments);
   free(random_tapes->tape);
   free(random_tapes);
@@ -534,7 +531,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   h_1_expand(instance, sig->h_1, epsilons);
 
   // Rebuild seed trees
-  tree_t** seed_trees = malloc(tau * sizeof(tree_t*));
+  tree_t seed_trees[tau];
   uint8_t* party_seed_commitments = malloc(tau * N * digest_size);
 
   random_tape_t* random_tapes = malloc(sizeof(random_tape_t));
@@ -546,16 +543,15 @@ int _aimer_verify(const aimer_instance_t*  instance,
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
     proof_t* proof = &sig->proofs[repetition];
-    seed_trees[repetition] =
-      reconstruct_seed_tree(&proof->reveal_list, sig->salt,
+    reconstruct_seed_tree(&seed_trees[repetition], &proof->reveal_list, sig->salt,
                             instance->salt_size, N, repetition);
     size_t party = 0;
     for (; party < (N / 4) * 4; party += 4)
     {
-      seed0 = get_leaf(seed_trees[repetition], party);
-      seed1 = get_leaf(seed_trees[repetition], party + 1);
-      seed2 = get_leaf(seed_trees[repetition], party + 2);
-      seed3 = get_leaf(seed_trees[repetition], party + 3);
+      seed0 = get_leaf(&seed_trees[repetition], party);
+      seed1 = get_leaf(&seed_trees[repetition], party + 1);
+      seed2 = get_leaf(&seed_trees[repetition], party + 2);
+      seed3 = get_leaf(&seed_trees[repetition], party + 3);
       if (seed0 == NULL)
       {
         seed0 = dummy;
@@ -580,7 +576,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
     for (; party < N; party++)
     {
-      seed0 = get_leaf(seed_trees[repetition], party);
+      seed0 = get_leaf(&seed_trees[repetition], party);
       if (seed0 == NULL)
       {
         seed0 = dummy;
@@ -793,11 +789,9 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
   for (size_t i = 0; i < tau; i++)
   {
-    free_tree(seed_trees[i]);
     free(epsilons[i]);
     free(v_shares[i]);
   }
-  free(seed_trees);
   free(epsilons);
   free(v_shares);
 

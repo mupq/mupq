@@ -15,6 +15,7 @@ You are solely responsible for determining the appropriateness of using and dist
 #define CRYPTO_PUBLICKEYBYTES (1 + 2 * 16)
 #define CRYPTO_BYTES 5904
 
+#define AIMER_INSTANCE AIMER_L1_PARAM1
 #define CRYPTO_ALGNAME "AIMer-L1"
 
 int

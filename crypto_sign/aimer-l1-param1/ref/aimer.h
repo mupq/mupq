@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define AIMER_INSTANCE AIMER_L1_PARAM1
+
 #ifndef   _AIMER_L
 #define   _AIMER_L  1                       // define AIMer level
 #endif
@@ -32,8 +34,38 @@
 
 #else
   #error  "does not support"
-
 #endif
+
+#if AIMER_INSTANCE == AIMER_L1_PARAM1
+  #define AIMER_SALT_SIZE 32
+  #define AIMER_DIGEST_SIZE 32
+  #define AIMER_SEED_SIZE 16
+  #define AIMER_FIELD_SIZE 16
+  #define AIMER_T 33
+  #define AIMER_N 16
+  #define AIMER_LOGN 4
+
+  // AIM_params, salt size, digest size, seed size, field size, T, N, parameter set name
+  //{AIM_128_PARAMS, 32, 32, 16, 16, 33,   16, AIMER_L1_PARAM1},
+  //{AIM_128_PARAMS, 32, 32, 16, 16, 23,   57, AIMER_L1_PARAM2},
+  //{AIM_128_PARAMS, 32, 32, 16, 16, 17,  256, AIMER_L1_PARAM3},
+  //{AIM_128_PARAMS, 32, 32, 16, 16, 13, 1615, AIMER_L1_PARAM4},
+  //{AIM_192_PARAMS, 48, 48, 24, 24, 49,   16, AIMER_L3_PARAM1},
+  //{AIM_192_PARAMS, 48, 48, 24, 24, 33,   64, AIMER_L3_PARAM2},
+  //{AIM_192_PARAMS, 48, 48, 24, 24, 25,  256, AIMER_L3_PARAM3},
+  //{AIM_192_PARAMS, 48, 48, 24, 24, 19, 1621, AIMER_L3_PARAM4},
+  //{AIM_256_PARAMS, 64, 64, 32, 32, 65,   16, AIMER_L5_PARAM1},
+  //{AIM_256_PARAMS, 64, 64, 32, 32, 44,   62, AIMER_L5_PARAM2},
+  //{AIM_256_PARAMS, 64, 64, 32, 32, 33,  256, AIMER_L5_PARAM3},
+  //{AIM_256_PARAMS, 64, 64, 32, 32, 25, 1623, AIMER_L5_PARAM4}
+#else
+  #error  "does not support"
+#endif
+
+
+#define AIMER_TREE_NUM_NODES (((1 << (AIMER_LOGN+1)) - 1) - ((1 << (AIMER_LOGN)) - AIMER_N))
+
+
 
 // Parameter set names
 typedef enum
