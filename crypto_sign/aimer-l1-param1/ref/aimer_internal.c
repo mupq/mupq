@@ -8,20 +8,10 @@
 #include "portable_endian.h"
 #include <stdlib.h>
 
-void allocate_proof(const aimer_instance_t* instance, proof_t* proof)
-{
-  proof->missing_commitment = malloc(instance->digest_size);
-  proof->pt_delta           = malloc(instance->aim_params.block_size);
-  proof->z_delta =
-    malloc(instance->aim_params.num_input_sboxes * instance->field_size);
-}
-
+// TODO: remove this one
 void free_proof(proof_t* proof)
 {
   free(proof->reveal_list.data);
-  free(proof->missing_commitment);
-  free(proof->pt_delta);
-  free(proof->z_delta);
 }
 
 void commit_to_seed_and_expand_tape(const aimer_instance_t* instance,

@@ -44,6 +44,8 @@
   #define AIMER_T 33
   #define AIMER_N 16
   #define AIMER_LOGN 4
+  #define AIMER_BLOCK_SIZE 16
+  #define AIMER_NUM_INPUT_SBOXES 2
 
   // AIM_params, salt size, digest size, seed size, field size, T, N, parameter set name
   //{AIM_128_PARAMS, 32, 32, 16, 16, 33,   16, AIMER_L1_PARAM1},

@@ -133,7 +133,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
     proof_t* proof = &sig->proofs[repetition];
-    allocate_proof(instance, proof);
 
     // Generate sharing of secret key
     memset(pt_delta, 0, block_size);
@@ -463,7 +462,6 @@ int deserialize_signature(const aimer_instance_t* instance,
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
     proof_t* proof = &sig->proofs[repetition];
-    allocate_proof(instance, proof);
 
     proof->reveal_list.seed_size = instance->seed_size;
     proof->reveal_list.missing_leaf = missing_parties[repetition];

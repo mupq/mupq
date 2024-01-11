@@ -21,9 +21,9 @@ typedef struct random_tape_t
 typedef struct
 {
   reveal_list_t reveal_list;
-  uint8_t*      missing_commitment;
-  uint8_t*      pt_delta;
-  GF*           z_delta;
+  uint8_t      missing_commitment[AIMER_DIGEST_SIZE];
+  uint8_t      pt_delta[AIMER_BLOCK_SIZE];
+  GF           z_delta[AIMER_FIELD_SIZE*AIMER_NUM_INPUT_SBOXES];
   GF            c_delta;
   GF            missing_alpha_share;
 } proof_t;
@@ -36,13 +36,7 @@ typedef struct
   proof_t proofs[AIMER_T];
 } signature_t;
 
-void allocate_proof(const aimer_instance_t* instance, proof_t* proof);
-
-void allocate_signature(const aimer_instance_t* instance, signature_t* sig);
-
 void free_proof(proof_t* proof);
-
-void free_signature(const aimer_instance_t* instance, signature_t* sig);
 
 void commit_to_seed_and_expand_tape(const aimer_instance_t* instance, const uint8_t* seed,
                                     const uint8_t* salt, size_t repetition, size_t party,
