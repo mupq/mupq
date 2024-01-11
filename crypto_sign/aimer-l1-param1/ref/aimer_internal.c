@@ -8,12 +8,6 @@
 #include "portable_endian.h"
 #include <stdlib.h>
 
-// TODO: remove this one
-void free_proof(proof_t* proof)
-{
-  free(proof->reveal_list.data);
-}
-
 void commit_to_seed_and_expand_tape(const aimer_instance_t* instance,
                                     const uint8_t* seed, const uint8_t* salt,
                                     size_t repetition, size_t party,
@@ -92,7 +86,7 @@ void h_1_commitment(const aimer_instance_t* instance,
   for (size_t repetition = 0; repetition < instance->num_repetitions;
        repetition++)
   {
-    proof_t* proof = &sig->proofs[repetition];
+    const proof_t* proof = &sig->proofs[repetition];
     for (size_t party = 0; party < instance->num_MPC_parties; party++)
     {
       hash_update(&ctx, party_seed_commitments +

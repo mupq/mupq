@@ -308,7 +308,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
     proof_t* proof = &sig->proofs[repetition];
 
     size_t missing_party = missing_parties[repetition];
-    proof->reveal_list = reveal_all_but(&seed_trees[repetition], missing_party);
+    reveal_all_but(&proof->reveal_list, &seed_trees[repetition], missing_party);
 
     memcpy(proof->missing_commitment,
            party_seed_commitments +
@@ -374,7 +374,7 @@ int serialize_signature(const aimer_instance_t* instance,
 
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
-    proof_t* proof = &sig->proofs[repetition];
+    const proof_t* proof = &sig->proofs[repetition];
 
     memcpy(signature_offset, proof->reveal_list.data, reveal_list_size);
     signature_offset += reveal_list_size;
@@ -465,7 +465,6 @@ int deserialize_signature(const aimer_instance_t* instance,
 
     proof->reveal_list.seed_size = instance->seed_size;
     proof->reveal_list.missing_leaf = missing_parties[repetition];
-    proof->reveal_list.data = malloc(reveal_list_size * instance->seed_size);
 
     memcpy(proof->reveal_list.data,
            signature + offset, reveal_list_size * instance->seed_size);
@@ -536,7 +535,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   uint8_t *seed0, *seed1, *seed2, *seed3;
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
-    proof_t* proof = &sig->proofs[repetition];
+    const proof_t* proof = &sig->proofs[repetition];
     reconstruct_seed_tree(&seed_trees[repetition], &proof->reveal_list, sig->salt,
                             instance->salt_size, N, repetition);
     size_t party = 0;
@@ -604,7 +603,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
-    proof_t* proof = &sig->proofs[repetition];
+    const proof_t* proof = &sig->proofs[repetition];
     // Generate sharing of secret key
     for (size_t party = 0; party < N; party++)
     {
@@ -659,7 +658,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   // Recompute shares of dot product
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
-    proof_t* proof = &sig->proofs[repetition];
+    const proof_t* proof = &sig->proofs[repetition];
     // Also generate valid dot triple a,z,c and save c_delta
     for (size_t party = 0; party < N; party++)
     {
@@ -694,7 +693,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   GF temp = {0,};
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
-    proof_t* proof = &sig->proofs[repetition];
+    const proof_t* proof = &sig->proofs[repetition];
     size_t missing_party = missing_parties[repetition];
 
     GF_set0(alpha);

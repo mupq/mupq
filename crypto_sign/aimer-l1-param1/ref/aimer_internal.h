@@ -36,7 +36,6 @@ typedef struct
   proof_t proofs[AIMER_T];
 } signature_t;
 
-void free_proof(proof_t* proof);
 
 void commit_to_seed_and_expand_tape(const aimer_instance_t* instance, const uint8_t* seed,
                                     const uint8_t* salt, size_t repetition, size_t party,

@@ -22,7 +22,7 @@ typedef struct tree_t
 
 typedef struct reveal_list_t
 {
-  uint8_t* data;
+  uint8_t data[AIMER_SEED_SIZE*((AIMER_LOGN + 1) * 2)];
   size_t   seed_size;
   size_t   missing_leaf;
 } reveal_list_t;
@@ -38,7 +38,7 @@ void reconstruct_seed_tree(tree_t *tree, const reveal_list_t* reveal_list,
                               const size_t num_leaves,
                               const size_t repetition_index);
 
-reveal_list_t reveal_all_but(const tree_t* tree, size_t leaf_index);
+void reveal_all_but(reveal_list_t *reveal_list, const tree_t* tree, size_t leaf_index);
 
 uint8_t* get_leaf(tree_t* tree, size_t leaf_index);
 

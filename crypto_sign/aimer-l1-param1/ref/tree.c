@@ -166,7 +166,6 @@ void make_seed_tree(tree_t *tree, const uint8_t* seed, const size_t seed_size,
 {
   size_t   i;
 
-  size_t   tree_depth = 1 + AIMER_LOGN;
   size_t   last_non_leaf, num_nodes;
 
   memset(tree->have_value, 0, AIMER_TREE_NUM_NODES);
@@ -283,7 +282,6 @@ void reconstruct_seed_tree(tree_t * tree, const reveal_list_t* reveal_list,
 {
   size_t   i;
 
-  size_t   tree_depth = 1 + ceil_log2(num_leaves);
   size_t   last_non_leaf, seed_size, num_nodes;
 
   seed_size = AIMER_SEED_SIZE;
@@ -412,13 +410,11 @@ void reconstruct_seed_tree(tree_t * tree, const reveal_list_t* reveal_list,
   }
 }
 
-reveal_list_t reveal_all_but(const tree_t* tree, size_t leaf_index)
+// TODO: allocate outside so we do not have to pass a struct
+void reveal_all_but(reveal_list_t *reveal_list, const tree_t* tree, size_t leaf_index)
 {
-  reveal_list_t reveal_list;
-
   // Calculate path up to root for missing leaf
-  size_t   buffer_size = ((ceil_log2(AIMER_N) + 1) * 2);
-  uint8_t* buffer      = calloc(buffer_size, AIMER_SEED_SIZE);
+  uint8_t *buffer = reveal_list->data;
 
   size_t path_index = 0;
   for (size_t node = AIMER_TREE_NUM_NODES - AIMER_N + leaf_index; node != 0;
@@ -437,11 +433,7 @@ reveal_list_t reveal_all_but(const tree_t* tree, size_t leaf_index)
     path_index++;
   }
 
-  reveal_list.data            = buffer;
-  reveal_list.seed_size       = AIMER_SEED_SIZE;
-  reveal_list.missing_leaf    = leaf_index;
-
-  return reveal_list;
+  reveal_list->missing_leaf    = leaf_index;
 }
 
 uint8_t* get_leaf(tree_t* tree, size_t leaf_index)
