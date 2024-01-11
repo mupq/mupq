@@ -76,19 +76,19 @@ int _aimer_sign(const aimer_instance_t*   instance,
 
   randombytes(sig->salt, instance->salt_size);
 
-  GF* sbox_outputs = malloc((L + 1) * instance->field_size);
+  GF sbox_outputs[(AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
   compute_sbox_outputs(pt, sbox_outputs);
 
   GF **matrix_A = malloc(L * sizeof(GF*));
   generate_matrix_LU(iv, matrix_A, vector_b);
 
   tree_t seed_trees[tau];
-  uint8_t* party_seed_commitments = malloc(tau * N * digest_size);
+  uint8_t party_seed_commitments[AIMER_T * AIMER_N * AIMER_DIGEST_SIZE];
 
   random_tape_t random_tapes;
   random_tapes.random_tape_size = random_tape_size;
 
-  uint8_t* master_seed = malloc(instance->seed_size);
+  uint8_t master_seed[AIMER_SEED_SIZE];
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
     randombytes(master_seed, instance->seed_size);
@@ -121,12 +121,13 @@ int _aimer_sign(const aimer_instance_t*   instance,
     }
   }
 
-  uint8_t* repetition_shared_pt = malloc(tau * N * block_size);
+  uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE];
 
-  GF* repetition_shared_x     = malloc(tau * N * (L + 1) * instance->field_size);
-  GF* repetition_shared_z     = malloc(tau * N * (L + 1) * instance->field_size);
-  GF* repetition_shared_dot_a = malloc(tau * N * instance->field_size);
-  GF* repetition_shared_dot_c = malloc(tau * N * instance->field_size);
+  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
+  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
+  GF repetition_shared_dot_a [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
+  GF repetition_shared_dot_c [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
+
 
   uint8_t pt_delta[block_size];
   for (size_t repetition = 0; repetition < tau; repetition++)
@@ -245,7 +246,8 @@ int _aimer_sign(const aimer_instance_t*   instance,
   //////////////////////////////////////////////////////////////////////////////
   // Phase 3: Committing to the simulation of the checking protocol.
   //////////////////////////////////////////////////////////////////////////////
-  GF*  repetition_alpha_shares = calloc(tau * N * instance->field_size, 1);
+
+  GF repetition_alpha_shares[AIMER_N*AIMER_N*AIMER_FIELD_SIZE] = {0};
   GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE];
 
   GF alpha = {0,}, pt_share = {0,}, temp = {0,};
@@ -326,15 +328,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
     free(matrix_A[i]);
   }
   free(matrix_A);  
-  free(sbox_outputs);
-  free(master_seed);
-  free(party_seed_commitments);
-  free(repetition_shared_pt);
-  free(repetition_shared_x);
-  free(repetition_shared_z);
-  free(repetition_shared_dot_a);
-  free(repetition_shared_dot_c);
-  free(repetition_alpha_shares);
 
   return ret;
 }
@@ -512,7 +505,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
   // Rebuild seed trees
   tree_t seed_trees[tau];
-  uint8_t* party_seed_commitments = malloc(tau * N * digest_size);
+  uint8_t party_seed_commitments[AIMER_T * AIMER_N * AIMER_DIGEST_SIZE];
 
   random_tape_t random_tapes;
   random_tapes.random_tape_size = random_tape_size;
@@ -570,11 +563,11 @@ int _aimer_verify(const aimer_instance_t*  instance,
   }
 
   // Recompute commitments to executions of block cipher
-  uint8_t* repetition_shared_pt = malloc(tau * N * block_size);
-  GF* repetition_shared_x     = malloc(tau * N * (L + 1) * instance->field_size);
-  GF* repetition_shared_z     = malloc(tau * N * (L + 1) * instance->field_size);
-  GF* repetition_shared_dot_a = malloc(tau * N * instance->field_size);
-  GF* repetition_shared_dot_c = malloc(tau * N * instance->field_size);
+  uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE];
+  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
+  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1) * AIMER_FIELD_SIZE];
+  GF repetition_shared_dot_a [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
+  GF repetition_shared_dot_c [AIMER_T * AIMER_N  * AIMER_FIELD_SIZE];
 
   uint8_t iv[block_size];
   uint8_t ct[block_size];
@@ -673,7 +666,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   }
 
   // Recompute views of sacrificing checks
-  GF* repetition_alpha_shares = calloc(tau * N * instance->field_size, 1);
+  GF repetition_alpha_shares[AIMER_N*AIMER_N*AIMER_FIELD_SIZE] = {0};
   GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE] = {0};
   GF alpha = {0,};
   GF temp = {0,};
@@ -771,15 +764,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
     free(matrix_A[i]);
   }
   free(matrix_A);
-
-  free(repetition_alpha_shares);
-  free(repetition_shared_pt);
-  free(repetition_shared_x);
-  free(repetition_shared_z);
-  free(repetition_shared_dot_a);
-  free(repetition_shared_dot_c);
-
-  free(party_seed_commitments);
   return ret;
 }
 
