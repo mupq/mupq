@@ -23,7 +23,6 @@ typedef struct tree_t
 typedef struct reveal_list_t
 {
   uint8_t data[AIMER_SEED_SIZE*((AIMER_LOGN + 1) * 2)];
-  size_t   seed_size;
   size_t   missing_leaf;
 } reveal_list_t;
 

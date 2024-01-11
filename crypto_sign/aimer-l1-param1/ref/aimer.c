@@ -296,7 +296,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   h_2_commitment(instance, sig->salt, sig->h_1, repetition_alpha_shares,
                  (const GF**)v_shares, sig->h_2);
 
-  uint16_t* missing_parties = malloc(tau * sizeof(uint16_t));
+  uint16_t missing_parties[AIMER_T];
   h_2_expand(instance, sig->h_2, missing_parties);
 
   //////////////////////////////////////////////////////////////////////////////
@@ -345,7 +345,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   free(repetition_shared_dot_c);
   free(epsilons);
   free(v_shares);
-  free(missing_parties);
   free(repetition_alpha_shares);
 
   return ret;
@@ -463,7 +462,6 @@ int deserialize_signature(const aimer_instance_t* instance,
   {
     proof_t* proof = &sig->proofs[repetition];
 
-    proof->reveal_list.seed_size = instance->seed_size;
     proof->reveal_list.missing_leaf = missing_parties[repetition];
 
     memcpy(proof->reveal_list.data,
@@ -821,14 +819,12 @@ int aimer_verify(const aimer_publickey_t* public_key,
     return -1;
   }
 
-  uint16_t* missing_parties =
-    malloc(instance->num_repetitions * sizeof(uint16_t));
+  uint16_t missing_parties[AIMER_T];
 
   ret = deserialize_signature(instance, signature, signature_len, &sig,
                               missing_parties);
   if (ret == -1)
   {
-    free(missing_parties);
     return -1;
   }
 
@@ -836,10 +832,7 @@ int aimer_verify(const aimer_publickey_t* public_key,
                       message_len);
   if (ret == -1)
   {
-    free(missing_parties);
     return -1;
   }
-
-  free(missing_parties);
   return ret;
 }
