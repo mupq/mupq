@@ -235,7 +235,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   //////////////////////////////////////////////////////////////////////////////
   // Commit to salt, (all commitments of parties seeds,
   // pt_delta, z_delta, c_delta) for all repetitions
-  GF** epsilons = malloc(tau * sizeof(GF*));
+  GF epsilons[AIMER_T][AIMER_NUM_INPUT_SBOXES+1];
   h_1_commitment(instance, sig, public_key, message, message_len,
                  party_seed_commitments, sig->h_1);
 
@@ -246,7 +246,8 @@ int _aimer_sign(const aimer_instance_t*   instance,
   // Phase 3: Committing to the simulation of the checking protocol.
   //////////////////////////////////////////////////////////////////////////////
   GF*  repetition_alpha_shares = calloc(tau * N * instance->field_size, 1);
-  GF** v_shares = malloc(tau * sizeof(GF*));
+  GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE];
+
   GF alpha = {0,}, pt_share = {0,}, temp = {0,};
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
@@ -272,7 +273,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
     }
 
     // v^i = - c^i + dot(alpha, y^i) - dot(eps, z^i)
-    v_shares[repetition] = malloc(N * instance->field_size);
     for (size_t party = 0; party < N; party++)
     {
       GF_from_bytes(repetition_shared_pt +
@@ -293,7 +293,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   // Phase 4: Challenging the views of the MPC protocol.
   //////////////////////////////////////////////////////////////////////////////
   h_2_commitment(instance, sig->salt, sig->h_1, repetition_alpha_shares,
-                 (const GF**)v_shares, sig->h_2);
+                 v_shares, sig->h_2);
 
   uint16_t missing_parties[AIMER_T];
   h_2_expand(instance, sig->h_2, missing_parties);
@@ -321,12 +321,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   //////////////////////////////////////////////////////////////////////////////
   // Free memory allocations
   //////////////////////////////////////////////////////////////////////////////
-  for (size_t i = 0; i < tau; i++)
-  {
-
-    free(epsilons[i]);
-    free(v_shares[i]);
-  }
   for (size_t i = 0; i < L; i++)
   {
     free(matrix_A[i]);
@@ -340,8 +334,6 @@ int _aimer_sign(const aimer_instance_t*   instance,
   free(repetition_shared_z);
   free(repetition_shared_dot_a);
   free(repetition_shared_dot_c);
-  free(epsilons);
-  free(v_shares);
   free(repetition_alpha_shares);
 
   return ret;
@@ -515,7 +507,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
   // h_1 expansion,
   // h_2 expansion already happened in deserialize
-  GF** epsilons = malloc(tau * sizeof(GF*));
+  GF epsilons[AIMER_T][AIMER_NUM_INPUT_SBOXES+1];
   h_1_expand(instance, sig->h_1, epsilons);
 
   // Rebuild seed trees
@@ -682,7 +674,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
 
   // Recompute views of sacrificing checks
   GF* repetition_alpha_shares = calloc(tau * N * instance->field_size, 1);
-  GF** v_shares = malloc(tau * sizeof(GF*));
+  GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE] = {0};
   GF alpha = {0,};
   GF temp = {0,};
   for (size_t repetition = 0; repetition < tau; repetition++)
@@ -718,7 +710,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
     GF_add(alpha, missing_alpha[0], alpha);
 
     // v^i = - c^i + dot(alpha, y) - dot(eps, z^i)
-    v_shares[repetition] = calloc(N * instance->field_size, 1);
     GF pt_share = {0,};
     for (size_t party = 0; party < N; party++)
     {
@@ -762,7 +753,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
                  party_seed_commitments, h_1_prime);
 
   h_2_commitment(instance, sig->salt, h_1_prime, repetition_alpha_shares,
-                 (const GF**)v_shares, h_2_prime);
+                 v_shares, h_2_prime);
 
   if (memcmp(h_1_prime, sig->h_1, digest_size) != 0)
   {
@@ -774,13 +765,6 @@ int _aimer_verify(const aimer_instance_t*  instance,
     ret = -1;
   }
 
-  for (size_t i = 0; i < tau; i++)
-  {
-    free(epsilons[i]);
-    free(v_shares[i]);
-  }
-  free(epsilons);
-  free(v_shares);
 
   for (size_t i = 0; i < L; i++)
   {

@@ -111,7 +111,7 @@ void h_1_commitment(const aimer_instance_t* instance,
 }
 
 void h_1_expand(const aimer_instance_t* instance, const uint8_t* h_1,
-                GF** epsilons)
+                 GF epsilons[AIMER_T][AIMER_NUM_INPUT_SBOXES+1])
 {
   hash_instance ctx;
   uint8_t buffer[instance->field_size];
@@ -125,8 +125,6 @@ void h_1_expand(const aimer_instance_t* instance, const uint8_t* h_1,
   for (size_t repetition = 0; repetition < instance->num_repetitions;
        repetition++)
   {
-    epsilons[repetition] =
-      malloc((instance->aim_params.num_input_sboxes + 1) * sizeof(GF));
     for (size_t ell = 0; ell < instance->aim_params.num_input_sboxes + 1; ell++)
     {
       hash_squeeze(&ctx, buffer, instance->field_size);
@@ -137,7 +135,7 @@ void h_1_expand(const aimer_instance_t* instance, const uint8_t* h_1,
 
 void h_2_commitment(const aimer_instance_t* instance, const uint8_t* salt,
                     const uint8_t* h_1, const GF* repetition_alpha_shares,
-                    const GF** v_shares, uint8_t* h_2)
+                    const GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE], uint8_t* h_2)
 {
   hash_instance ctx;
   uint8_t buffer[instance->field_size];

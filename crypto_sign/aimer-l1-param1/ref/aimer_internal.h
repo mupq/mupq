@@ -60,11 +60,11 @@ void h_1_commitment(const aimer_instance_t* instance,
                     const uint8_t* party_seed_commitments, uint8_t* h_1);
 
 void h_1_expand(const aimer_instance_t* instance, const uint8_t* h_1,
-                GF** epsilons);
+                GF epsilons[AIMER_T][AIMER_NUM_INPUT_SBOXES+1]);
 
 void h_2_commitment(const aimer_instance_t* instance, const uint8_t* salt,
                     const uint8_t* h_1, const GF* repetition_alpha_shares,
-                    const GF** v_shares, uint8_t* h_2);
+                    const GF v_shares[AIMER_T][AIMER_N*AIMER_FIELD_SIZE], uint8_t* h_2);
 
 void h_2_expand(const aimer_instance_t* instance, const uint8_t* h_2,
                 uint16_t* opened_parties);
