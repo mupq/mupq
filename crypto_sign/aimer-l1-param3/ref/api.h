@@ -16,7 +16,7 @@ You are solely responsible for determining the appropriateness of using and dist
 #define CRYPTO_BYTES 5904
 
 #define   _AIMER_L  1
-#define AIMER_PARAM 1
+#define AIMER_PARAM 3
 #define CRYPTO_ALGNAME "AIMer-L1"
 
 int

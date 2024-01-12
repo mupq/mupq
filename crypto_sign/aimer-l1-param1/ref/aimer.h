@@ -10,12 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "api.h"
 
-#define AIMER_INSTANCE AIMER_L1_PARAM1
-
-#ifndef   _AIMER_L
-#define   _AIMER_L  1                       // define AIMer level
-#endif
 
 #if       _AIMER_L == 1
   #define AIMER_PUBLICKEY_SIZE        32    // size of AIMer public key
@@ -36,17 +32,17 @@
   #error  "does not support"
 #endif
 
-#if AIMER_INSTANCE == AIMER_L1_PARAM1
+#if _AIMER_L == 1
   #define AIMER_SALT_SIZE 32
   #define AIMER_DIGEST_SIZE 32
   #define AIMER_SEED_SIZE 16
   #define AIMER_FIELD_SIZE 16
-  #define AIMER_T 33
-  #define AIMER_N 16
-  #define AIMER_LOGN 4
   #define AIMER_BLOCK_SIZE 16
   #define AIMER_NUM_INPUT_SBOXES 2
   #define AIMER_NUM_BITS 128
+#else
+  #error  "does not support"
+#endif
 
   // AIM_params, salt size, digest size, seed size, field size, T, N, parameter set name
   //{AIM_128_PARAMS, 32, 32, 16, 16, 33,   16, AIMER_L1_PARAM1},
@@ -61,13 +57,32 @@
   //{AIM_256_PARAMS, 64, 64, 32, 32, 44,   62, AIMER_L5_PARAM2},
   //{AIM_256_PARAMS, 64, 64, 32, 32, 33,  256, AIMER_L5_PARAM3},
   //{AIM_256_PARAMS, 64, 64, 32, 32, 25, 1623, AIMER_L5_PARAM4}
+#if _AIMER_L == 1 && AIMER_PARAM == 1
+  #define AIMER_T 33
+  #define AIMER_N 16
+  #define AIMER_LOGN 4
+  #define AIMER_INSTANCE AIMER_L1_PARAM1
+#elif _AIMER_L == 1 && AIMER_PARAM == 2
+  #define AIMER_T 23
+  #define AIMER_N 57
+  #define AIMER_LOGN 6
+  #define AIMER_INSTANCE AIMER_L1_PARAM2
+#elif _AIMER_L == 1 && AIMER_PARAM == 3
+  #define AIMER_T 17
+  #define AIMER_N 256
+  #define AIMER_LOGN 8
+  #define AIMER_INSTANCE AIMER_L1_PARAM3
+#elif _AIMER_L == 1 && AIMER_PARAM == 4
+  #define AIMER_T 13
+  #define AIMER_N 1615
+  #define AIMER_LOGN 11
+  #define AIMER_INSTANCE AIMER_L1_PARAM4
 #else
   #error  "does not support"
 #endif
 
 
 #define AIMER_TREE_NUM_NODES (((1 << (AIMER_LOGN+1)) - 1) - ((1 << (AIMER_LOGN)) - AIMER_N))
-
 
 
 // Parameter set names
@@ -88,6 +103,7 @@ typedef enum
   AIMER_L5_PARAM4         = 12,
   PARAMETER_SET_MAX_INDEX = 13
 } aimer_params_t;
+
 
 // Public key
 typedef struct

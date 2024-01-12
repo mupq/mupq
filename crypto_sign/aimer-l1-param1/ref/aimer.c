@@ -385,6 +385,7 @@ int aimer_sign(const aimer_publickey_t*  public_key,
 {
   int ret = 0;
   signature_t sig;
+  memset(&sig, 0, sizeof(signature_t));
   aimer_params_t params = public_key->params;
 
   const aimer_instance_t *instance = aimer_instance_get(params);

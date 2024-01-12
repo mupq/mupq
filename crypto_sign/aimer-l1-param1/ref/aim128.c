@@ -93,7 +93,6 @@ void mersenne_exp_27(const GF in, GF out)
 void generate_matrices_L_and_U(const uint8_t* iv, GF matrix_A[2*AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS], GF vector_b)
 {
   hash_instance ctx;
-  size_t field_size = sizeof(GF);
   size_t squeeze_len;
   size_t block_index;
 
@@ -173,7 +172,6 @@ void generate_matrices_L_and_U(const uint8_t* iv, GF matrix_A[2*AIMER_NUM_INPUT_
 
 void generate_matrix_LU(const uint8_t* iv, GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS], GF vector_b)
 {
-  size_t field_size = sizeof(GF);
   GF temp_matrix[2*AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS] = {0};
 
   generate_matrices_L_and_U(iv, temp_matrix, vector_b);
