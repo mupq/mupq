@@ -123,7 +123,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
 
   uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE];
 
-  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
+  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)] = {0};
   GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
   GF repetition_shared_dot_a [AIMER_T * AIMER_N];
   GF repetition_shared_dot_c [AIMER_T * AIMER_N];
@@ -246,7 +246,7 @@ int _aimer_sign(const aimer_instance_t*   instance,
   // Phase 3: Committing to the simulation of the checking protocol.
   //////////////////////////////////////////////////////////////////////////////
 
-  GF repetition_alpha_shares[AIMER_N*AIMER_N] = {0};
+  GF repetition_alpha_shares[AIMER_T*AIMER_N] = {0};
   GF v_shares[AIMER_T][AIMER_N];
 
   GF alpha = {0,}, pt_share = {0,}, temp = {0,};
@@ -502,6 +502,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   random_tapes.random_tape_size = random_tape_size;
 
   uint8_t dummy[seed_size];
+  memset(dummy, 0, seed_size);
   uint8_t *seed0, *seed1, *seed2, *seed3;
   for (size_t repetition = 0; repetition < tau; repetition++)
   {
@@ -554,11 +555,11 @@ int _aimer_verify(const aimer_instance_t*  instance,
   }
 
   // Recompute commitments to executions of block cipher
-  uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE];
-  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
-  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)];
-  GF repetition_shared_dot_a [AIMER_T * AIMER_N];
-  GF repetition_shared_dot_c [AIMER_T * AIMER_N];
+  uint8_t repetition_shared_pt[AIMER_T*AIMER_N*AIMER_BLOCK_SIZE] = {0};
+  GF repetition_shared_x     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)] = {0};
+  GF repetition_shared_z     [AIMER_T * AIMER_N  * (AIMER_NUM_INPUT_SBOXES + 1)] = {0};
+  GF repetition_shared_dot_a [AIMER_T * AIMER_N] = {0};
+  GF repetition_shared_dot_c [AIMER_T * AIMER_N] = {0};
 
   uint8_t iv[block_size];
   uint8_t ct[block_size];
@@ -567,7 +568,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   memcpy(ct, public_key->data + block_size, block_size);
 
   // generate linear layer for AIM mpc
-  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS];
+  GF matrix_A[AIMER_NUM_INPUT_SBOXES][AIMER_NUM_BITS] = {0};
   GF vector_b = {0,};
   generate_matrix_LU(iv, matrix_A, vector_b);
 
@@ -657,7 +658,7 @@ int _aimer_verify(const aimer_instance_t*  instance,
   }
 
   // Recompute views of sacrificing checks
-  GF repetition_alpha_shares[AIMER_N*AIMER_N] = {0};
+  GF repetition_alpha_shares[AIMER_T*AIMER_N] = {0};
   GF v_shares[AIMER_T][AIMER_N] = {0};
   GF alpha = {0,};
   GF temp = {0,};
@@ -758,6 +759,7 @@ int aimer_verify(const aimer_publickey_t* public_key,
 {
   int ret = 0;
   signature_t sig;
+  memset(&sig, 0, sizeof(signature_t));
   aimer_params_t params = public_key->params;
 
   const aimer_instance_t *instance = aimer_instance_get(params);
@@ -766,7 +768,7 @@ int aimer_verify(const aimer_publickey_t* public_key,
     return -1;
   }
 
-  uint16_t missing_parties[AIMER_T];
+  uint16_t missing_parties[AIMER_T] = {0};
 
   ret = deserialize_signature(instance, signature, signature_len, &sig,
                               missing_parties);

@@ -48,11 +48,18 @@
   #define AIMER_BLOCK_SIZE 24
   #define AIMER_NUM_INPUT_SBOXES 2
   #define AIMER_NUM_BITS 192
+#elif _AIMER_L == 5
+  #define AIMER_SALT_SIZE 64
+  #define AIMER_DIGEST_SIZE 64
+  #define AIMER_SEED_SIZE 32
+  #define AIMER_FIELD_SIZE 32
+  #define AIMER_BLOCK_SIZE 32
+  #define AIMER_NUM_INPUT_SBOXES 3
+  #define AIMER_NUM_BITS 256
 #else
   #error  "does not support"
 #endif
 
-  // AIM_params, salt size, digest size, seed size, field size, T, N, parameter set name
   //{AIM_128_PARAMS, 32, 32, 16, 16, 33,   16, AIMER_L1_PARAM1},
   //{AIM_128_PARAMS, 32, 32, 16, 16, 23,   57, AIMER_L1_PARAM2},
   //{AIM_128_PARAMS, 32, 32, 16, 16, 17,  256, AIMER_L1_PARAM3},
@@ -80,7 +87,7 @@
   #define AIMER_N 256
   #define AIMER_LOGN 8
   #define AIMER_INSTANCE AIMER_L1_PARAM3
-#elif _AIMER_L == 1 && AIMER_PARAM == 410
+#elif _AIMER_L == 1 && AIMER_PARAM == 4
   #define AIMER_T 13
   #define AIMER_N 1615
   #define AIMER_LOGN 11
@@ -105,6 +112,26 @@
   #define AIMER_N 1621
   #define AIMER_LOGN 11
   #define AIMER_INSTANCE AIMER_L3_PARAM4
+#elif _AIMER_L == 5 && AIMER_PARAM == 1
+  #define AIMER_T 65
+  #define AIMER_N 16
+  #define AIMER_LOGN 4
+  #define AIMER_INSTANCE AIMER_L5_PARAM1
+#elif _AIMER_L == 5 && AIMER_PARAM == 2
+  #define AIMER_T 44
+  #define AIMER_N 62
+  #define AIMER_LOGN 6
+  #define AIMER_INSTANCE AIMER_L5_PARAM2
+#elif _AIMER_L == 5 && AIMER_PARAM == 3
+  #define AIMER_T 33
+  #define AIMER_N 256
+  #define AIMER_LOGN 8
+  #define AIMER_INSTANCE AIMER_L5_PARAM3
+#elif _AIMER_L == 5 && AIMER_PARAM == 4
+  #define AIMER_T 25
+  #define AIMER_N 1623
+  #define AIMER_LOGN 11
+  #define AIMER_INSTANCE AIMER_L5_PARAM4
 #else
   #error  "does not support"
 #endif

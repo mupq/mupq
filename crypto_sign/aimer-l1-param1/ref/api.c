@@ -87,6 +87,7 @@ crypto_sign_open(unsigned char *m, size_t *mlen,
   int ret = 0;
 
   aimer_publickey_t public_key;
+  memset(&public_key, 0, sizeof(aimer_publickey_t));
 
   public_key.params = pk[0];
 
