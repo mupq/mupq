@@ -80,7 +80,7 @@
   #define AIMER_N 256
   #define AIMER_LOGN 8
   #define AIMER_INSTANCE AIMER_L1_PARAM3
-#elif _AIMER_L == 1 && AIMER_PARAM == 4
+#elif _AIMER_L == 1 && AIMER_PARAM == 410
   #define AIMER_T 13
   #define AIMER_N 1615
   #define AIMER_LOGN 11
@@ -90,6 +90,21 @@
   #define AIMER_N 16
   #define AIMER_LOGN 4
   #define AIMER_INSTANCE AIMER_L3_PARAM1
+#elif _AIMER_L == 3 && AIMER_PARAM == 2
+  #define AIMER_T 33
+  #define AIMER_N 64
+  #define AIMER_LOGN 6
+  #define AIMER_INSTANCE AIMER_L3_PARAM2
+#elif _AIMER_L == 3 && AIMER_PARAM == 3
+  #define AIMER_T 25
+  #define AIMER_N 256
+  #define AIMER_LOGN 8
+  #define AIMER_INSTANCE AIMER_L3_PARAM3
+#elif _AIMER_L == 3 && AIMER_PARAM == 4
+  #define AIMER_T 19
+  #define AIMER_N 1621
+  #define AIMER_LOGN 11
+  #define AIMER_INSTANCE AIMER_L3_PARAM4
 #else
   #error  "does not support"
 #endif
