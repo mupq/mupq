@@ -40,6 +40,14 @@
   #define AIMER_BLOCK_SIZE 16
   #define AIMER_NUM_INPUT_SBOXES 2
   #define AIMER_NUM_BITS 128
+#elif _AIMER_L == 3
+  #define AIMER_SALT_SIZE 48
+  #define AIMER_DIGEST_SIZE 48
+  #define AIMER_SEED_SIZE 24
+  #define AIMER_FIELD_SIZE 24
+  #define AIMER_BLOCK_SIZE 24
+  #define AIMER_NUM_INPUT_SBOXES 2
+  #define AIMER_NUM_BITS 192
 #else
   #error  "does not support"
 #endif
@@ -77,6 +85,11 @@
   #define AIMER_N 1615
   #define AIMER_LOGN 11
   #define AIMER_INSTANCE AIMER_L1_PARAM4
+#elif _AIMER_L == 3 && AIMER_PARAM == 1
+  #define AIMER_T 49
+  #define AIMER_N 16
+  #define AIMER_LOGN 4
+  #define AIMER_INSTANCE AIMER_L3_PARAM1
 #else
   #error  "does not support"
 #endif
