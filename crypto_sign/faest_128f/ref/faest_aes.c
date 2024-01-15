@@ -21,11 +21,12 @@ static const bf8_t Rcon[30] = {
     0x2f, 0x5e, 0xbc, 0x63, 0xc6, 0x97, 0x35, 0x6a, 0xd4, 0xb3, 0x7d, 0xfa, 0xef, 0xc5, 0x91,
 };
 
-static bf128_t* column_to_row_major_and_shrink_V_128(uint8_t** v, unsigned int ell) {
+
+static void column_to_row_major_and_shrink_V_128(bf128_t *new_v, uint8_t** v, unsigned int ell) {
   // V is \hat \ell times \lambda matrix over F_2
   // v has \hat \ell rows, \lambda columns, storing in column-major order, new_v has \ell + \lambda
   // rows and \lambda columns storing in row-major order
-  bf128_t* new_v = malloc((ell + sizeof(bf128_t) * 8) * sizeof(bf128_t));
+
   for (unsigned int row = 0; row != ell + sizeof(bf128_t) * 8; ++row) {
     uint8_t new_row[sizeof(bf128_t)] = {0};
     for (unsigned int column = 0; column != sizeof(bf128_t) * 8; ++column) {
@@ -33,15 +34,14 @@ static bf128_t* column_to_row_major_and_shrink_V_128(uint8_t** v, unsigned int e
     }
     new_v[row] = bf128_load(new_row);
   }
-
-  return new_v;
 }
 
-static bf192_t* column_to_row_major_and_shrink_V_192(uint8_t** v, unsigned int ell) {
+
+static void column_to_row_major_and_shrink_V_192(bf192_t *new_v, uint8_t** v, unsigned int ell) {
   // V is \hat \ell times \lambda matrix over F_2
   // v has \hat \ell rows, \lambda columns, storing in column-major order, new_v has \ell + \lambda
   // rows and \lambda columns storing in row-major order
-  bf192_t* new_v = malloc((ell + sizeof(bf192_t) * 8) * sizeof(bf192_t));
+
   for (unsigned int row = 0; row != ell + sizeof(bf192_t) * 8; ++row) {
     uint8_t new_row[sizeof(bf192_t)] = {0};
     for (unsigned int column = 0; column != sizeof(bf192_t) * 8; ++column) {
@@ -49,15 +49,12 @@ static bf192_t* column_to_row_major_and_shrink_V_192(uint8_t** v, unsigned int e
     }
     new_v[row] = bf192_load(new_row);
   }
-
-  return new_v;
 }
 
-static bf256_t* column_to_row_major_and_shrink_V_256(uint8_t** v, unsigned int ell) {
+static void column_to_row_major_and_shrink_V_256(bf256_t *new_v, uint8_t** v, unsigned int ell) {
   // V is \hat \ell times \lambda matrix over F_2
   // v has \hat \ell rows, \lambda columns, storing in column-major order, new_v has \ell + \lambda
   // rows and \lambda columns storing in row-major order
-  bf256_t* new_v = malloc((ell + sizeof(bf256_t) * 8) * sizeof(bf256_t));
   for (unsigned int row = 0; row != ell + sizeof(bf256_t) * 8; ++row) {
     uint8_t new_row[sizeof(bf256_t)] = {0};
     for (unsigned int column = 0; column != sizeof(bf256_t) * 8; ++column) {
@@ -65,8 +62,6 @@ static bf256_t* column_to_row_major_and_shrink_V_256(uint8_t** v, unsigned int e
     }
     new_v[row] = bf256_load(new_row);
   }
-
-  return new_v;
 }
 
 // lambda == 128 implementation
@@ -270,12 +265,12 @@ static void aes_key_schedule_constraints_128(const uint8_t* w, const bf128_t* v,
     aes_key_schedule_forward_128(lambda, NULL, v, 1, 0, NULL, NULL, vk, params);
 
     // Step: 4
-    uint8_t* w_dash = malloc(Ske);
+    uint8_t w_dash[Ske];
     aes_key_schedule_backward_128(1, w + lambdaByte, NULL, k, NULL, 0, 0, NULL, w_dash, NULL,
                                   params);
 
     // Step: 5
-    bf128_t* v_w_dash = malloc(Ske * 8 * sizeof(bf128_t));
+    bf128_t v_w_dash[Ske * 8];
     aes_key_schedule_backward_128(lambda, NULL, v + lambda, NULL, vk, 1, 0, NULL, NULL, v_w_dash,
                                   params);
 
@@ -308,14 +303,12 @@ static void aes_key_schedule_constraints_128(const uint8_t* w, const bf128_t* v,
         iwd = iwd + 128;
       }
     }
-    free(v_w_dash);
-    free(w_dash);
     return;
   }
 
   // Step: 19..20
   aes_key_schedule_forward_128(lambda, NULL, q, 0, 1, delta, NULL, qk, params);
-  bf128_t* q_w_dash = malloc(Ske * 8 * sizeof(bf128_t));
+  bf128_t q_w_dash[Ske * 8];
   aes_key_schedule_backward_128(lambda, NULL, &q[lambda], NULL, qk, 0, 1, delta, NULL, q_w_dash,
                                 params);
 
@@ -342,7 +335,6 @@ static void aes_key_schedule_constraints_128(const uint8_t* w, const bf128_t* v,
       iwd = iwd + 128;
     }
   }
-  free(q_w_dash);
 }
 
 static void aes_enc_forward_128(uint32_t m, const uint8_t* x, const bf128_t* bf_x,
@@ -568,10 +560,10 @@ static void aes_enc_constraints_128(const uint8_t* in, const uint8_t* out, const
   const unsigned int Senc   = params->faest_param.Senc;
 
   if (Mkey == 0) {
-    bf128_t* s       = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* vs      = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* s_dash  = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* vs_dash = malloc(sizeof(bf128_t) * Senc);
+    bf128_t s[Senc];
+    bf128_t vs[Senc];
+    bf128_t s_dash[Senc];
+    bf128_t vs_dash[Senc];
     aes_enc_forward_128(1, w, NULL, k, NULL, in, 0, 0, NULL, s, params);
     aes_enc_forward_128(lambda, NULL, v, NULL, vk, in, 1, 0, NULL, vs, params);
     aes_enc_backward_128(1, w, NULL, k, NULL, 0, 0, NULL, out, s_dash, params);
@@ -584,14 +576,10 @@ static void aes_enc_constraints_128(const uint8_t* in, const uint8_t* out, const
           bf128_one());
     }
 
-    free(vs_dash);
-    free(s_dash);
-    free(vs);
-    free(s);
   } else {
     // Step: 11..12
-    bf128_t* qs      = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* qs_dash = malloc(sizeof(bf128_t) * Senc);
+    bf128_t qs[Senc];
+    bf128_t qs_dash[Senc];
     aes_enc_forward_128(lambda, NULL, q, NULL, qk, in, 0, 1, delta, qs, params);
     aes_enc_backward_128(lambda, NULL, q, NULL, qk, 0, 1, delta, out, qs_dash, params);
 
@@ -600,8 +588,6 @@ static void aes_enc_constraints_128(const uint8_t* in, const uint8_t* out, const
     for (uint32_t j = 0; j < Senc; j++) {
       B[j] = bf128_add(bf128_mul(qs[j], qs_dash[j]), minus_part);
     }
-    free(qs);
-    free(qs_dash);
   }
 }
 
@@ -617,7 +603,8 @@ static void aes_prove_128(const uint8_t* w, const uint8_t* u, uint8_t** V, const
   const unsigned int Senc = params->faest_param.Senc;
 
   // Step: 1..2
-  bf128_t* bf_v = column_to_row_major_and_shrink_V_128(V, l);
+  bf128_t bf_v[l + sizeof(bf128_t) * 8];
+  column_to_row_major_and_shrink_V_128(bf_v, V, l);
 
   // Step: 3..4
   // do nothing
@@ -625,11 +612,11 @@ static void aes_prove_128(const uint8_t* w, const uint8_t* u, uint8_t** V, const
 
   // Step: 7
   const unsigned int length_a = Ske + (beta * Senc) + 1;
-  bf128_t* A0                 = malloc(sizeof(bf128_t) * length_a);
-  bf128_t* A1                 = malloc(sizeof(bf128_t) * length_a);
-  uint8_t* k                  = malloc((R + 1) * 128 / 8);
-  bf128_t* vk                 = malloc(sizeof(bf128_t) * ((R + 1) * 128));
-  bf128_t* qk                 = malloc(sizeof(bf128_t) * ((R + 1) * 128));
+  bf128_t A0[length_a];
+  bf128_t A1[length_a];
+  uint8_t k[(R + 1) * 128 / 8];
+  bf128_t vk[((R + 1) * 128)];
+  bf128_t qk[((R + 1) * 128)];
   if (Lke > 0) {
     aes_key_schedule_constraints_128(w, bf_v, 0, NULL, NULL, A0, A1, k, vk, NULL, qk, params);
   }
@@ -647,20 +634,13 @@ static void aes_prove_128(const uint8_t* w, const uint8_t* u, uint8_t** V, const
     aes_enc_constraints_128(in + 16, out + 16, w + (Lke + Lenc) / 8, bf_v + Lke + Lenc, k, vk, 0,
                             NULL, NULL, NULL, A0 + (Ske + Senc), A1 + (Ske + Senc), NULL, params);
   }
-  free(qk);
-  free(vk);
-  free(k);
 
   // Step: 16..18
   A1[length_a - 1] = bf128_load(u + l / 8);
   A0[length_a - 1] = bf128_sum_poly(bf_v + l);
-  free(bf_v);
 
   zk_hash_128(a_tilde, chall, A1, length_a - 1);
   zk_hash_128(b_tilde, chall, A0, length_a - 1);
-
-  free(A0);
-  free(A1);
 }
 
 static uint8_t* aes_verify_128(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
@@ -699,14 +679,15 @@ static uint8_t* aes_verify_128(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
   }
 
   // Step: 11..12
-  bf128_t* bf_q = column_to_row_major_and_shrink_V_128(Q, l);
+  bf128_t bf_q[l + sizeof(bf128_t) * 8];
+  column_to_row_major_and_shrink_V_128(bf_q, Q, l);
 
   // Step: 13
   const unsigned int length_b = Ske + (beta * Senc) + 1;
-  uint8_t* k                  = malloc((R + 1) * 128);
-  bf128_t* vk                 = malloc(sizeof(bf128_t) * ((R + 1) * 128));
-  bf128_t* qk                 = malloc(sizeof(bf128_t) * ((R + 1) * 128));
-  bf128_t* B_0                = malloc(sizeof(bf128_t) * length_b);
+  uint8_t k  [(R + 1) * 128];
+  bf128_t vk [((R + 1) * 128)];
+  bf128_t qk [((R + 1) * 128)];
+  bf128_t B_0[length_b];
   if (Lke > 0) {
     aes_key_schedule_constraints_128(NULL, NULL, 1, bf_q, delta, NULL, NULL, k, vk, B_0, qk,
                                      params);
@@ -723,18 +704,13 @@ static uint8_t* aes_verify_128(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
     aes_enc_constraints_128(in + 16, out + 16, NULL, NULL, NULL, NULL, 1, bf_q + (Lke + Lenc), qk,
                             delta, NULL, NULL, B_2, params);
   }
-  free(qk);
-  free(vk);
-  free(k);
 
   // Step: 20
   B_0[length_b - 1] = bf128_sum_poly(bf_q + l);
-  free(bf_q);
 
   // Step 21
   uint8_t* q_tilde = malloc(lambdaBytes);
   zk_hash_128(q_tilde, chall_2, B_0, length_b - 1);
-  free(B_0);
 
   bf128_t bf_qtilde = bf128_load(q_tilde);
   bf128_store(q_tilde, bf128_add(bf_qtilde, bf128_mul(bf128_load(a_tilde), bf128_load(delta))));
@@ -942,12 +918,12 @@ static void aes_key_schedule_constraints_192(const uint8_t* w, const bf192_t* v,
     aes_key_schedule_forward_192(lambda, NULL, v, 1, 0, NULL, NULL, vk, params);
 
     // Step: 4
-    uint8_t* w_dash = malloc(Ske);
+    uint8_t w_dash[Ske];
     aes_key_schedule_backward_192(1, w + lambdaByte, NULL, k, NULL, 0, 0, NULL, w_dash, NULL,
                                   params);
 
     // Step: 5
-    bf192_t* v_w_dash = malloc(Ske * 8 * sizeof(bf192_t));
+    bf192_t v_w_dash[Ske * 8];
     aes_key_schedule_backward_192(lambda, NULL, v + lambda, NULL, vk, 1, 0, NULL, NULL, v_w_dash,
                                   params);
 
@@ -980,14 +956,12 @@ static void aes_key_schedule_constraints_192(const uint8_t* w, const bf192_t* v,
         iwd = iwd + 128;
       }
     }
-    free(v_w_dash);
-    free(w_dash);
     return;
   }
 
   // Step: 19..20
   aes_key_schedule_forward_192(lambda, NULL, q, 0, 1, delta, NULL, qk, params);
-  bf192_t* q_w_dash = malloc(Ske * 8 * sizeof(bf192_t));
+  bf192_t q_w_dash[Ske * 8];
   aes_key_schedule_backward_192(lambda, NULL, &q[lambda], NULL, qk, 0, 1, delta, NULL, q_w_dash,
                                 params);
 
@@ -1014,7 +988,6 @@ static void aes_key_schedule_constraints_192(const uint8_t* w, const bf192_t* v,
       iwd = iwd + 128;
     }
   }
-  free(q_w_dash);
 }
 
 static void aes_enc_forward_192(uint32_t m, const uint8_t* x, const bf192_t* bf_x,
@@ -1241,10 +1214,10 @@ static void aes_enc_constraints_192(const uint8_t* in, const uint8_t* out, const
   const unsigned int Senc   = params->faest_param.Senc;
 
   if (Mkey == 0) {
-    bf192_t* s       = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* vs      = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* s_dash  = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* vs_dash = malloc(sizeof(bf192_t) * Senc);
+    bf192_t s[Senc];
+    bf192_t vs[Senc];
+    bf192_t s_dash[Senc];
+    bf192_t vs_dash[Senc];
     aes_enc_forward_192(1, w, NULL, k, NULL, in, 0, 0, NULL, s, params);
     aes_enc_forward_192(lambda, NULL, v, NULL, vk, in, 1, 0, NULL, vs, params);
     aes_enc_backward_192(1, w, NULL, k, NULL, 0, 0, NULL, out, s_dash, params);
@@ -1256,15 +1229,10 @@ static void aes_enc_constraints_192(const uint8_t* in, const uint8_t* out, const
           bf192_add(bf192_mul(bf192_add(s[j], vs[j]), bf192_add(s_dash[j], vs_dash[j])), A0[j]),
           bf192_one());
     }
-
-    free(vs_dash);
-    free(s_dash);
-    free(vs);
-    free(s);
   } else {
     // Step: 11..12
-    bf192_t* qs      = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* qs_dash = malloc(sizeof(bf192_t) * Senc);
+    bf192_t qs[Senc];
+    bf192_t qs_dash[Senc];
     aes_enc_forward_192(lambda, NULL, q, NULL, qk, in, 0, 1, delta, qs, params);
     aes_enc_backward_192(lambda, NULL, q, NULL, qk, 0, 1, delta, out, qs_dash, params);
 
@@ -1273,8 +1241,6 @@ static void aes_enc_constraints_192(const uint8_t* in, const uint8_t* out, const
     for (uint32_t j = 0; j < Senc; j++) {
       B[j] = bf192_add(bf192_mul(qs[j], qs_dash[j]), minus_part);
     }
-    free(qs);
-    free(qs_dash);
   }
 }
 
@@ -1290,7 +1256,8 @@ static void aes_prove_192(const uint8_t* w, const uint8_t* u, uint8_t** V, const
   const unsigned int Senc = params->faest_param.Senc;
 
   // Step: 1..2
-  bf192_t* bf_v = column_to_row_major_and_shrink_V_192(V, l);
+  bf192_t bf_v[(l + sizeof(bf192_t) * 8)];
+  column_to_row_major_and_shrink_V_192(bf_v, V, l);
 
   // Step: 3..4
   // do nothing
@@ -1298,11 +1265,11 @@ static void aes_prove_192(const uint8_t* w, const uint8_t* u, uint8_t** V, const
 
   // Step: 7
   const unsigned int length_a = Ske + (beta * Senc) + 1;
-  bf192_t* A0                 = malloc(sizeof(bf192_t) * length_a);
-  bf192_t* A1                 = malloc(sizeof(bf192_t) * length_a);
-  uint8_t* k                  = malloc((R + 1) * 128 / 8);
-  bf192_t* vk                 = malloc(sizeof(bf192_t) * ((R + 1) * 128));
-  bf192_t* qk                 = malloc(sizeof(bf192_t) * ((R + 1) * 128));
+  bf192_t A0[length_a];
+  bf192_t A1[length_a];
+  uint8_t k [((R + 1) * 128 / 8)];
+  bf192_t vk[((R + 1) * 128)];
+  bf192_t qk[((R + 1) * 128)];
   if (Lke > 0) {
     aes_key_schedule_constraints_192(w, bf_v, 0, NULL, NULL, A0, A1, k, vk, NULL, qk, params);
   }
@@ -1320,20 +1287,12 @@ static void aes_prove_192(const uint8_t* w, const uint8_t* u, uint8_t** V, const
     aes_enc_constraints_192(in + 16, out + 16, w + (Lke + Lenc) / 8, bf_v + Lke + Lenc, k, vk, 0,
                             NULL, NULL, NULL, A0 + (Ske + Senc), A1 + (Ske + Senc), NULL, params);
   }
-  free(qk);
-  free(vk);
-  free(k);
-
   // Step: 16..18
   A1[length_a - 1] = bf192_load(u + l / 8);
   A0[length_a - 1] = bf192_sum_poly(bf_v + l);
-  free(bf_v);
 
   zk_hash_192(a_tilde, chall, A1, length_a - 1);
   zk_hash_192(b_tilde, chall, A0, length_a - 1);
-
-  free(A0);
-  free(A1);
 }
 
 static uint8_t* aes_verify_192(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
@@ -1372,14 +1331,15 @@ static uint8_t* aes_verify_192(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
   }
 
   // Step: 11..12
-  bf192_t* bf_q = column_to_row_major_and_shrink_V_192(Q, l);
+  bf192_t bf_q[(l + sizeof(bf192_t) * 8)];
+  column_to_row_major_and_shrink_V_192(bf_q, Q, l);
 
   // Step: 13
   const unsigned int length_b = Ske + (beta * Senc) + 1;
-  uint8_t* k                  = malloc((R + 1) * 128);
-  bf192_t* vk                 = malloc(sizeof(bf192_t) * ((R + 1) * 128));
-  bf192_t* qk                 = malloc(sizeof(bf192_t) * ((R + 1) * 128));
-  bf192_t* B_0                = malloc(sizeof(bf192_t) * length_b);
+  uint8_t k[(R + 1) * 128];
+  bf192_t vk[((R + 1) * 128)];
+  bf192_t qk[((R + 1) * 128)];
+  bf192_t B_0[length_b];
   if (Lke > 0) {
     aes_key_schedule_constraints_192(NULL, NULL, 1, bf_q, delta, NULL, NULL, k, vk, B_0, qk,
                                      params);
@@ -1396,18 +1356,13 @@ static uint8_t* aes_verify_192(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
     aes_enc_constraints_192(in + 16, out + 16, NULL, NULL, NULL, NULL, 1, bf_q + (Lke + Lenc), qk,
                             delta, NULL, NULL, B_2, params);
   }
-  free(qk);
-  free(vk);
-  free(k);
 
   // Step: 20
   B_0[length_b - 1] = bf192_sum_poly(bf_q + l);
-  free(bf_q);
 
   // Step 21
   uint8_t* q_tilde = malloc(lambdaBytes);
   zk_hash_192(q_tilde, chall_2, B_0, length_b - 1);
-  free(B_0);
 
   bf192_t bf_qtilde = bf192_load(q_tilde);
   bf192_store(q_tilde, bf192_add(bf_qtilde, bf192_mul(bf192_load(a_tilde), bf192_load(delta))));
@@ -1619,12 +1574,12 @@ static void aes_key_schedule_constraints_256(const uint8_t* w, const bf256_t* v,
     aes_key_schedule_forward_256(lambda, NULL, v, 1, 0, NULL, NULL, vk, params);
 
     // Step: 4
-    uint8_t* w_dash = malloc(Ske);
+    uint8_t w_dash[Ske];
     aes_key_schedule_backward_256(1, w + lambdaByte, NULL, k, NULL, 0, 0, NULL, w_dash, NULL,
                                   params);
 
     // Step: 5
-    bf256_t* v_w_dash = malloc(Ske * 8 * sizeof(bf256_t));
+    bf256_t v_w_dash[Ske * 8];
     aes_key_schedule_backward_256(lambda, NULL, v + lambda, NULL, vk, 1, 0, NULL, NULL, v_w_dash,
                                   params);
 
@@ -1667,14 +1622,12 @@ static void aes_key_schedule_constraints_256(const uint8_t* w, const bf256_t* v,
         }
       }
     }
-    free(v_w_dash);
-    free(w_dash);
     return;
   }
 
   // Step: 19..20
   aes_key_schedule_forward_256(lambda, NULL, q, 0, 1, delta, NULL, qk, params);
-  bf256_t* q_w_dash = malloc(Ske * 8 * sizeof(bf256_t));
+  bf256_t q_w_dash[Ske * 8];
   aes_key_schedule_backward_256(lambda, NULL, &q[lambda], NULL, qk, 0, 1, delta, NULL, q_w_dash,
                                 params);
 
@@ -1709,7 +1662,6 @@ static void aes_key_schedule_constraints_256(const uint8_t* w, const bf256_t* v,
       }
     }
   }
-  free(q_w_dash);
 }
 
 static void aes_enc_forward_256(uint32_t m, const uint8_t* x, const bf256_t* bf_x,
@@ -1935,10 +1887,10 @@ static void aes_enc_constraints_256(const uint8_t* in, const uint8_t* out, const
   const unsigned int Senc   = params->faest_param.Senc;
 
   if (Mkey == 0) {
-    bf256_t* s       = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* vs      = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* s_dash  = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* vs_dash = malloc(sizeof(bf256_t) * Senc);
+    bf256_t s[Senc];
+    bf256_t vs[Senc];
+    bf256_t s_dash[Senc];
+    bf256_t vs_dash[Senc];
     aes_enc_forward_256(1, w, NULL, k, NULL, in, 0, 0, NULL, s, params);
     aes_enc_forward_256(lambda, NULL, v, NULL, vk, in, 1, 0, NULL, vs, params);
     aes_enc_backward_256(1, w, NULL, k, NULL, 0, 0, NULL, out, s_dash, params);
@@ -1950,15 +1902,10 @@ static void aes_enc_constraints_256(const uint8_t* in, const uint8_t* out, const
           bf256_add(bf256_mul(bf256_add(s[j], vs[j]), bf256_add(s_dash[j], vs_dash[j])), A0[j]),
           bf256_one());
     }
-
-    free(vs_dash);
-    free(s_dash);
-    free(vs);
-    free(s);
   } else {
     // Step: 11..12
-    bf256_t* qs      = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* qs_dash = malloc(sizeof(bf256_t) * Senc);
+    bf256_t qs[Senc];
+    bf256_t qs_dash[Senc];
     aes_enc_forward_256(lambda, NULL, q, NULL, qk, in, 0, 1, delta, qs, params);
     aes_enc_backward_256(lambda, NULL, q, NULL, qk, 0, 1, delta, out, qs_dash, params);
 
@@ -1967,8 +1914,6 @@ static void aes_enc_constraints_256(const uint8_t* in, const uint8_t* out, const
     for (uint32_t j = 0; j < Senc; j++) {
       B[j] = bf256_add(bf256_mul(qs[j], qs_dash[j]), minus_part);
     }
-    free(qs);
-    free(qs_dash);
   }
 }
 
@@ -1984,7 +1929,8 @@ static void aes_prove_256(const uint8_t* w, const uint8_t* u, uint8_t** V, const
   const unsigned int Senc = params->faest_param.Senc;
 
   // Step: 1..2
-  bf256_t* bf_v = column_to_row_major_and_shrink_V_256(V, l);
+  bf256_t bf_v[(l + sizeof(bf256_t) * 8)];
+  column_to_row_major_and_shrink_V_256(bf_v, V, l);
 
   // Step: 3..4
   // do nothing
@@ -1992,11 +1938,11 @@ static void aes_prove_256(const uint8_t* w, const uint8_t* u, uint8_t** V, const
 
   // Step: 7
   const unsigned int length_a = Ske + (beta * Senc) + 1;
-  bf256_t* A0                 = malloc(sizeof(bf256_t) * length_a);
-  bf256_t* A1                 = malloc(sizeof(bf256_t) * length_a);
-  uint8_t* k                  = malloc((R + 1) * 128 / 8);
-  bf256_t* vk                 = malloc(sizeof(bf256_t) * ((R + 1) * 128));
-  bf256_t* qk                 = malloc(sizeof(bf256_t) * ((R + 1) * 128));
+  bf256_t A0[length_a];
+  bf256_t A1[length_a];
+  uint8_t k [(R + 1) * 128 / 8];
+  bf256_t vk[((R + 1) * 128)];
+  bf256_t qk[((R + 1) * 128)];
   if (Lke > 0) {
     aes_key_schedule_constraints_256(w, bf_v, 0, NULL, NULL, A0, A1, k, vk, NULL, qk, params);
   }
@@ -2014,20 +1960,13 @@ static void aes_prove_256(const uint8_t* w, const uint8_t* u, uint8_t** V, const
     aes_enc_constraints_256(in + 16, out + 16, w + (Lke + Lenc) / 8, bf_v + Lke + Lenc, k, vk, 0,
                             NULL, NULL, NULL, A0 + (Ske + Senc), A1 + (Ske + Senc), NULL, params);
   }
-  free(qk);
-  free(vk);
-  free(k);
 
   // Step: 16..18
   A1[length_a - 1] = bf256_load(u + l / 8);
   A0[length_a - 1] = bf256_sum_poly(bf_v + l);
-  free(bf_v);
 
   zk_hash_256(a_tilde, chall, A1, length_a - 1);
   zk_hash_256(b_tilde, chall, A0, length_a - 1);
-
-  free(A0);
-  free(A1);
 }
 
 static uint8_t* aes_verify_256(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
@@ -2066,14 +2005,15 @@ static uint8_t* aes_verify_256(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
   }
 
   // Step: 11..12
-  bf256_t* bf_q = column_to_row_major_and_shrink_V_256(Q, l);
+  bf256_t bf_q[(l + sizeof(bf256_t) * 8)];
+  column_to_row_major_and_shrink_V_256(bf_q, Q, l);
 
   // Step: 13
   const unsigned int length_b = Ske + (beta * Senc) + 1;
-  uint8_t* k                  = malloc((R + 1) * 128);
-  bf256_t* vk                 = malloc(sizeof(bf256_t) * ((R + 1) * 128));
-  bf256_t* qk                 = malloc(sizeof(bf256_t) * ((R + 1) * 128));
-  bf256_t* B_0                = malloc(sizeof(bf256_t) * length_b);
+  uint8_t k[((R + 1) * 128)];
+  bf256_t vk[((R + 1) * 128)];
+  bf256_t qk[((R + 1) * 128)];
+  bf256_t B_0[length_b];
   if (Lke > 0) {
     aes_key_schedule_constraints_256(NULL, NULL, 1, bf_q, delta, NULL, NULL, k, vk, B_0, qk,
                                      params);
@@ -2090,18 +2030,13 @@ static uint8_t* aes_verify_256(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
     aes_enc_constraints_256(in + 16, out + 16, NULL, NULL, NULL, NULL, 1, bf_q + (Lke + Lenc), qk,
                             delta, NULL, NULL, B_2, params);
   }
-  free(qk);
-  free(vk);
-  free(k);
 
   // Step: 20
   B_0[length_b - 1] = bf256_sum_poly(bf_q + l);
-  free(bf_q);
 
   // Step 21
   uint8_t* q_tilde = malloc(lambdaBytes);
   zk_hash_256(q_tilde, chall_2, B_0, length_b - 1);
-  free(B_0);
 
   bf256_t bf_qtilde = bf256_load(q_tilde);
   bf256_store(q_tilde, bf256_add(bf_qtilde, bf256_mul(bf256_load(a_tilde), bf256_load(delta))));
@@ -2320,10 +2255,10 @@ static void em_enc_constraints_128(const uint8_t* out, const uint8_t* x, const u
     uint8_t* w_out = malloc(lambda / 8);
     xorUint8Arr(out, w, w_out, lambda / 8);
 
-    bf128_t* bf_s       = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* bf_vs      = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* bf_s_dash  = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* bf_vs_dash = malloc(sizeof(bf128_t) * Senc);
+    bf128_t bf_s[Senc];
+    bf128_t bf_vs[Senc];
+    bf128_t bf_s_dash[Senc];
+    bf128_t bf_vs_dash[Senc];
     em_enc_forward_128(1, w, NULL, x, NULL, 0, 0, NULL, bf_s, params);
     em_enc_forward_128(lambda, NULL, bf_v, NULL, NULL, 1, 0, NULL, bf_vs, params);
     em_enc_backward_128(1, w, NULL, x, NULL, w_out, NULL, 0, 0, NULL, bf_s_dash, params);
@@ -2336,40 +2271,31 @@ static void em_enc_constraints_128(const uint8_t* out, const uint8_t* x, const u
                     A0[j]),
           bf128_one());
     }
-    free(bf_vs_dash);
-    free(bf_s_dash);
-    free(bf_vs);
-    free(bf_s);
-    free(w_out);
   } else {
     // Step: 18, 19
     const bf128_t bf_delta = bf128_load(delta);
-    bf128_t* bf_x          = malloc(sizeof(bf128_t) * 128 * (R + 1));
+    bf128_t bf_x[128 * (R + 1)];
     for (uint32_t i = 0; i < 128 * (R + 1); i++) {
       bf_x[i] = bf128_mul(bf128_from_bit(ptr_get_bit(x, i)), bf_delta);
     }
 
     // Step 21
-    bf128_t* bf_q_out = malloc(sizeof(bf128_t) * lambda);
+    bf128_t bf_q_out[lambda];
     for (uint32_t i = 0; i < lambda; i++) {
       bf_q_out[i] = bf128_add(bf128_mul(bf128_from_bf8(ptr_get_bit(out, i)), bf_delta), bf_q[i]);
     }
 
-    bf128_t* bf_qs      = malloc(sizeof(bf128_t) * Senc);
-    bf128_t* bf_qs_dash = malloc(sizeof(bf128_t) * Senc);
+    bf128_t bf_qs[Senc];
+    bf128_t bf_qs_dash[Senc];
     em_enc_forward_128(lambda, NULL, bf_q, NULL, bf_x, 0, 1, delta, bf_qs, params);
     em_enc_backward_128(lambda, NULL, bf_q, NULL, bf_x, NULL, bf_q_out, 0, 1, delta, bf_qs_dash,
                         params);
-    free(bf_q_out);
 
     // Step: 13..14
     bf128_t minus_part = bf128_mul(bf_delta, bf_delta);
     for (uint32_t j = 0; j < Senc; j++) {
       B[j] = bf128_add(bf128_mul(bf_qs[j], bf_qs_dash[j]), minus_part);
     }
-    free(bf_qs);
-    free(bf_qs_dash);
-    free(bf_x);
   }
 }
 
@@ -2382,7 +2308,7 @@ static void em_prove_128(const uint8_t* w, const uint8_t* u, uint8_t** V, const 
   const unsigned int lambda = params->faest_param.lambda;
 
   // copy expanded key in to an array
-  uint8_t* x = malloc(lambda * (R + 1) / 8);
+  uint8_t x[lambda * (R + 1) / 8];
   {
     aes_round_keys_t round_keys;
     aes128_init_round_keys(&round_keys, in);
@@ -2395,23 +2321,19 @@ static void em_prove_128(const uint8_t* w, const uint8_t* u, uint8_t** V, const 
     }
   }
 
-  bf128_t* bf_v = column_to_row_major_and_shrink_V_128(V, Lenc);
+  bf128_t bf_v[Lenc + sizeof(bf128_t) * 8];
+  column_to_row_major_and_shrink_V_128(bf_v, V, Lenc);
 
   const unsigned int length_a = Senc + 1;
-  bf128_t* A0                 = malloc(sizeof(bf128_t) * length_a);
-  bf128_t* A1                 = malloc(sizeof(bf128_t) * length_a);
+  bf128_t A0[length_a];
+  bf128_t A1[length_a];
   em_enc_constraints_128(out, x, w, bf_v, 0, NULL, NULL, A0, A1, NULL, params);
-  free(x);
 
   A1[length_a - 1] = bf128_load(u + Lenc / 8);
   A0[length_a - 1] = bf128_sum_poly(bf_v + Lenc);
-  free(bf_v);
 
   zk_hash_128(a_tilde, chall, A1, length_a - 1);
   zk_hash_128(b_tilde, chall, A0, length_a - 1);
-
-  free(A0);
-  free(A1);
 }
 
 static uint8_t* em_verify_128(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
@@ -2441,10 +2363,11 @@ static uint8_t* em_verify_128(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
     }
   }
 
-  bf128_t* bf_q = column_to_row_major_and_shrink_V_128(Q, Lenc);
+  bf128_t bf_q[Lenc + sizeof(bf128_t) * 8];
+  column_to_row_major_and_shrink_V_128(bf_q, Q, Lenc);
 
   // copy expanded key in to an array
-  uint8_t* x = malloc(lambda * (R + 1) / 8);
+  uint8_t x[lambda * (R + 1) / 8];
   {
     aes_round_keys_t round_keys;
     aes128_init_round_keys(&round_keys, in);
@@ -2458,17 +2381,14 @@ static uint8_t* em_verify_128(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
   }
 
   const unsigned int length_b = Senc + 1;
-  bf128_t* B                  = malloc(sizeof(bf128_t) * length_b);
+  bf128_t B[length_b];
 
   em_enc_constraints_128(out, x, NULL, NULL, 1, bf_q, delta, NULL, NULL, B, params);
-  free(x);
 
   B[length_b - 1] = bf128_sum_poly(bf_q + Lenc);
-  free(bf_q);
 
   uint8_t* q_tilde = malloc(lambdaBytes);
   zk_hash_128(q_tilde, chall_2, B, length_b - 1);
-  free(B);
 
   bf128_t bf_qtilde = bf128_load(q_tilde);
   bf128_store(q_tilde, bf128_add(bf_qtilde, bf128_mul(bf128_load(a_tilde), bf128_load(delta))));
@@ -2684,13 +2604,13 @@ static void em_enc_constraints_192(const uint8_t* out, const uint8_t* x, const u
 
   if (Mkey == 0) {
     // Step 6
-    uint8_t* w_out = malloc(lambda / 8);
+    uint8_t w_out[lambda / 8];
     xorUint8Arr(out, w, w_out, lambda / 8);
 
-    bf192_t* bf_s       = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* bf_vs      = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* bf_s_dash  = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* bf_vs_dash = malloc(sizeof(bf192_t) * Senc);
+    bf192_t bf_s[Senc];
+    bf192_t bf_vs[Senc];
+    bf192_t bf_s_dash[Senc];
+    bf192_t bf_vs_dash[Senc];
     em_enc_forward_192(1, w, NULL, x, NULL, 0, 0, NULL, bf_s, params);
     em_enc_forward_192(lambda, NULL, bf_v, NULL, NULL, 1, 0, NULL, bf_vs, params);
     em_enc_backward_192(1, w, NULL, x, NULL, w_out, NULL, 0, 0, NULL, bf_s_dash, params);
@@ -2703,40 +2623,31 @@ static void em_enc_constraints_192(const uint8_t* out, const uint8_t* x, const u
                     A0[j]),
           bf192_one());
     }
-    free(bf_vs_dash);
-    free(bf_s_dash);
-    free(bf_vs);
-    free(bf_s);
-    free(w_out);
   } else {
     // Step: 18, 19
     const bf192_t bf_delta = bf192_load(delta);
-    bf192_t* bf_x          = malloc(sizeof(bf192_t) * 32 * Nst * (R + 1));
+    bf192_t bf_x[32 * Nst * (R + 1)];
     for (uint32_t i = 0; i < 32 * Nst * (R + 1); i++) {
       bf_x[i] = bf192_mul(bf192_from_bit(ptr_get_bit(x, i)), bf_delta);
     }
 
     // Step 21
-    bf192_t* bf_q_out = malloc(sizeof(bf192_t) * lambda);
+    bf192_t bf_q_out[lambda];
     for (uint32_t i = 0; i < lambda; i++) {
       bf_q_out[i] = bf192_add(bf192_mul(bf192_from_bf8(ptr_get_bit(out, i)), bf_delta), bf_q[i]);
     }
 
-    bf192_t* bf_qs      = malloc(sizeof(bf192_t) * Senc);
-    bf192_t* bf_qs_dash = malloc(sizeof(bf192_t) * Senc);
+    bf192_t bf_qs[Senc];
+    bf192_t bf_qs_dash[Senc];
     em_enc_forward_192(lambda, NULL, bf_q, NULL, bf_x, 0, 1, delta, bf_qs, params);
     em_enc_backward_192(lambda, NULL, bf_q, NULL, bf_x, NULL, bf_q_out, 0, 1, delta, bf_qs_dash,
                         params);
-    free(bf_q_out);
 
     // Step: 13..14
     bf192_t minus_part = bf192_mul(bf_delta, bf_delta);
     for (uint32_t j = 0; j < Senc; j++) {
       B[j] = bf192_add(bf192_mul(bf_qs[j], bf_qs_dash[j]), minus_part);
     }
-    free(bf_qs);
-    free(bf_qs_dash);
-    free(bf_x);
   }
 }
 
@@ -2749,7 +2660,7 @@ static void em_prove_192(const uint8_t* w, const uint8_t* u, uint8_t** V, const 
   const unsigned int lambda = params->faest_param.lambda;
 
   // copy expanded key in to an array
-  uint8_t* x = malloc(lambda * (R + 1) / 8);
+  uint8_t x[lambda * (R + 1) / 8];
   {
     aes_round_keys_t round_keys;
     rijndael192_init_round_keys(&round_keys, in);
@@ -2762,23 +2673,19 @@ static void em_prove_192(const uint8_t* w, const uint8_t* u, uint8_t** V, const 
     }
   }
 
-  bf192_t* bf_v = column_to_row_major_and_shrink_V_192(V, Lenc);
+  bf192_t bf_v[(Lenc + sizeof(bf192_t) * 8)];
+  column_to_row_major_and_shrink_V_192(bf_v, V, Lenc);
 
   const unsigned int length_a = Senc + 1;
-  bf192_t* A0                 = malloc(sizeof(bf192_t) * length_a);
-  bf192_t* A1                 = malloc(sizeof(bf192_t) * length_a);
+  bf192_t A0[length_a];
+  bf192_t A1[length_a];
   em_enc_constraints_192(out, x, w, bf_v, 0, NULL, NULL, A0, A1, NULL, params);
-  free(x);
 
   A1[length_a - 1] = bf192_load(u + Lenc / 8);
   A0[length_a - 1] = bf192_sum_poly(bf_v + Lenc);
-  free(bf_v);
 
   zk_hash_192(a_tilde, chall, A1, length_a - 1);
   zk_hash_192(b_tilde, chall, A0, length_a - 1);
-
-  free(A0);
-  free(A1);
 }
 
 static uint8_t* em_verify_192(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
@@ -2808,10 +2715,11 @@ static uint8_t* em_verify_192(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
     }
   }
 
-  bf192_t* bf_q = column_to_row_major_and_shrink_V_192(Q, Lenc);
+  bf192_t bf_q[(Lenc + sizeof(bf192_t) * 8)];
+  column_to_row_major_and_shrink_V_192(bf_q, Q, Lenc);
 
   // copy expanded key in to an array
-  uint8_t* x = malloc(lambda * (R + 1) / 8);
+  uint8_t x[lambda * (R + 1) / 8];
   {
     aes_round_keys_t round_keys;
     rijndael192_init_round_keys(&round_keys, in);
@@ -2825,17 +2733,14 @@ static uint8_t* em_verify_192(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
   }
 
   const unsigned int length_b = Senc + 1;
-  bf192_t* B                  = malloc(sizeof(bf192_t) * length_b);
+  bf192_t B[length_b];
 
   em_enc_constraints_192(out, x, NULL, NULL, 1, bf_q, delta, NULL, NULL, B, params);
-  free(x);
 
   B[length_b - 1] = bf192_sum_poly(bf_q + Lenc);
-  free(bf_q);
 
   uint8_t* q_tilde = malloc(lambdaBytes);
   zk_hash_192(q_tilde, chall_2, B, length_b - 1);
-  free(B);
 
   bf192_t bf_qtilde = bf192_load(q_tilde);
   bf192_store(q_tilde, bf192_add(bf_qtilde, bf192_mul(bf192_load(a_tilde), bf192_load(delta))));
@@ -3051,13 +2956,13 @@ static void em_enc_constraints_256(const uint8_t* out, const uint8_t* x, const u
 
   if (Mkey == 0) {
     // Step 6
-    uint8_t* w_out = malloc(lambda / 8);
+    uint8_t w_out[lambda / 8];
     xorUint8Arr(out, w, w_out, lambda / 8);
 
-    bf256_t* bf_s       = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* bf_vs      = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* bf_s_dash  = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* bf_vs_dash = malloc(sizeof(bf256_t) * Senc);
+    bf256_t bf_s[Senc];
+    bf256_t bf_vs[Senc];
+    bf256_t bf_s_dash[Senc];
+    bf256_t bf_vs_dash[Senc];
     em_enc_forward_256(1, w, NULL, x, NULL, 0, 0, NULL, bf_s, params);
     em_enc_forward_256(lambda, NULL, bf_v, NULL, NULL, 1, 0, NULL, bf_vs, params);
     em_enc_backward_256(1, w, NULL, x, NULL, w_out, NULL, 0, 0, NULL, bf_s_dash, params);
@@ -3070,40 +2975,31 @@ static void em_enc_constraints_256(const uint8_t* out, const uint8_t* x, const u
                     A0[j]),
           bf256_one());
     }
-    free(bf_vs_dash);
-    free(bf_s_dash);
-    free(bf_vs);
-    free(bf_s);
-    free(w_out);
   } else {
     // Step: 18, 19
     const bf256_t bf_delta = bf256_load(delta);
-    bf256_t* bf_x          = malloc(sizeof(bf256_t) * 32 * Nst * (R + 1));
+    bf256_t bf_x[32 * Nst * (R + 1)];
     for (uint32_t i = 0; i < 32 * Nst * (R + 1); i++) {
       bf_x[i] = bf256_mul(bf256_from_bit(ptr_get_bit(x, i)), bf_delta);
     }
 
     // Step 21
-    bf256_t* bf_q_out = malloc(sizeof(bf256_t) * lambda);
+    bf256_t bf_q_out[lambda];
     for (uint32_t i = 0; i < lambda; i++) {
       bf_q_out[i] = bf256_add(bf256_mul(bf256_from_bf8(ptr_get_bit(out, i)), bf_delta), bf_q[i]);
     }
 
-    bf256_t* bf_qs      = malloc(sizeof(bf256_t) * Senc);
-    bf256_t* bf_qs_dash = malloc(sizeof(bf256_t) * Senc);
+    bf256_t bf_qs[Senc];
+    bf256_t bf_qs_dash[Senc];
     em_enc_forward_256(lambda, NULL, bf_q, NULL, bf_x, 0, 1, delta, bf_qs, params);
     em_enc_backward_256(lambda, NULL, bf_q, NULL, bf_x, NULL, bf_q_out, 0, 1, delta, bf_qs_dash,
                         params);
-    free(bf_q_out);
 
     // Step: 13..14
     bf256_t minus_part = bf256_mul(bf_delta, bf_delta);
     for (uint32_t j = 0; j < Senc; j++) {
       B[j] = bf256_add(bf256_mul(bf_qs[j], bf_qs_dash[j]), minus_part);
     }
-    free(bf_qs);
-    free(bf_qs_dash);
-    free(bf_x);
   }
 }
 
@@ -3116,7 +3012,7 @@ static void em_prove_256(const uint8_t* w, const uint8_t* u, uint8_t** V, const 
   const unsigned int lambda = params->faest_param.lambda;
 
   // copy expanded key in to an array
-  uint8_t* x = malloc(lambda * (R + 1) / 8);
+  uint8_t x[lambda * (R + 1) / 8];
   {
     aes_round_keys_t round_keys;
     rijndael256_init_round_keys(&round_keys, in);
@@ -3129,23 +3025,19 @@ static void em_prove_256(const uint8_t* w, const uint8_t* u, uint8_t** V, const 
     }
   }
 
-  bf256_t* bf_v = column_to_row_major_and_shrink_V_256(V, Lenc);
+  bf256_t bf_v[(Lenc + sizeof(bf256_t) * 8)];
+  column_to_row_major_and_shrink_V_256(bf_v, V, Lenc);
 
   const unsigned int length_a = Senc + 1;
-  bf256_t* A0                 = malloc(sizeof(bf256_t) * length_a);
-  bf256_t* A1                 = malloc(sizeof(bf256_t) * length_a);
+  bf256_t A0[length_a];
+  bf256_t A1[length_a];
   em_enc_constraints_256(out, x, w, bf_v, 0, NULL, NULL, A0, A1, NULL, params);
-  free(x);
 
   A1[length_a - 1] = bf256_load(u + Lenc / 8);
   A0[length_a - 1] = bf256_sum_poly(bf_v + Lenc);
-  free(bf_v);
 
   zk_hash_256(a_tilde, chall, A1, length_a - 1);
   zk_hash_256(b_tilde, chall, A0, length_a - 1);
-
-  free(A0);
-  free(A1);
 }
 
 static uint8_t* em_verify_256(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
@@ -3175,10 +3067,11 @@ static uint8_t* em_verify_256(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
     }
   }
 
-  bf256_t* bf_q = column_to_row_major_and_shrink_V_256(Q, Lenc);
+  bf256_t bf_q[(Lenc + sizeof(bf256_t) * 8)];
+  column_to_row_major_and_shrink_V_256(bf_q, Q, Lenc);
 
   // copy expanded key in to an array
-  uint8_t* x = malloc(lambda * (R + 1) / 8);
+  uint8_t x[lambda * (R + 1) / 8];
   {
     aes_round_keys_t round_keys;
     rijndael256_init_round_keys(&round_keys, in);
@@ -3192,17 +3085,14 @@ static uint8_t* em_verify_256(uint8_t* d, uint8_t** Q, const uint8_t* chall_2,
   }
 
   const unsigned int length_b = Senc + 1;
-  bf256_t* B                  = malloc(sizeof(bf256_t) * length_b);
+  bf256_t B[length_b];
 
   em_enc_constraints_256(out, x, NULL, NULL, 1, bf_q, delta, NULL, NULL, B, params);
-  free(x);
 
   B[length_b - 1] = bf256_sum_poly(bf_q + Lenc);
-  free(bf_q);
 
   uint8_t* q_tilde = malloc(lambdaBytes);
   zk_hash_256(q_tilde, chall_2, B, length_b - 1);
-  free(B);
 
   bf256_t bf_qtilde = bf256_load(q_tilde);
   bf256_store(q_tilde, bf256_add(bf_qtilde, bf256_mul(bf256_load(a_tilde), bf256_load(delta))));
