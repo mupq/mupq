@@ -55,7 +55,7 @@ int crypto_sign_seed_keypair(unsigned char *pk, unsigned char *sk,
 {
     spx_ctx ctx;
 
-    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1] = {0};
     precompute_dp(dp, SPX_WOTS_LEN, SPX_WOTS_W);
 
     /* Initialize SK_SEED, SK_PRF and PUB_SEED from seed. */
@@ -111,7 +111,7 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen,
     uint32_t idx_leaf;
     uint32_t wots_addr[8] = {0};
     uint32_t tree_addr[8] = {0};
-    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1] = {0};;
     precompute_dp(dp, SPX_WOTS_LEN, SPX_WOTS_W);
 
     memcpy(ctx.sk_seed, sk, SPX_N);
@@ -180,7 +180,7 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen,
     uint32_t wots_addr[8] = {0};
     uint32_t tree_addr[8] = {0};
     uint32_t wots_pk_addr[8] = {0};
-    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1];
+    uint256_t dp[SPX_WOTS_LEN + 1][(SPX_WOTS_LEN*(SPX_WOTS_W-1)/2) + 1] = {0};
     precompute_dp(dp, SPX_WOTS_LEN, SPX_WOTS_W);
     if (siglen != SPX_BYTES) {
         return -1;
