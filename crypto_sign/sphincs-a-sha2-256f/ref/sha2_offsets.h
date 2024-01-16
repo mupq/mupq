@@ -1,0 +1,1 @@
+../../sphincs-a-sha2-128f/ref/sha2_offsets.h
