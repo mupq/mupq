@@ -20,6 +20,6 @@
 #include "matrix.h"
 
 /* Compute the challenges 'i_star' from 'hash2'. */
-void get_second_challenges(int i_star[TAU], const hash_t hash2);
+void get_second_challenges(uint32_t i_star[TAU], const hash_t hash2);
 
 #endif

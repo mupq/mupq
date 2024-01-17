@@ -16,28 +16,22 @@
 
 #include "challenges.h"
 
-void get_second_challenges(int i_star[TAU], const hash_t hash2)
+void get_second_challenges(uint32_t i_star[TAU], const hash_t hash2)
 {
-    int l;
+    uint32_t l;
     prng_t prng;
     
     prng_init(&prng, hash2, NULL);
     
     for (l = 0; l < TAU; l++)
     {
-        int r;
+        uint32_t r;
         
         prng_bytes(&prng, &r, sizeof(r));
         
         /* NOTE: It is well-known that this method to generate
-         * a random integer in [0, N_PARTIES_ROUND - 1] is slighly biased
+         * a random integer in [0, N_PARTIES_ROUND - 1] is slightly biased
          * toward small values. */
         i_star[l] = r % N_PARTIES_ROUND;
-        
-        if (i_star[l] < 0)
-        {
-            i_star[l] += N_PARTIES_ROUND;
-        }
-        /* * */
     }
 }

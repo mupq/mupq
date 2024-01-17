@@ -32,7 +32,7 @@ void pack_public_key(uint8_t *pk, const ff_t M0[matrix_bytes_size(PAR_M, PAR_N)]
 
 void unpack_public_key(ff_t M[PAR_K + 1][matrix_bytes_size(PAR_M, PAR_N)], const uint8_t *pk)
 {
-    int i;
+    uint32_t i;
     seed_t seed_pk;
     prng_t prng_pk;
     uint8_t *ptr = (uint8_t *)pk + SEED_SIZE;
@@ -103,7 +103,7 @@ void pack_signature(
     const hash_t salt,
     const hash_t hash1,
     const hash_t hash2,
-    const int i_star[TAU],
+    const uint32_t i_star[TAU],
     seed_t tree[TAU][TREE_N_NODES],
     hash_t com_star[TAU],
     ff_t a_last_shr[TAU][matrix_bytes_size(PAR_K, 1)],
@@ -130,7 +130,7 @@ void pack_signature(
      */
 
     uint8_t *ptr;
-    int l, bo;
+    uint32_t l, bo;
     seed_t packed_tree[TAU][TREE_HEIGHT];
 
     ptr = sig;
@@ -195,7 +195,7 @@ int unpack_signature(
     hash_t salt,
     hash_t hash1,
     hash_t hash2,
-    int i_star[TAU],
+    uint32_t i_star[TAU],
     seed_t packed_tree[TAU][TREE_HEIGHT],
     hash_t com_star[TAU],
     ff_t a_rnd_aux[TAU][matrix_bytes_size(PAR_K, 1)],
@@ -206,7 +206,7 @@ int unpack_signature(
     size_t *sig_len)
 {
     uint8_t *ptr;
-    int l, bo;
+    uint32_t l, bo;
     
     ptr = (uint8_t *)sig;
     bo = 0;

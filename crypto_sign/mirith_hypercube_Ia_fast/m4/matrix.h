@@ -30,59 +30,59 @@ typedef uint8_t ff_t;
 //int matrix_bytes_size(int n_rows, int n_cols);
 
 /* Initialized 'matrix' with zero entries. */
-void matrix_init_zero(ff_t *matrix, int n_rows, int n_cols);
+void matrix_init_zero(ff_t *matrix, uint32_t n_rows, uint32_t n_cols);
 
 /* Return the (i, j) entry of 'matrix'. */
-ff_t matrix_get_entry(const ff_t *matrix, int n_rows, int i, int j);
+ff_t matrix_get_entry(const ff_t *matrix, uint32_t n_rows, uint32_t i, uint32_t j);
 
 /* Set the (i, j) entry of 'matrix' to be scalar.*/
-void matrix_set_entry(ff_t *matrix, int n_rows, int i, int j, ff_t scalar);
+void matrix_set_entry(ff_t *matrix, uint32_t n_rows, uint32_t i, uint32_t j, ff_t scalar);
 
 /* Initialized 'matrix' with random entries. */
-void matrix_init_random(ff_t *matrix, int n_rows, int n_cols, prng_t *prng);
+void matrix_init_random(ff_t *matrix, uint32_t n_rows, uint32_t n_cols, prng_t *prng);
 
 /* Overwrite 'matrix1' with 'matrix2'. */
-void matrix_copy(ff_t *matrix1, const ff_t *matrix2, int n_rows, int n_cols);
+void matrix_copy(ff_t *matrix1, const ff_t *matrix2, uint32_t n_rows, uint32_t n_cols);
 
 /* Replace 'matrix' with '-matrix'. */
-void matrix_negate(ff_t *matrix, int n_rows, int n_cols);
+void matrix_negate(ff_t *matrix, uint32_t n_rows, uint32_t n_cols);
 
 /* Overwrite 'matrix1' with 'matrix1 + matrix2'. */
-void matrix_add(ff_t *matrix1, const ff_t *matrix2, int n_rows, int n_cols);
+void matrix_add(ff_t *matrix1, const ff_t *matrix2, uint32_t n_rows, uint32_t n_cols);
 
 /* Overwrite 'matrix1' with 'matrix1 + scalar * matrix2'. */
 void matrix_add_multiple(ff_t *matrix1, ff_t scalar, const ff_t *matrix2,
-    int n_rows, int n_cols);
+    uint32_t n_rows, uint32_t n_cols);
 
 /* Overwrite 'matrix1' with 'matrix1 - matrix2'. */
-void matrix_subtract(ff_t *matrix1, const ff_t *matrix2, int n_rows, int n_cols);
+void matrix_subtract(ff_t *matrix1, const ff_t *matrix2, uint32_t n_rows, uint32_t n_cols);
 
 /* Overwrite 'matrix1' with 'matrix1 - scalar * matrix2'. */
 void matrix_subtract_multiple(ff_t *matrix1, ff_t scalar, const ff_t *matrix2,
-    int n_rows, int n_cols);
-    
+    uint32_t n_rows, uint32_t n_cols);
+
 /* Write 'matrix1 * matrix2' over 'result'. */
 void matrix_product(ff_t *result, const ff_t *matrix1, const ff_t *matrix2,
-    int n_rows1, int n_cols1, int n_cols2);
-    
+    uint32_t n_rows1, uint32_t n_cols1, uint32_t n_cols2);
+
 /* Write '[matrix1 | matrix2]' over 'result'. */
 void matrix_horizontal_concatenation(ff_t *result, const ff_t *matrix1, const ff_t *matrix2,
-    int n_rows, int n_cols1, int n_cols2);
+    uint32_t n_rows, uint32_t n_cols1, uint32_t n_cols2);
 
 /* Split 'matrix' as 'matrix = [matrix1 | matrix2]. */
 void matrix_horizontal_split(ff_t *matrix1, ff_t *matrix2, const ff_t *matrix,
-    int n_rows, int n_cols1, int n_cols2);
+    uint32_t n_rows, uint32_t n_cols1, uint32_t n_cols2);
 
 /* Pack 'matrix' over 'dest (bytes) + bit_offset (bits)'.
  * Update 'dest' and 'bit_offset' for the next call of 'matrix_pack'.
  * If 'bit_offset == NULL', then an offset of 0 bits is used. */
-void matrix_pack(uint8_t **dest, int *bit_offset, const ff_t *matrix,
-    int n_rows, int n_cols);
+void matrix_pack(uint8_t **dest, uint32_t *bit_offset, const ff_t *matrix,
+    uint32_t n_rows, uint32_t n_cols);
 
 /* Unpack 'matrix' from 'source (bytes) + bit_offset (bits)'.
  * Update 'source' and 'bit_offset' for the next call of 'matrix_unpack'.
  * If 'bit_offset == NULL', then an offset of 0 bits is used. */
-void matrix_unpack(ff_t *matrix, uint8_t **source, int *bit_offset,
-    int n_rows, int n_cols);
+void matrix_unpack(ff_t *matrix, uint8_t **source, uint32_t *bit_offset,
+    uint32_t n_rows, uint32_t n_cols);
 
 #endif
