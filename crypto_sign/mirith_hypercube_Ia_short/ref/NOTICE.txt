@@ -1,0 +1,14 @@
+
+Copyright 2023 Carlo Sanna, Javier Verbel, and Floyd Zweydinger
+
+Reference implementation and optimized implementation of the
+post-quantum digital signature
+
+"MinRank in the Head (MiRitH)"
+
+based on the paper by Gora Adj, Luis Rivera-Zamarripa, and Javier Verbel,
+
+"MinRank in the Head: Short Signatures from Zero-Knowledge Proofs"
+Cryptology ePrint Archive: https://eprint.iacr.org/2022/1501
+
+
