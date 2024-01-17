@@ -1,0 +1,1 @@
+../../mirith_hypercube_Ia_fast/m4/challenges.c
