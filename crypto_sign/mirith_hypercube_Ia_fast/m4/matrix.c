@@ -16,21 +16,20 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
-#include "blas_m4.h"
 #include "matrix.h"
-#include "matrix_constants.h"
+#include "blas.h"
 
 
-void matrix_init_zero(ff_t *matrix, int n_rows, int n_cols)
+void matrix_init_zero(ff_t *matrix, const uint32_t n_rows, const uint32_t n_cols)
 {
     memset(matrix, 0, matrix_bytes_size(n_rows, n_cols));
 }
 
-ff_t matrix_get_entry(const ff_t *matrix, int n_rows, int i, int j)
+ff_t matrix_get_entry(const ff_t *matrix, const uint32_t n_rows, const uint32_t i, const uint32_t j)
 {
-    int nbytes_col;
-    nbytes_col = matrix_bytes_per_column(n_rows);
+    const uint32_t nbytes_col = matrix_bytes_per_column(n_rows);
     if (i & 1) // i is odd
     {
         return  matrix[nbytes_col * j + (i >> 1)] >> 4;
@@ -41,11 +40,10 @@ ff_t matrix_get_entry(const ff_t *matrix, int n_rows, int i, int j)
     }
 }
 
-void matrix_set_entry(ff_t *matrix, int n_rows, int i, int j, ff_t scalar)
+void matrix_set_entry(ff_t *matrix, const uint32_t n_rows, const uint32_t i, const uint32_t j, const ff_t scalar)
 {
-    int nbytes_col, target_byte_id;
-    nbytes_col = matrix_bytes_per_column(n_rows);
-    target_byte_id = nbytes_col * j + (i >> 1);
+    const uint32_t nbytes_col = matrix_bytes_per_column(n_rows);
+    const uint32_t target_byte_id = nbytes_col * j + (i >> 1);
     if (i & 1) // i is odd
     {
         matrix[target_byte_id] &= 0x0f;
@@ -58,19 +56,18 @@ void matrix_set_entry(ff_t *matrix, int n_rows, int i, int j, ff_t scalar)
     }
 }
 
-void matrix_init_random(ff_t *matrix, int n_rows, int n_cols, prng_t *prng)
+void matrix_init_random(ff_t *matrix, const uint32_t n_rows, const uint32_t n_cols, prng_t *prng)
 {
-    int matrix_height, matrix_height_x, i;
+    uint32_t i;
+    const uint32_t matrix_height =  matrix_bytes_per_column(n_rows);
+    const uint32_t matrix_height_x = matrix_height -  1;
 
-    matrix_height =  matrix_bytes_per_column(n_rows);
-    matrix_height_x = matrix_height -  1;
-    
     /* i = 0. */
     for (i = 0; i < n_cols; i++)
     {
         prng_bytes(prng, matrix + i * matrix_height , matrix_height);
     }
-    
+
     if (n_rows & 1)
     {
         for (i = 0; i < n_cols; i++)
@@ -80,15 +77,13 @@ void matrix_init_random(ff_t *matrix, int n_rows, int n_cols, prng_t *prng)
     }
 }
 
-void matrix_copy(ff_t *matrix1, const ff_t *matrix2, int n_rows, int n_cols)
+void matrix_copy(ff_t *matrix1, const ff_t *matrix2, const uint32_t n_rows, const uint32_t n_cols)
 {
-    int n_bytes;
-
-    n_bytes = matrix_bytes_size(n_rows, n_cols);
+    const uint32_t n_bytes = matrix_bytes_size(n_rows, n_cols);
     memcpy(matrix1, matrix2, n_bytes);
 }
 
-void matrix_negate(ff_t *matrix, int n_rows, int n_cols)
+void matrix_negate(ff_t *matrix, const uint32_t n_rows, const uint32_t n_cols)
 {
     /* Nothing to do in characteristic 2. */
 
@@ -96,137 +91,60 @@ void matrix_negate(ff_t *matrix, int n_rows, int n_cols)
     (void)(matrix); (void)(n_rows); (void)(n_cols);
 }
 
-void matrix_add(ff_t *matrix1, const ff_t *matrix2, int n_rows, int n_cols)
+void matrix_add(ff_t *matrix1, const ff_t *matrix2, const uint32_t n_rows, const uint32_t n_cols)
 {
-    const unsigned n_bytes = matrix_bytes_size(n_rows, n_cols);
-    gf256v_add_neon(matrix1, matrix2, n_bytes);
+	_matrix_add(matrix1, matrix2, n_rows, n_cols);
 }
 
 void matrix_add_multiple(ff_t *matrix1, ff_t scalar, const ff_t *matrix2,
-    int n_rows, int n_cols)
+    const uint32_t n_rows, const uint32_t n_cols)
 {
-    const int n_bytes = matrix_bytes_size(n_rows, n_cols);
-
-    gf16mat_intmat_mul_ref(matrix1, matrix2, n_bytes, scalar);
-    return;
-
-    for (uint32_t i = 0; i < n_bytes; ++i) {
-        matrix1[i] ^= mult_table[(matrix2[i]&0xf) + 16 * scalar];
-        matrix1[i] ^= mult_table[(matrix2[i]>>4)  + 16 * scalar] << 4;
-    }
+	_matrix_add_multiple(matrix1, scalar, matrix2, n_rows, n_cols);
 }
 
-
-void matrix_add_product(ff_t *matrix1, const ff_t *matrix2, const ff_t *matrix3,
-                 int n_rows1, int n_cols1, int n_cols2) {
-
-    const uint32_t n_bytes_per_column1 = matrix_bytes_per_column(n_rows1);
-    gf16mat_rowmat_mul_ref(matrix1, matrix2, n_cols2, n_bytes_per_column1, matrix3, 2*((n_cols1+1)>>1));
-    return;
-
-    const uint32_t matrix_height =  matrix_bytes_per_column(n_rows1);
-    const uint32_t matrix_height_x = matrix_height -  1;
-
-    for (uint32_t  i = 0; i < n_rows1; i++) {
-        for (uint32_t  j = 0; j < n_cols2; j++) {
-            ff_t entry_i_j = 0;
-
-            for (uint32_t  k = 0; k < n_cols1; k++) {
-                uint32_t entry_i_k = matrix_get_entry(matrix2, n_rows1, i, k);
-                uint32_t entry_k_j = matrix_get_entry(matrix3, n_cols1, k, j);
-                entry_i_j ^= mult_table[entry_i_k + 16 * entry_k_j];
-            }
-
-            matrix1[matrix_height * j + (i >> 1)] ^= (entry_i_j << (4* (i&1)));
-        }
-    }
-
-    if (n_rows1 & 1) {
-        for (uint32_t i = 0; i < n_cols2; i++) {
-            matrix1[i * matrix_height + matrix_height_x] &= 0x0f;
-        }
-    }
-}
-
-void matrix_subtract_product(ff_t *matrix1, const ff_t *matrix2, const ff_t *matrix3,
-                 int n_rows1, int n_cols1, int n_cols2) {
-
-    /* This works because we are in characteristic 2. */
-    matrix_add_product(matrix1, matrix2, matrix3, n_rows1, n_cols1, n_cols2);
-}
-
-void matrix_subtract(ff_t *matrix1, const ff_t *matrix2, int n_rows, int n_cols)
+void matrix_subtract(ff_t *matrix1, const ff_t *matrix2, const uint32_t n_rows, const uint32_t n_cols)
 {
     matrix_add(matrix1, matrix2, n_rows, n_cols);
 }
 
 void matrix_subtract_multiple(ff_t *matrix1, ff_t scalar, const ff_t *matrix2,
-    int n_rows, int n_cols)
+    const uint32_t n_rows, const uint32_t n_cols)
 {
     matrix_add_multiple(matrix1, scalar, matrix2, n_rows, n_cols);
 }
 
 void matrix_product(ff_t *result, const ff_t *matrix1, const ff_t *matrix2,
-    int n_rows1, int n_cols1, int n_cols2)
+    const uint32_t n_rows1, const uint32_t n_cols1, const uint32_t n_cols2)
 {
-    const uint32_t n_bytes_per_column1 = matrix_bytes_per_column(n_rows1);
-    gf16mat_colmat_mul(result, matrix1, n_bytes_per_column1, n_cols1, matrix2, n_cols2);
-    return;
-
-    const uint32_t matrix_height =  matrix_bytes_per_column(n_rows1);
-    const uint32_t matrix_height_x = matrix_height -  1;
-
-    for (uint32_t  i = 0; i < n_rows1; i++) {
-        for (uint32_t  j = 0; j < n_cols2; j++) {
-            ff_t entry_i_j = 0;
-
-            for (uint32_t  k = 0; k < n_cols1; k++) {
-                uint32_t entry_i_k = matrix_get_entry(matrix1, n_rows1, i, k);
-                uint32_t entry_k_j = matrix_get_entry(matrix2, n_cols1, k, j);
-                entry_i_j ^= mult_table[entry_i_k + 16 * entry_k_j];
-            }
-
-            matrix_set_entry(result, n_rows1, i, j, entry_i_j);
-        }
-    }
-
-    if (n_rows1 & 1) {
-        for (uint32_t i = 0; i < n_cols2; i++) {
-            result[i * matrix_height + matrix_height_x] &= 0x0f;
-        }
-    }
+	_matrix_product(result, matrix1, matrix2, n_rows1, n_cols1, n_cols2);
 }
 
 void matrix_horizontal_concatenation(ff_t *result, const ff_t *matrix1, const ff_t *matrix2,
-    int n_rows, int n_cols1, int n_cols2)
+    const uint32_t n_rows, const uint32_t n_cols1, const uint32_t n_cols2)
 {
-    int n_bytes1, n_bytes2;
-
-    n_bytes1 = matrix_bytes_size(n_rows, n_cols1);
-    n_bytes2 = matrix_bytes_size(n_rows, n_cols2);
+    const uint32_t n_bytes1 = matrix_bytes_size(n_rows, n_cols1);
+    const uint32_t n_bytes2 = matrix_bytes_size(n_rows, n_cols2);
 
     memcpy(result, matrix1, n_bytes1);
     memcpy(result + n_bytes1, matrix2, n_bytes2);
 }
 
 void matrix_horizontal_split(ff_t *matrix1, ff_t *matrix2, const ff_t *matrix,
-    int n_rows, int n_cols1, int n_cols2)
+    const uint32_t n_rows, const uint32_t n_cols1, const uint32_t n_cols2)
 {
-    int n_bytes1, n_bytes2;
+    const uint32_t n_bytes1 = matrix_bytes_size(n_rows, n_cols1);
+    const uint32_t n_bytes2 = matrix_bytes_size(n_rows, n_cols2);
 
-    n_bytes1 = matrix_bytes_size(n_rows, n_cols1);
-    n_bytes2 = matrix_bytes_size(n_rows, n_cols2);
-    
     memcpy(matrix1, matrix, n_bytes1);
     memcpy(matrix2, matrix + n_bytes1, n_bytes2);
 }
 
-void _matrix_pack_nrows_even(uint8_t **dest, int *bit_offset, const ff_t *matrix,
-                             int n_rows, int n_cols)
+void _matrix_pack_nrows_even(uint8_t **dest, const uint32_t *bit_offset, const ff_t *matrix,
+                             const uint32_t n_rows, const int n_cols)
 {
 
     /* the packing is done row-wise */
-    int bo, n_bytes;
+    uint32_t bo, n_bytes;
 
     if (bit_offset != NULL)
     {
@@ -258,10 +176,10 @@ void _matrix_pack_nrows_even(uint8_t **dest, int *bit_offset, const ff_t *matrix
     *dest = &(((uint8_t *)*dest)[n_bytes]);
 }
 
-void _matrix_unpack_nrows_even(ff_t *matrix, uint8_t **source, int *bit_offset,
-                               int n_rows, int n_cols)
+void _matrix_unpack_nrows_even(ff_t *matrix, uint8_t **source, const uint32_t *bit_offset,
+                               const uint32_t n_rows, const int n_cols)
 {
-    int bo, n_bytes;
+    uint32_t bo, n_bytes;
 
     if (bit_offset != NULL)
     {
@@ -292,13 +210,13 @@ void _matrix_unpack_nrows_even(ff_t *matrix, uint8_t **source, int *bit_offset,
 
 
 /* Remove the last row of matrix and append it to matrix as additional column(s) */
-void _matrix_pack_nrows_odd(uint8_t **dest, int *bit_offset, const ff_t *matrix,
-                            int n_rows, int n_cols)
+void _matrix_pack_nrows_odd(uint8_t **dest, uint32_t *bit_offset, const ff_t *matrix,
+                            const uint32_t n_rows, const uint32_t n_cols)
 {
     assert((n_rows & 1) == 1);
 
-    int j, bo, next_bo, matrix_height, matrix_height_x, n_bytes_not_in_last_row, n_bytes;
-    int ad_bytes, jump_nbytes;
+    uint32_t j, bo, next_bo, matrix_height, matrix_height_x, n_bytes_not_in_last_row, n_bytes;
+    uint32_t ad_bytes, jump_nbytes;
     uint8_t row_entry_j, row_entry_j_1;
 
     if (bit_offset != NULL)
@@ -316,7 +234,7 @@ void _matrix_pack_nrows_odd(uint8_t **dest, int *bit_offset, const ff_t *matrix,
     n_bytes = matrix_bytes_size(n_rows, n_cols);
 
     /* Bytes that are not part of the last row. */
-    for (j = 0; j < n_cols; j++)
+    for (j = 0u; j < n_cols; j++)
     {
         memcpy(&(((uint8_t *)*dest)[bo + j * matrix_height_x]), &matrix[matrix_height * j], matrix_height_x);
     }
@@ -325,7 +243,7 @@ void _matrix_pack_nrows_odd(uint8_t **dest, int *bit_offset, const ff_t *matrix,
      * When n_cols is even the maximum value of j is j_max = n_cols - 4, hence j_max + 1 = n_cols - 3.
      * Hence in the following loop wont add the entries n_cols - 2 and n_cols - 1 (the last entry) of the last row. */
     ad_bytes = bo;
-    for (j = 0; j < n_cols - 2; j+=2)
+    for (j = 0; (int)j < (int)n_cols - 2; j+=2)
     {
         row_entry_j = matrix[matrix_height * j + matrix_height_x] & 0x0f; /* j-th entry of the last row. */
         row_entry_j_1 = matrix[matrix_height * (j + 1) + matrix_height_x] & 0x0f; /* (j + 1)-th entry of the last row. */
@@ -400,13 +318,13 @@ void _matrix_pack_nrows_odd(uint8_t **dest, int *bit_offset, const ff_t *matrix,
     *dest = &(((uint8_t *)*dest)[jump_nbytes]);
 }
 
-void _matrix_unpack_nrows_odd(ff_t *matrix, uint8_t **source, int *bit_offset,
-                              int n_rows, int n_cols)
+void _matrix_unpack_nrows_odd(ff_t *matrix, uint8_t **source, uint32_t *bit_offset,
+                              const uint32_t n_rows, const uint32_t n_cols)
 {
     assert((n_rows & 1) == 1);
 
-    int j, bo, next_bo, matrix_height, matrix_height_x, n_bytes_not_in_last_row, n_bytes;
-    int ad_bytes, jump_nbytes;
+    uint32_t j, bo, next_bo, matrix_height, matrix_height_x, n_bytes_not_in_last_row, n_bytes;
+    uint32_t ad_bytes, jump_nbytes;
     uint8_t row_entries_j_and_j_1;
 
     if (bit_offset != NULL)
@@ -436,7 +354,7 @@ void _matrix_unpack_nrows_odd(ff_t *matrix, uint8_t **source, int *bit_offset,
      * When n_cols is even the maximum value of j is j_max = n_cols - 4, hence j_max + 1 = n_cols - 3.
      * Hence in the following loop wont add the entries n_cols - 2 and n_cols - 1 (the last entry) of the last row. */
     ad_bytes = bo;
-    for (j = 0; j < n_cols - 2; j+=2)
+    for (j = 0; (int)j < (int)n_cols - 2; j+=2)
     {
         row_entries_j_and_j_1 = ((uint8_t *)*source)[n_bytes_not_in_last_row + ad_bytes];
         matrix[matrix_height * j + matrix_height_x] = row_entries_j_and_j_1 & 0x0f;
@@ -511,8 +429,8 @@ void _matrix_unpack_nrows_odd(ff_t *matrix, uint8_t **source, int *bit_offset,
     *source = &(((uint8_t *)*source)[jump_nbytes]);
 }
 
-void matrix_pack(uint8_t **dest, int *bit_offset, const ff_t *matrix,
-                 int n_rows, int n_cols)
+void matrix_pack(uint8_t **dest, uint32_t *bit_offset, const ff_t *matrix,
+                 const uint32_t n_rows, const uint32_t n_cols)
 {
     /* An even number of rows. */
     if ((n_rows & 1) == 0)
@@ -526,8 +444,8 @@ void matrix_pack(uint8_t **dest, int *bit_offset, const ff_t *matrix,
 
 }
 
-void matrix_unpack(ff_t *matrix, uint8_t **source, int *bit_offset,
-                   int n_rows, int n_cols)
+void matrix_unpack(ff_t *matrix, uint8_t **source, uint32_t *bit_offset,
+                   const uint32_t n_rows, const uint32_t n_cols)
 {
     /* An even number of rows. */
     if ((n_rows & 1) == 0)

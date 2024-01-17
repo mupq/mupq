@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
@@ -30,25 +30,25 @@
 #define RIGHT_CHILD(i) (2 * i + 2)
 
 /* Generate a subtree of given root and height. */
-void generate_subtree(seed_t *subtree, const seed_t root, int height)
+void generate_subtree(seed_t *subtree, const hash_t salt, const seed_t root, uint32_t height)
 {
-    int i;
+    uint32_t i;
     prng_t prng;
 
     /* Allocate the root as the first seed of 'tree'. */
     memcpy(&subtree[0], root, SEED_SIZE); //
 
     /* Generate the children nodes. */
-    for (i = 0; i < ((1 << height) - 1); i++)
+    for (i = 0; i < ((1u << height) - 1u); i++)
     {
-        prng_init(&prng, NULL, subtree[i]);
+        prng_init(&prng, salt, subtree[i]);
         prng_bytes(&prng, subtree[LEFT_CHILD(i)], SEED_SIZE);
         prng_bytes(&prng, subtree[RIGHT_CHILD(i)], SEED_SIZE);
     }
 }
 
 /* Return a pointer to the leaves of a subtree of a given height. */
-seed_t *get_leaves(seed_t subtree[], int height)
+seed_t *get_leaves(seed_t subtree[], uint32_t height)
 {
     return &subtree[(1 << height) - 1];
 }
@@ -63,7 +63,7 @@ void seed_tree_init(seed_t tree[TREE_N_NODES], const hash_t salt, const seed_t s
     prng_bytes(&prng, root, SEED_SIZE);
 
     /* Generate the tree from the root. */
-    generate_subtree(tree, root, TREE_HEIGHT);
+    generate_subtree(tree, salt, root, TREE_HEIGHT);
 
 }
 
@@ -72,10 +72,10 @@ uint8_t *seed_tree_get_leaves(seed_t tree[TREE_N_NODES])
     return tree[TREE_N_NODES - N_PARTIES_ROUND];
 }
 
-void seed_tree_pack(seed_t packed_tree[TREE_HEIGHT], seed_t tree[TREE_N_NODES], int i0)
+void seed_tree_pack(seed_t packed_tree[TREE_HEIGHT], seed_t tree[TREE_N_NODES], uint32_t i0)
 {
-    int j;
-    int next_node;
+    uint32_t j;
+    uint32_t next_node;
 
     /* Start from the root node. */
     next_node = 0;
@@ -97,33 +97,33 @@ void seed_tree_pack(seed_t packed_tree[TREE_HEIGHT], seed_t tree[TREE_N_NODES], 
     }
 }
 
-void seed_tree_unpack(seed_t seeds[N_PARTIES_ROUND], seed_t packed_tree[TREE_HEIGHT], int i0)
+void seed_tree_unpack(seed_t seeds[N_PARTIES_ROUND], const hash_t salt, seed_t packed_tree[TREE_HEIGHT], uint32_t i0)
 {
     seed_t temp_tree[TREE_N_NODES];
     int j;
-    int gap_covered = 0;
-    int number_of_seeds_to_copy = N_PARTIES_ROUND >> 1;
+    uint32_t gap_covered = 0;
+    uint32_t number_of_seeds_to_copy = N_PARTIES_ROUND >> 1;
 
     for (j = TREE_HEIGHT - 1; j > -1; j--)
     {
-        int j_bit;
-        int aux_initial_index;
-        int initial_seed_index;
+        uint32_t j_bit;
+        uint32_t aux_initial_index;
+        uint32_t initial_seed_index;
 
-        j_bit = (i0 >> j) & 1;
+        j_bit = (i0 >> j) & 1u;
 
-        aux_initial_index = (1 - j_bit) * (1 << j);
+        aux_initial_index = (1u - j_bit) * (1u << j);
 
         initial_seed_index = aux_initial_index + gap_covered;
 
-        gap_covered += j_bit * (1 << j);
+        gap_covered += j_bit * (1u << j);
 
-        generate_subtree(temp_tree, packed_tree[(TREE_HEIGHT - 1 - j)], j);
+        generate_subtree(temp_tree, salt, packed_tree[(TREE_HEIGHT - 1 - j)], j);
 
         memcpy(seeds[initial_seed_index], get_leaves(temp_tree, j),
             number_of_seeds_to_copy * SEED_SIZE);
 
         number_of_seeds_to_copy /= 2;
 
-    }
+    }    
 }
