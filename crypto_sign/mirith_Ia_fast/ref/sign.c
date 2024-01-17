@@ -501,6 +501,10 @@ int crypto_sign(uint8_t *sig_msg, size_t *sig_msg_len,
     /* Unpack the secret key (and the public key). */
     unpack_secret_key(M, a, K, E, sk);
 
+	/* copy the message to the end of the signature buffer.
+	 * This allows for cases where 'sig' = 'msg'; */
+    memcpy(sig_msg + CRYPTO_BYTES, msg, msg_len);
+
     /* Sign the message. */
     return crypto_sign_unpacked_keys(sig_msg, sig_msg_len,
         msg, msg_len, M, a, K, E);
@@ -573,7 +577,7 @@ int crypto_sign_unpacked_keys(uint8_t *sig_msg, size_t *sig_msg_len,
             salt, l, (uint8_t (*)[SEED_SIZE]) seed_tree_get_leaves(trees[l]), a, K);
 
         /* Hash the commitments for this round. */
-        hash_update(&hash_ctx, com[l], N_PARTIES * HASH_SIZE);
+        hash_update(&hash_ctx, (uint8_t *)com[l], N_PARTIES * HASH_SIZE);
     }
 
     /* Compute 'hash1'. */
@@ -610,7 +614,7 @@ int crypto_sign_unpacked_keys(uint8_t *sig_msg, size_t *sig_msg_len,
     pack_signature(sig_msg, &sig_len, salt, hash1, hash2, i_star, trees, com, a_rnd_shr, K_rnd_shr, C_rnd_shr, A_rnd_shr);
 
     /* Append the message to the signature. */
-    memcpy(sig_msg + sig_len, msg, msg_len);
+    memcpy(sig_msg + sig_len, sig_msg + CRYPTO_BYTES, msg_len);
 
     /* Update 'sign_msg_len'. */
     if (sig_msg_len != NULL)
@@ -668,15 +672,6 @@ int crypto_sign_open(uint8_t *msg, size_t *msg_len,
     /* Unpack the signature. */
     if (!unpack_signature(salt, hash1, hash2, i_star, packed_tree, com_star,
         a_rnd_aux, K_rnd_aux, C_rnd_aux, S_rnd_star, sig_msg, &sig_len))
-    {
-        /* Failure. */
-        return -1;
-    }
-
-    /* Check that the signature length is not too long, which could
-     * happens if the signature has been corrupted. */
-    if (sig_len > sig_msg_len
-        || sig_len > CRYPTO_BYTES)
     {
         /* Failure. */
         return -1;
