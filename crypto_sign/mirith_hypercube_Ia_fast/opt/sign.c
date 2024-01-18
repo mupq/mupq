@@ -899,8 +899,7 @@ offline_cc = offline_cc + (get_cycles() - begin_offline);
     memcpy(sig_msg + sig_len, sig_msg + CRYPTO_BYTES, msg_len);
 
     /* Update 'sign_msg_len'. */
-    if (sig_msg_len != NULL)
-    {
+    if (sig_msg_len != NULL) {
         *sig_msg_len = sig_len + msg_len;
     }
 
