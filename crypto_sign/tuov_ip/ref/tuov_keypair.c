@@ -15,9 +15,9 @@
 #include "utils_hash.h"
 #include "utils_malloc.h"
 
-#if 96 < _V
-#define _MALLOC_
-#endif
+// #if 96 < _V
+// #define _MALLOC_
+// #endif
 
 
 
@@ -104,15 +104,8 @@ int generate_keypair(pk_t *pk, sk_t *sk, const unsigned char *pk_seed, const uns
 }
 
 int generate_keypair_pkc( cpk_t *rpk, sk_t *sk, const unsigned char *pk_seed, const unsigned char *sk_seed ){
-    #if defined(_MALLOC_)
-    pk_t *pk = malloc(sizeof(pk_t));
-    if (NULL == pk) {
-        return -1;
-    }
-    #else
     pk_t _pk;
     pk_t *pk = &_pk;
-    #endif
     int r = _generate_keypair(pk, sk, pk_seed, sk_seed);
     combine_F(sk->F);
     memcpy(rpk->pk_seed, pk_seed, LEN_PKSEED);
@@ -120,9 +113,6 @@ int generate_keypair_pkc( cpk_t *rpk, sk_t *sk, const unsigned char *pk_seed, co
     memcpy(rpk->P61, pk->pk + P61_BIAS, _PK_P6_BYTE >> 1);
     memcpy(rpk->P9, pk->pk + P91_BIAS, _PK_P9_BYTE);
 
-    #if defined(_MALLOC_)
-    free(pk);
-    #endif
     return r;
 }
 

@@ -120,9 +120,8 @@ void batch_upper_matTr_x_mat_gf16( unsigned char *bC, const unsigned char *A_to_
 #undef MAX_O
     unsigned Atr_height = Awidth;
     unsigned Atr_width  = Aheight;
-    uint8_t *A_copy;
+    uint8_t A_copy[Aheight * Awidth];
     if (size_Acolvec == 1){
-        A_copy = malloc(Aheight * Awidth);
         for (long i = 0; i < Atr_height * Atr_width; i++)
             A_copy[i] = gf16v_get_ele(A_to_tr, i);
         A_to_tr = A_copy;
@@ -135,9 +134,6 @@ void batch_upper_matTr_x_mat_gf16( unsigned char *bC, const unsigned char *A_to_
             ptr += (Bwidth - j - 1) * size_batch;
         }
         memcpy( ptr, row + size_batch * i, size_batch * (Bwidth - i) );
-    }
-    if (size_Acolvec == 1){
-        free(A_copy);
     }
 }
 

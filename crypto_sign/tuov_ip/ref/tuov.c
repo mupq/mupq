@@ -1,5 +1,5 @@
-/** \file tuov.c 
- *  \brief The standard implementations for sign and verify functions in tuov.h   
+/** \file tuov.c
+ *  \brief The standard implementations for sign and verify functions in tuov.h
 */
 
 #include "tuov.h"
@@ -11,7 +11,6 @@
 
 #include "utils_prng.h"
 #include "utils_hash.h"
-#include "utils_malloc.h"
 
 
 #define MAX_ATTEMPT_VINEGAR  256
@@ -30,7 +29,7 @@ int tuov_sign( uint8_t *signature, const sk_t *sk, const uint8_t *message, unsig
     hash_ctx h_m_secret;
     hash_ctx h_lambda_copy;
 
-    // compute t = H(M) 
+    // compute t = H(M)
     hash_init  (&h_m_secret);
     hash_update(&h_m_secret, message, mlen);
     hash_ctx_copy(&h_lambda_copy, &h_m_secret);
@@ -72,14 +71,14 @@ int tuov_sign( uint8_t *signature, const sk_t *sk, const uint8_t *message, unsig
         gfmat_back_substitute(e1, _M, _O);
         memcpy(v + _V_BYTE - _O_BYTE, e1, _O_BYTE);
 
-        uint8_t a; 
+        uint8_t a;
         while (1) {
             randombytes(&a, 1);
             #ifdef _USE_GF16
             a &= 0xf;
             // a cannot be 0
             if (gf16_is_nonzero(a)) {break;}
-            #else 
+            #else
             if (gf256_is_nonzero(a)) {break;}
             #endif
         }
@@ -110,7 +109,7 @@ int tuov_sign( uint8_t *signature, const sk_t *sk, const uint8_t *message, unsig
         #endif
         gfmat_transpose_oxo(L);
 
-        // compute x 
+        // compute x
         uint8_t x_tmp[_PUB_M1_BYTE];
         memcpy(x_tmp, t, _PUB_M1_BYTE);
         gfv_add(x_tmp, y, _PUB_M1_BYTE);
@@ -128,7 +127,7 @@ int tuov_sign( uint8_t *signature, const sk_t *sk, const uint8_t *message, unsig
         gfv_madd(y, vtrf2, x, _PUB_M_BYTE);
         // y = y - t
         gfv_add(y, t, _PUB_M_BYTE);
-        // compute x * F62 and add it to L (L is col-major) 
+        // compute x * F62 and add it to L (L is col-major)
         for (unsigned i = 0; i < _PUB_M - 1; i++){
             gfv_madd(L + (i * _PUB_M_BYTE + _PUB_M1_BYTE), sk->F + P51_BIAS + (_PK_P5_BYTE >> 1) + _PUB_M1_BYTE * i, x, _PUB_M1_BYTE);
         }
@@ -184,7 +183,7 @@ int _tuov_verify( const uint8_t *message, unsigned mlen, const unsigned char *di
     hash_update(&hctx, message, mlen);
     hash_final_digest(correct, _PUB_M_BYTE, &hctx);
 
-    /* check consistency */ 
+    /* check consistency */
     unsigned char cc = 0;
     for (unsigned i = 0; i < _PUB_M_BYTE; i++) {
         cc |= (digest_ck[i] ^ correct[i]);
