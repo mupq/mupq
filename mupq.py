@@ -56,9 +56,10 @@ class Implementation(object):
     #: regex to find source files
     _source_regex = re.compile(r'.*\.(c|s|S)$')
 
-    def __init__(self, project, primitive, scheme, implementation, path, namespace, extraflags=[]):
+    def __init__(self, platform_settings, project, primitive, scheme, implementation, path, namespace, extraflags=[]):
         """Sets up this scheme"""
         self.log = logging.getLogger(__class__.__name__)
+        self.platform_settings = platform_settings
         self.project = project
         self.primitive = primitive
         self.scheme = scheme
@@ -68,10 +69,10 @@ class Implementation(object):
             self.namespace = None
         else:
             self.namespace = f"{namespace}_{scheme.replace('-','').upper()}_{implementation.upper()}_"
-        self.extraflags = extraflags
+        self.extraflags = platform_settings.makeflags + extraflags
 
     @classmethod
-    def from_path(cls, project, path, namespace, extraflags=[]):
+    def from_path(cls, platform_settings, project, path, namespace, extraflags=[]):
         """
         Construct a scheme implemenation from a path
 
@@ -80,7 +81,8 @@ class Implementation(object):
         matches = cls._path_regex.match(path)
         if not matches:
             raise Exception(f"Unexpected path format: '{path}'")
-        return cls(project,
+        return cls(platform_settings,
+                   project,
                    matches.group("type"),
                    matches.group("scheme"),
                    matches.group("implementation"),
@@ -88,6 +90,12 @@ class Implementation(object):
 
     def run_make(self, target):
         makeflags = ["make",
+                     "--no-print-directory",
+                     "-r",
+                     f"-I{os.getcwd()}",
+                     "-C", self.platform_settings.build_path,
+                     "-f", f"{os.getcwd()}/Makefile",
+                     f"SRCDIR={os.getcwd()}",
                      f"IMPLEMENTATION_PATH={self.path}"]
         if self.namespace is not None:
             makeflags.append(f"MUPQ_NAMESPACE={self.namespace}")
@@ -96,7 +104,7 @@ class Implementation(object):
         p = subprocess.Popen(makeflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         ret = p.wait()
         stdout = p.stdout.read()
-        stderr = p.stdout.read()
+        stderr = p.stderr.read()
         if len(stdout) > 0:
             self.log.log(logging.ERROR if ret else logging.DEBUG,
                          "make stdout output:\n" + stdout.decode("utf8").strip())
@@ -141,6 +149,8 @@ class PlatformSettings(object):
     name = None
     makeflags = []
 
+    platform = None
+
     size_executable = 'arm-none-eabi-size'
 
     binary_type = 'bin'
@@ -150,6 +160,12 @@ class PlatformSettings(object):
 
     def __str__(self):
         return self.name
+
+    @property
+    def build_path(self):
+        if self.platform is None:
+            return "build"
+        return f"build-{self.platform}"
 
     def get_implementations(self, all=False):
         """Get the schemes"""
@@ -166,7 +182,7 @@ class PlatformSettings(object):
                                             implementation_path)
                         if not os.path.isdir(path):
                             continue
-                        impl = Implementation.from_path(parent, path, namespace, self.makeflags)
+                        impl = Implementation.from_path(self, parent, path, namespace)
                         if not all and self.should_skip(impl):
                             continue
                         yield impl
@@ -234,6 +250,7 @@ class BoardTestCase(abc.ABC):
                                     self.platform_settings.binary_type)
         binary = implementation.get_binary_path(f'{self.test_type}',
                                                 self.platform_settings.binary_type)
+        binary = os.path.join(self.platform_settings.build_path, binary)
         try:
             output = self.interface.run(binary, self.iterations)
             return output
@@ -282,7 +299,8 @@ class StackBenchmark(BoardTestCase):
         timestamp = datetime.fromtimestamp(
             time.time()).strftime('%Y%m%d%H%M%S')
         filename = os.path.join(
-            'benchmarks/',
+            self.platform_settings.build_path,
+            "benchmarks",
             self.test_type, implementation.primitive,
             implementation.scheme, implementation.implementation,
             timestamp)
@@ -327,7 +345,7 @@ class SizeBenchmark(StackBenchmark):
         self.log.info("Measuring %s", implementation)
         implementation.build_library()
         output = subprocess.check_output(
-            self.platform_settings.size_executable + ' -t ' + implementation.get_library_path(),
+            f"{self.platform_settings.size_executable} -t {os.path.join(self.platform_settings.build_path, implementation.get_library_path())}",
             shell=True,
             stderr=subprocess.DEVNULL,
             universal_newlines=True)

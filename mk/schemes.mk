@@ -26,11 +26,13 @@ IGNORE_IMPLEMENTATIONS ?= \
 # each containing the list of paths of schemes.
 obj/.schemes.mk:
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D); \
-	touch $@; \
-	printf "KEM_SCHEMES :=" > $@; \
-	find $(KEM_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@; \
-	printf "\n\nSIGN_SCHEMES :=" >> $@; \
-	find $(SIGN_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@;
+	{ \
+		cd $(SRCDIR); \
+		printf "KEM_SCHEMES :="; \
+		find $(KEM_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s"; \
+		printf "\n\nSIGN_SCHEMES :="; \
+		find $(SIGN_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s"; \
+	} > $@
 
 ifeq ($(MAKE_RESTARTS),)
   _ := $(shell rm -f obj/.schemes.mk)
@@ -64,7 +66,7 @@ implname = $(subst /,_,$(1))
 # Derives a name for the implementation from its path.
 schemename = $(word $(words $(subst /, ,$(1))),head $(subst /, ,$(1)))
 # Derives the list of source files from a path.
-schemesrc = $(wildcard $(1)/*.c) $(wildcard $(1)/*.s) $(wildcard $(1)/*.S)
+schemesrc = $(wildcard $(SRCDIR)/$(1)/*.c) $(wildcard $(SRCDIR)/$(1)/*.s) $(wildcard $(SRCDIR)/$(1)/*.S)
 # Derives a namespace for the implementation (pqclean uses namespaced function
 # names) from an implementation name.
 namespace = $(shell echo $(if $(filter mupq_pqclean_%,$(1)),$(subst mupq_pqclean_crypto_$(2)_,pqclean_,$(1))_) | tr '[:lower:]' '[:upper:]' | tr -d '-')
@@ -91,7 +93,7 @@ HOST_IMPLEMENTATIONS = %_clean %_ref %_opt %opt-ct
 define schemelib
 obj/lib$(2).a: $(call objs,$(call schemesrc,$(1)))
 libs: obj/lib$(2).a
-elf/$(2)_%.elf: CPPFLAGS+=-I$(1)
+elf/$(2)_%.elf: CPPFLAGS+=-I$(SRCDIR)/$(1)
 elf/$(2)_%.elf: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
 elf/$(2)_%.elf: PROFILE_HASHING=$$(filter %_hashing.elf,$$@)
 elf/$(2)_%.elf: NO_RANDOMBYTES=$$(filter %_testvectors.elf,$$@)
@@ -106,7 +108,7 @@ ifeq ($(AIO),1)
 elf/$(2)_%.elf: mupq/crypto_$(3)/%.c $$$$(LINKDEPS) $(call schemesrc,$(1)) $$(CONFIG)
 	$$(compiletest)
 # Library target doesn't inherit these flags in AIO mode
-obj/lib$(2).a: CPPFLAGS+=-I$(1)
+obj/lib$(2).a: CPPFLAGS+=-I$(SRCDIR)/$(1)
 obj/lib$(2).a: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
 else
 # Compile just the test and link against the library.
@@ -125,7 +127,7 @@ $(call schemename,$(1))-bin: bin/$(2)_test.bin bin/$(2)_speed.bin bin/$(2)_hashi
 $(call schemename,$(1))-hex: bin/$(2)_test.hex bin/$(2)_speed.hex bin/$(2)_hashing.hex bin/$(2)_stack.hex bin/$(2)_testvectors.hex
 
 ifneq ($(filter $(HOST_IMPLEMENTATIONS),$(2)),)
-bin-host/$(2)_testvectors: HOST_CPPFLAGS+=-I$(1)
+bin-host/$(2)_testvectors: HOST_CPPFLAGS+=-I$(SRCDIR)/$(1)
 bin-host/$(2)_testvectors: MUPQ_NAMESPACE=$(call namespace,$(2),$(3))
 bin-host/$(2)_testvectors: mupq/crypto_$(3)/testvectors-host.c $(call schemesrc,$(1)) $$(HOST_LIBDEPS) $$(CONFIG)
 	$$(hostcompiletest)
