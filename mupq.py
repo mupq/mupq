@@ -89,6 +89,8 @@ class Implementation(object):
                    path, namespace, extraflags)
 
     def run_make(self, target):
+        if not os.path.isdir(self.platform_settings.build_path):
+            os.mkdir(self.platform_settings.build_path)
         makeflags = ["make",
                      "--no-print-directory",
                      "-r",
