@@ -42,7 +42,7 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
     randombytes(seedbuf, SEEDBYTES);
 
     // Sample seeds with entropy \rho
-    xof256_absorbe_once(&state, seedbuf, SEEDBYTES);
+    xof256_absorb_once(&state, seedbuf, SEEDBYTES);
     xof256_squeeze(seedbuf, 2 * SEEDBYTES + CRHBYTES, &state);
 
     rhoprime = seedbuf;
@@ -159,9 +159,9 @@ int crypto_sign_signature(uint8_t *sig, size_t *siglen, const uint8_t *m,
     // Unpack secret key
     unpack_sk(A1, &s1, &s2, key, sk);
 
-    xof256_absorbe_twice(&state, sk, CRYPTO_PUBLICKEYBYTES, m, mlen);
+    xof256_absorb_twice(&state, sk, CRYPTO_PUBLICKEYBYTES, m, mlen);
     xof256_squeeze(mu, SEEDBYTES, &state);
-    xof256_absorbe_twice(&state, key, SEEDBYTES, mu, SEEDBYTES);
+    xof256_absorb_twice(&state, key, SEEDBYTES, mu, SEEDBYTES);
     xof256_squeeze(seedbuf, CRHBYTES, &state);
 
     polyvecm_ntt(&s1);
@@ -401,7 +401,7 @@ int crypto_sign_verify(const uint8_t *sig, size_t siglen, const uint8_t *m,
     polyveck_pack_highbits(buf, &w);
     poly_pack_lsb(buf + POLYVECK_HIGHBITS_PACKEDBYTES, &wprime);
 
-    xof256_absorbe_twice(&state, pk, CRYPTO_PUBLICKEYBYTES, m, mlen);
+    xof256_absorb_twice(&state, pk, CRYPTO_PUBLICKEYBYTES, m, mlen);
     xof256_squeeze(mu, SEEDBYTES, &state);
 
     // c_seed = H(HighBits(A * y mod 2q), LSB(round(y0) * j), M)
