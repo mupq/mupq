@@ -314,7 +314,7 @@ void poly_challenge(poly *c, const uint8_t highbits_lsb[POLYVECK_HIGHBITS_PACKED
     xof256_state state;
 
     // H(HighBits(A * y mod 2q), LSB(round(y0) * j), M)
-    xof256_absorbe_twice(&state, highbits_lsb,
+    xof256_absorb_twice(&state, highbits_lsb,
                          POLYVECK_HIGHBITS_PACKEDBYTES + POLYC_PACKEDBYTES, mu,
                          SEEDBYTES);
     xof256_squeezeblocks(buf, 1, &state);
@@ -341,7 +341,7 @@ void poly_challenge(poly *c, const uint8_t highbits_lsb[POLYVECK_HIGHBITS_PACKED
     xof256_state state;
 
     // H(HighBits(A * y mod 2q), LSB(round(y0) * j), M)
-    xof256_absorbe_twice(&state, highbits_lsb,
+    xof256_absorb_twice(&state, highbits_lsb,
                          POLYVECK_HIGHBITS_PACKEDBYTES + POLYC_PACKEDBYTES, mu,
                          SEEDBYTES);
     xof256_squeeze(buf, 32, &state);
