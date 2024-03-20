@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0 or CC0-1.0
 #ifndef CRYPTO_HASHBLOCKS_SHA512_H
 #define CRYPTO_HASHBLOCKS_SHA512_H
 

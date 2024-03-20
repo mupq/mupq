@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0 or CC0-1.0
 ifndef IMPLEMENTATION_PATH
 # If IMPLEMENTATION_PATH isn't defined (usually with the call to make), all
 # default search paths will be searched
