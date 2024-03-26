@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: Apache-2.0 or CC0-1.0
 HOST_SYMCRYPTO_SRC = \
 	mupq/common/fips202.c \
 	mupq/common/sp800-185.c \

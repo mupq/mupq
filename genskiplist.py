@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0 or CC0-1.0
 """This script is used to generate the skiplist.py files in pqm{4,3}. It
 takes the output files from the mps2-an386 target, when run via the make
 script, i.e., compile pqm{4,3} with the mps2-an38{6,5} plattform and the

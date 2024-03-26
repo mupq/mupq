@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0 or CC0-1.0
 /* Based on the public domain implementation in
  * crypto_hash/keccakc512/simple/ from http://bench.cr.yp.to/supercop.html
  * by Ronny Van Keer
