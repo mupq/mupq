@@ -50,6 +50,7 @@ int main(void)
     printcycles("keypair cycles:", t1-t0);
 
     // Signing
+    randombytes(sm, MLEN);
     t0 = hal_get_time();
     MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
     t1 = hal_get_time();
