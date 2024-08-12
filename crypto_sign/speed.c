@@ -2,6 +2,7 @@
 #include "api.h"
 #include "hal.h"
 #include "sendfn.h"
+#include "randombytes.h"
 
 #include <stdio.h>
 #include <stdint.h>
