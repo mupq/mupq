@@ -603,9 +603,9 @@ class TexConverter(Converter):
             print("% place the following macros somewhere in your tex: ")
 
             print("%\\newcommand{\\DefineVar}[2]{%")
-            print("%\\expandafter\\newcommand\csname rmk-#1\\endcsname{#2}%")
+            print("%\\expandafter\\newcommand\\csname rmk-#1\\endcsname{#2}%")
             print("%}")
-            print("%\\newcommand{\\Var}[1]{\csname rmk-#1\\endcsname}")
+            print("%\\newcommand{\\Var}[1]{\\csname rmk-#1\\endcsname}")
             print()
 
     def _subheader(self, headline):
@@ -620,7 +620,7 @@ class TexConverter(Converter):
         decver = data[4]
 
         def defvar(name, value):
-            print(f"%\DefineVar{{{name}}}{{{value}}}")
+            print(f"%\\DefineVar{{{name}}}{{{value}}}")
 
         identifier = f"{scheme}-{impl}-{bench}-"
         defvar(f"{identifier}keygen", keygen)
