@@ -71,9 +71,9 @@ int main(void) {
   qsort(cycles_enc, MUPQ_ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
   qsort(cycles_dec, MUPQ_ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
 
-  printcycles("keypair cycles", cycles_kg[MUPQ_ITERATIONS >> 1]);
-  printcycles("encaps cycles", cycles_enc[MUPQ_ITERATIONS >> 1]);
-  printcycles("decaps cycles", cycles_dec[MUPQ_ITERATIONS >> 1]);
+  printcycles("keypair cycles:", cycles_kg[MUPQ_ITERATIONS >> 1]);
+  printcycles("encaps cycles:", cycles_enc[MUPQ_ITERATIONS >> 1]);
+  printcycles("decaps cycles:", cycles_dec[MUPQ_ITERATIONS >> 1]);
 
   hal_send_str("#");
 
