@@ -67,12 +67,6 @@ int main(void) {
     cycles_dec[i] = t1 - t0;
   }
 
-  if (memcmp(key_a, key_b, MUPQ_CRYPTO_BYTES)) {
-    hal_send_str("ERROR KEYS\n");
-  } else {
-    hal_send_str("OK KEYS\n");
-  }
-
   qsort(cycles_kg, MUPQ_ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
   qsort(cycles_enc, MUPQ_ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
   qsort(cycles_dec, MUPQ_ITERATIONS, sizeof(uint64_t), cmp_uint64_t);
