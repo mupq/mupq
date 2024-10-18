@@ -552,23 +552,23 @@ class Converter(object):
             keygen    = self._formatStats([item[0] for item in data])
             encsign   = self._formatStats([item[1] for item in data])
             decverify = self._formatStats([item[2] for item in data])
-            self._row([f"{scheme} ({len(data)} executions)", implementation, keygen, encsign, decverify])
+            self._row([f"{scheme} ({len(data)} executions)", implementation, keygen, encsign, decverify], scheme, implementation, benchmark)
         elif benchmark == "stack":
             keygen     = self._formatNumber(max([item[0] for item in data]))
             encsign    = self._formatNumber(max([item[1] for item in data]))
             decverify  = self._formatNumber(max([item[2] for item in data]))
-            self._row([scheme, implementation, keygen, encsign, decverify])
+            self._row([scheme, implementation, keygen, encsign, decverify], scheme, implementation, benchmark)
         elif benchmark == "hashing":
             keygen     = self._formatPercentage(statistics.mean([item[0] for item in data]))
             encsign    = self._formatPercentage(statistics.mean([item[1] for item in data]))
             decverify  = self._formatPercentage(statistics.mean([item[2] for item in data]))
-            self._row([scheme, implementation, keygen, encsign, decverify])
+            self._row([scheme, implementation, keygen, encsign, decverify], scheme, implementation, benchmark)
         elif benchmark == "size":
             textsec = self._formatNumber(max([item[0] for item in data]))
             datasec = self._formatNumber(max([item[1] for item in data]))
             bsssec  = self._formatNumber(max([item[2] for item in data]))
             total   = self._formatNumber(max([item[3] for item in data]))
-            self._row([scheme, implementation, textsec, datasec, bsssec, total])
+            self._row([scheme, implementation, textsec, datasec, bsssec, total], scheme, implementation, benchmark)
 
 class MarkdownConverter(Converter):
     def _header(self, headline):
@@ -581,7 +581,7 @@ class MarkdownConverter(Converter):
       print("| "+ " | ".join(columns)+" |")
       print("| "+ " | ".join(["-"*(len(c)) for c in columns]) + " |")
 
-    def _row(self, data):
+    def _row(self, data, scheme, impl, bench):
         print("| "+ " | ".join(data)+" |")
 
     def _formatStats(self, l):
@@ -593,6 +593,53 @@ class MarkdownConverter(Converter):
 
     def _formatPercentage(self, perc):
         return f"{perc*100:.1f}%"
+
+
+class TexConverter(Converter):
+    first = True
+    def _header(self, headline):
+        if self.first:
+            self.first = False
+            print("% place the following macros somewhere in your tex: ")
+
+            print("%\\newcommand{\\DefineVar}[2]{%")
+            print("%\\expandafter\\newcommand\csname rmk-#1\\endcsname{#2}%")
+            print("%}")
+            print("%\\newcommand{\\Var}[1]{\csname rmk-#1\\endcsname}")
+            print()
+
+    def _subheader(self, headline):
+        pass
+
+    def _tablehead(self, columns):
+        pass
+
+    def _row(self, data, scheme, impl, bench):
+        keygen = data[2]
+        encsign = data[3]
+        decver = data[4]
+
+        def defvar(name, value):
+            print(f"%\DefineVar{{{name}}}{{{value}}}")
+
+        identifier = f"{scheme}-{impl}-{bench}-"
+        defvar(f"{identifier}keygen", keygen)
+        defvar(f"{identifier}encsign", keygen)
+        defvar(f"{identifier}decverf", keygen)  
+
+
+
+    def _formatStats(self, l):
+        mean, minimum, maximum = self._stats(l)
+        return mean
+
+    def _formatNumber(self, num):
+        return f"{num}"
+
+
+    def _formatPercentage(self, perc):
+        return f"{perc:.4f}"
+
 
 class CsvConverter(Converter):
     def _header(self, headline):
@@ -626,7 +673,7 @@ class CsvConverter(Converter):
         cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", "speed", "crypto_sign")
         return (cyclesKem, cyclesSign)
 
-    def _row(self, data):
+    def _row(self, data, scheme, impl, bench):
         # always pad to 11 columns, so that github can nicely render it
         row = ",".join(data)
         print(row+(","*(10-row.count(","))))
