@@ -29,12 +29,15 @@
 
 #define printcycles(S, U) send_unsignedll((S), (U))
 
+#define CACHE_WARMING 1
+
 int main(void)
 {
   unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
   unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
   unsigned char sm[MLEN+MUPQ_CRYPTO_BYTES];
-  size_t smlen;
+  unsigned char m[MLEN];
+  size_t smlen, mlen;
   unsigned long long t0, t1;
   int i;
 
@@ -44,11 +47,19 @@ int main(void)
 
   for(i=0;i<MUPQ_ITERATIONS; i++)
   {
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_sign_keypair(pk, sk);
+    }
+
     // Key-pair generation
     t0 = hal_get_time();
     MUPQ_crypto_sign_keypair(pk, sk);
     t1 = hal_get_time();
     printcycles("keypair cycles:", t1-t0);
+
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
+    }
 
     // Signing
     randombytes(sm, MLEN);
@@ -56,6 +67,10 @@ int main(void)
     MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
     t1 = hal_get_time();
     printcycles("sign cycles:", t1-t0);
+
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_sign_open(m, &mlen, sm, smlen, pk);
+    }
 
     // Verification
     t0 = hal_get_time();
