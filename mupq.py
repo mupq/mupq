@@ -506,7 +506,7 @@ class Converter(object):
         return data
 
     def _stats(self, data):
-        return (int(statistics.mean(data)), min(data), max(data))
+        return (int(statistics.median(data)), int(statistics.mean(data)), min(data), max(data))
 
     def _parseData(self, fileContents, benchmark, type_):
         parts = fileContents.split("\n")
@@ -559,9 +559,9 @@ class Converter(object):
             decverify  = self._formatNumber(max([item[2] for item in data]))
             self._row([scheme, implementation, keygen, encsign, decverify], scheme, implementation, benchmark)
         elif benchmark == "hashing":
-            keygen     = self._formatPercentage(statistics.mean([item[0] for item in data]))
-            encsign    = self._formatPercentage(statistics.mean([item[1] for item in data]))
-            decverify  = self._formatPercentage(statistics.mean([item[2] for item in data]))
+            keygen     = self._formatPercentage(statistics.median([item[0] for item in data]))
+            encsign    = self._formatPercentage(statistics.median([item[1] for item in data]))
+            decverify  = self._formatPercentage(statistics.median([item[2] for item in data]))
             self._row([scheme, implementation, keygen, encsign, decverify], scheme, implementation, benchmark)
         elif benchmark == "size":
             textsec = self._formatNumber(max([item[0] for item in data]))
@@ -585,8 +585,8 @@ class MarkdownConverter(Converter):
         print("| "+ " | ".join(data)+" |")
 
     def _formatStats(self, l):
-        mean, minimum, maximum = self._stats(l)
-        return "AVG: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(mean, minimum, maximum)
+        median, mean , minimum, maximum = self._stats(l)
+        return "MEDIAN: {:,} <br /> AVG: {:,} <br /> MIN: {:,} <br /> MAX: {:,}".format(median, mean, minimum, maximum)
 
     def _formatNumber(self, num):
         return f"{num:,}"
@@ -630,8 +630,8 @@ class TexConverter(Converter):
 
 
     def _formatStats(self, l):
-        mean, minimum, maximum = self._stats(l)
-        return mean
+        median, mean, minimum, maximum = self._stats(l)
+        return median
 
     def _formatNumber(self, num):
         return f"{num}"
@@ -659,17 +659,17 @@ class CsvConverter(Converter):
         self._header("Speed Evaluation")
         self._subheader("Key Encapsulation Schemes")
         self._tablehead(["Scheme", "Implementation"] +
-                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Encapsulation [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Decapsulation [cycles] ({x})" for x in ["mean", "min", "max"]])
+                        [f"Key Generation [cycles] ({x})" for x in ["median", "mean", "min", "max"]] +
+                        [f"Encapsulation [cycles] ({x})" for x in ["median", "mean", "min", "max"]] +
+                        [f"Decapsulation [cycles] ({x})" for x in ["median", "mean", "min", "max"]])
 
         cyclesKem = self._processPrimitives("benchmarks/speed/crypto_kem/", "speed", "crypto_kem")
 
         self._subheader("Signature Schemes")
         self._tablehead(["Scheme", "Implementation"]+
-                        [f"Key Generation [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Sign [cycles] ({x})" for x in ["mean", "min", "max"]] +
-                        [f"Verify [cycles] ({x})" for x in ["mean", "min", "max"]])
+                        [f"Key Generation [cycles] ({x})" for x in ["median", "mean", "min", "max"]] +
+                        [f"Sign [cycles] ({x})" for x in ["median", "mean", "min", "max"]] +
+                        [f"Verify [cycles] ({x})" for x in ["median", "mean", "min", "max"]])
         cyclesSign = self._processPrimitives("benchmarks/speed/crypto_sign/", "speed", "crypto_sign")
         return (cyclesKem, cyclesSign)
 
@@ -679,8 +679,8 @@ class CsvConverter(Converter):
         print(row+(","*(10-row.count(","))))
 
     def _formatStats(self, l):
-        mean, minimum, maximum = self._stats(l)
-        return f"{mean},{minimum},{maximum}"
+        median, mean, minimum, maximum = self._stats(l)
+        return f"{median},{mean},{minimum},{maximum}"
 
     def _formatNumber(self, num):
         return str(num)
