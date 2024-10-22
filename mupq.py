@@ -615,23 +615,26 @@ class TexConverter(Converter):
         pass
 
     def _row(self, data, scheme, impl, bench):
-        keygen = data[2]
-        encsign = data[3]
-        decver = data[4]
+        kgmed, kgmean = data[2]
+        encsignmed, encsignmean = data[3]
+        decvermed, decvermean = data[4]
 
         def defvar(name, value):
-            print(f"%\\DefineVar{{{name}}}{{{value}}}")
+            print(f"\\DefineVar{{{name}}}{{{value}}}")
 
         identifier = f"{scheme}-{impl}-{bench}-"
-        defvar(f"{identifier}keygen", keygen)
-        defvar(f"{identifier}encsign", keygen)
-        defvar(f"{identifier}decverf", keygen)  
+        defvar(f"{identifier}keygen_median", kgmed)
+        defvar(f"{identifier}keygen_mean", kgmean)
+        defvar(f"{identifier}encsign_median", encsignmed)
+        defvar(f"{identifier}encsign_mean", encsignmean)
+        defvar(f"{identifier}decver_median", decvermed)  
+        defvar(f"{identifier}decver_mean", decvermean)  
 
 
 
     def _formatStats(self, l):
         median, mean, minimum, maximum = self._stats(l)
-        return median
+        return median, mean
 
     def _formatNumber(self, num):
         return f"{num}"
