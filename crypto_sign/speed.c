@@ -39,13 +39,13 @@ int main(void)
   unsigned char m[MLEN];
   size_t smlen, mlen;
   unsigned long long t0, t1;
-  int i;
+  int i,j;
 
   hal_setup(CLOCK_BENCHMARK);
 
   hal_send_str("==========================");
 
-  for(i=0;i<MUPQ_ITERATIONS; i++)
+  for(j=0;j<MUPQ_ITERATIONS; j++)
   {
     for (i = 0; i < CACHE_WARMING; i++) {
       MUPQ_crypto_sign_keypair(pk, sk);
