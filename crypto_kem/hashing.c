@@ -24,6 +24,8 @@
 
 #define printcycles(S, U) send_unsignedll((S), (U))
 
+#define CACHE_WARMING 1
+
 unsigned long long hash_cycles;
 
 int main(void)
@@ -33,14 +35,18 @@ int main(void)
   unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
   unsigned char ct[MUPQ_CRYPTO_CIPHERTEXTBYTES];
   unsigned long long t0, t1;
-  int i;
+  int i,j;
 
   hal_setup(CLOCK_BENCHMARK);
 
   hal_send_str("==========================");
 
-  for(i=0;i<MUPQ_ITERATIONS; i++)
+  for(j=0;j<MUPQ_ITERATIONS; j++)
   {
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_kem_keypair(pk, sk);
+    }
+
     // Key-pair generation
     hash_cycles = 0;
     t0 = hal_get_time();
@@ -49,6 +55,9 @@ int main(void)
     printcycles("keypair cycles:", t1-t0);
     printcycles("keypair hash cycles:", hash_cycles);
 
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_kem_enc(ct, key_a, pk);
+    }
     // Encapsulation
     hash_cycles = 0;
     t0 = hal_get_time();
@@ -57,6 +66,9 @@ int main(void)
     printcycles("encaps cycles:", t1-t0);
     printcycles("encaps hash cycles:", hash_cycles);
 
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_kem_dec(key_b, ct, sk);
+    }
     // Decapsulation
     hash_cycles = 0;
     t0 = hal_get_time();

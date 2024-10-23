@@ -30,21 +30,29 @@
 
 unsigned long long hash_cycles;
 
+#define CACHE_WARMING 1
+
 int main(void)
 {
   unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
   unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
   unsigned char sm[MLEN+MUPQ_CRYPTO_BYTES];
-  size_t smlen;
+  unsigned char m[MLEN];
+  size_t smlen, mlen;
   unsigned long long t0, t1;
-  int i;
+  int i,j;
 
   hal_setup(CLOCK_BENCHMARK);
 
   hal_send_str("==========================");
 
-  for(i=0;i<MUPQ_ITERATIONS; i++)
+  for(j=0;j<MUPQ_ITERATIONS; j++)
   {
+
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_sign_keypair(pk, sk);
+    }
+
     // Key-pair generation
     hash_cycles = 0;
     t0 = hal_get_time();
@@ -53,6 +61,9 @@ int main(void)
     printcycles("keypair cycles:", t1-t0);
     printcycles("keypair hash cycles:", hash_cycles);
 
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
+    }
     // Signing
     randombytes(sm, MLEN);
     hash_cycles = 0;
@@ -61,6 +72,10 @@ int main(void)
     t1 = hal_get_time();
     printcycles("sign cycles:", t1-t0);
     printcycles("sign hash cycles:", hash_cycles);
+
+    for (i = 0; i < CACHE_WARMING; i++) {
+      MUPQ_crypto_sign_open(m, &mlen, sm, smlen, pk);
+    }
 
     // Verification
     hash_cycles = 0;
