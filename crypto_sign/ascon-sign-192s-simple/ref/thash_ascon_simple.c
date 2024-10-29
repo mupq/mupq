@@ -1,1 +1,0 @@
-../../ascon-sign-128s-simple/ref/thash_ascon_simple.c

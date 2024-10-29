@@ -1,1 +1,0 @@
-../../ascon-sign-128s-robust/ref/hash.h

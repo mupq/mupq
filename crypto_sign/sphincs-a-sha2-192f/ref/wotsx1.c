@@ -1,1 +1,0 @@
-../../sphincs-a-sha2-128f/ref/wotsx1.c
