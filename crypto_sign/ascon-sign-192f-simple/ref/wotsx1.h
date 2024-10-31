@@ -1,1 +1,0 @@
-../../ascon-sign-128s-simple/ref/wotsx1.h

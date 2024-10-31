@@ -1,1 +1,0 @@
-../../sphincs-a-shake-128f/ref/hash_shake.c
