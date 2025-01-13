@@ -22,7 +22,10 @@ extern unsigned long long hash_cycles;
 #endif
 
 #ifdef MUPQ
-#ifdef PQM7_USE_M4_KECCAK
+#if defined(PQM7_USE_M4_KECCAK)
+void KeccakF1600_StatePermute_adomnicai_m4(uint64_t * state);
+#define KeccakF1600_StatePermute KeccakF1600_StatePermute_adomnicai_m4
+#elif defined(PQM7_USE_M7_KECCAK)
 void KeccakF1600_StatePermute_adomnicai_m7(uint64_t * state);
 #define KeccakF1600_StatePermute KeccakF1600_StatePermute_adomnicai_m7
 #else
