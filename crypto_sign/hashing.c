@@ -36,6 +36,7 @@ int main(void)
   unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
   unsigned char sm[MLEN+MUPQ_CRYPTO_BYTES];
   size_t smlen;
+  unsigned int rc;
   unsigned long long t0, t1;
   int i;
 
@@ -65,11 +66,14 @@ int main(void)
     // Verification
     hash_cycles = 0;
     t0 = hal_get_time();
-    MUPQ_crypto_sign_open(sm, &smlen, sm, smlen, pk);
+    rc = MUPQ_crypto_sign_open(sm, &smlen, sm, smlen, pk);
     t1 = hal_get_time();
     printcycles("verify cycles:", t1-t0);
     printcycles("verify hash cycles:", hash_cycles);
 
+    if (rc) {
+      hal_send_str("ERROR Signature did not verify correctly!\n");
+    }
     hal_send_str("+");
   }
 

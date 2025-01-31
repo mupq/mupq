@@ -63,6 +63,7 @@ static int test_sign(void) {
   stack_verify = hal_checkstack();
 
   if (rc) {
+    hal_send_str("ERROR Signature did not verify correctly!\n");
     return -1;
   } else {
     send_stack_usage("keypair stack usage:", stack_key_gen);
