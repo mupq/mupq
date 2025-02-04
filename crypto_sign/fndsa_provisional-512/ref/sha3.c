@@ -456,6 +456,28 @@ process_block(uint64_t *A, unsigned r)
 }
 #endif
 
+#ifdef PROFILE_HASHING
+/* For pqm4, we want to hook calls to process_block() to had some specific
+   hash benchmarking. In this implementation, all the work is done in
+   the block processing function (the data injection/extraction calls do
+   not perform any bit interleaving), hence measuring these calls is
+   sufficient to capture the "cost of hashing". */
+#include "hal.h"
+extern unsigned long long hash_cycles;
+
+static inline void
+process_block_wrapper(uint64_t *A, unsigned r)
+{
+	uint64_t t0 = hal_get_time();
+	process_block(A, r);
+	uint64_t t1 = hal_get_time();
+	hash_cycles += t1 - t0;
+}
+
+#undef process_block
+#define process_block   process_block_wrapper
+#endif
+
 #if FNDSA_AVX2
 /* Four SHAKE256 instances in parallel. The provided array contains the
    four states, which are interleaved (this is not the same layout as
