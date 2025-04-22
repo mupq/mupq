@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 void mayo_secure_free(void *mem, size_t size) {
     if (mem) {
