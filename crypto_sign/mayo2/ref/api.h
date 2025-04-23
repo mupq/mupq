@@ -3,14 +3,13 @@
 #ifndef api_h
 #define api_h
 
-#define CRYPTO_SECRETKEYBYTES 24
-#define CRYPTO_PUBLICKEYBYTES 5488
-#define CRYPTO_BYTES 180
+#include <mayo.h>
 
-#define CRYPTO_ALGNAME "MAYO_2"
-#ifndef PQM4
-#define PQM4
-#endif
+#define CRYPTO_SECRETKEYBYTES 24
+#define CRYPTO_PUBLICKEYBYTES 4912
+#define CRYPTO_BYTES 186
+
+#define CRYPTO_ALGNAME "MAYO-2"
 
 int
 crypto_sign_keypair(unsigned char *pk, unsigned char *sk);
@@ -41,3 +40,4 @@ crypto_sign_open(unsigned char *m, size_t *mlen,
 #endif
 
 #endif /* api_h */
+
