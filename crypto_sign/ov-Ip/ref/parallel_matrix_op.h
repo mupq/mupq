@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 ///  @file  parallel_matrix_op.h
 ///  @brief Librarys for operations of batched matrixes.
 ///
@@ -425,35 +426,6 @@ void batch_upper_matTr_x_mat_multab_gf16( unsigned char *bC,
 void batch_upper_matTr_x_mat_multab_gf256( unsigned char *bC,
         const unsigned char *multab_A_to_tr, unsigned Aheight, unsigned size_Acolvec, unsigned Awidth,
         const unsigned char *bB, unsigned Bwidth, unsigned size_batch );
-
-
-
-
-
-///
-/// @brief  y =  x^Tr * trimat * x  , in GF(16)
-///
-/// @param[out]  y          - the returned batched element y.
-/// @param[in]   trimat     - a batched matrix.
-/// @param[in]   multabs_x  - multabs of input vector x.
-/// @param[in]   dim        - the dimension of matrix trimat (and x).
-/// @param[in]   size_batch - number of the batched elements in the corresponding position of the matrix.
-///
-void batch_quad_trimat_eval_multab_gf16( unsigned char *y, const unsigned char *trimat, const unsigned char *multabs_x, unsigned dim, unsigned size_batch );
-
-///
-/// @brief  y =  x^Tr * trimat * x  , in GF(256)
-///
-/// @param[out]  y          - the returned batched element y.
-/// @param[in]   trimat     - a batched matrix.
-/// @param[in]   multabs_x  - multabs of input vector x.
-/// @param[in]   dim        - the dimension of matrix trimat (and x).
-/// @param[in]   size_batch - number of the batched elements in the corresponding position of the matrix.
-///
-void batch_quad_trimat_eval_multab_gf256( unsigned char *y, const unsigned char *trimat, const unsigned char *multabs_x, unsigned dim, unsigned size_batch );
-
-
-
 
 
 

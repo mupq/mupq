@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 /// @file blas_matrix.h
 /// @brief linear algebra functions for matrix op.
 ///
@@ -5,7 +6,7 @@
 #define _BLAS_MATRIX_H_
 
 #include <stdint.h>
-
+#include "params.h"
 
 
 #ifdef  __cplusplus
