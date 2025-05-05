@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 
 #include "ov_keypair.h"
 #include "ov.h"
@@ -130,44 +131,23 @@ void accu_eval_quad_gf16( unsigned char *accu_res, const unsigned char *trimat, 
 
 
 static
-void madd_reduce_gf16( unsigned char *y, const unsigned char *tmp_res, unsigned vec_len ) {
-    unsigned char tmp[TMPVEC_LEN];
-    int accu_bit = 1;
-
-    gf256v_set_zero( y, vec_len );
-    // x1
-    for (int i = 1; i < _GFSIZE; i += 2) {
-        gf256v_add( y, tmp_res + TMPVEC_LEN * i, vec_len );
+void madd_reduce_gf16( unsigned char *y, unsigned char *tmp_low, unsigned vec_len ) {
+    for (int i = 15; i > 8; i--) {
+        gf256v_add( tmp_low + TMPVEC_LEN * 8, tmp_low + TMPVEC_LEN * i, vec_len );
+        gf256v_add( tmp_low + TMPVEC_LEN * (i - 8), tmp_low + TMPVEC_LEN * i, vec_len );
     }
-    // x2
-    accu_bit = 1 << 1; // 2
-    gf256v_set_zero( tmp, vec_len );
-    for (int i = accu_bit; i < _GFSIZE; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_res + TMPVEC_LEN * (i + j), vec_len );
-        }
+    for (int i = 7; i > 4; i--) {
+        gf256v_add( tmp_low + TMPVEC_LEN * 4, tmp_low + TMPVEC_LEN * i, vec_len );
+        gf256v_add( tmp_low + TMPVEC_LEN * (i - 4), tmp_low + TMPVEC_LEN * i, vec_len );
     }
-    gf16v_madd( y, tmp, accu_bit,  vec_len );
-
-    // x4
-    accu_bit = 1 << 2; // 4
-    gf256v_set_zero( tmp, vec_len );
-    for (int i = accu_bit; i < _GFSIZE; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_res + TMPVEC_LEN * (i + j), vec_len );
-        }
+    for (int i = 3; i > 2; i--) {
+        gf256v_add( tmp_low + TMPVEC_LEN * 2, tmp_low + TMPVEC_LEN * i, vec_len );
+        gf256v_add( tmp_low + TMPVEC_LEN * (i - 2), tmp_low + TMPVEC_LEN * i, vec_len );
     }
-    gf16v_madd( y, tmp, accu_bit,  vec_len );
-
-    // x8
-    accu_bit = 1 << 3; // 8
-    gf256v_set_zero( tmp, vec_len );
-    for (int i = accu_bit; i < _GFSIZE; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_res + TMPVEC_LEN * (i + j), vec_len );
-        }
-    }
-    gf16v_madd( y, tmp, accu_bit,  vec_len );
+    memcpy ( y, tmp_low + TMPVEC_LEN, vec_len );  // x1
+    gf16v_madd( y, tmp_low + TMPVEC_LEN * 2, 2, vec_len ); // x2
+    gf16v_madd( y, tmp_low + TMPVEC_LEN * 4, 4, vec_len ); // x4
+    gf16v_madd( y, tmp_low + TMPVEC_LEN * 8, 8, vec_len ); // x8
 }
 
 
@@ -221,24 +201,6 @@ void accu_eval_quad_gf256( unsigned char *accu_low, unsigned char *accu_high, co
         }
         gfv_mul_scalar( _xixj + i_start, _x[i], v - i_start );
         unsigned j = i;
-        for (; j + 3 < v; j += 4) {
-            unsigned idx0 = _xixj[j];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx0 & 0xf), trimat, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx0 >> 4), trimat, tmpvec_len );
-
-            unsigned idx1 = _xixj[j + 1];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx1 & 0xf), trimat + vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx1 >> 4), trimat + vec_len, tmpvec_len );
-
-            unsigned idx2 = _xixj[j + 2];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx2 & 0xf), trimat + 2 * vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx2 >> 4), trimat + 2 * vec_len, tmpvec_len );
-
-            unsigned idx3 = _xixj[j + 3];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx3 & 0xf), trimat + 3 * vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx3 >> 4), trimat + 3 * vec_len, tmpvec_len );
-            trimat += vec_len * 4;
-        }
         for (; j < v; j++) {
             unsigned idx = _xixj[j];
             gf256v_add( accu_low  + TMPVEC_LEN * (idx & 0xf), trimat, tmpvec_len );
@@ -253,24 +215,6 @@ void accu_eval_quad_gf256( unsigned char *accu_low, unsigned char *accu_high, co
         }
         gfv_mul_scalar( _xixj, _x[i], o );
         unsigned j = 0;
-        for (; j + 3 < o; j += 4) {
-            unsigned idx0 = _xixj[j];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx0 & 0xf), trimat, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx0 >> 4), trimat, tmpvec_len );
-
-            unsigned idx1 = _xixj[j + 1];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx1 & 0xf), trimat + vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx1 >> 4), trimat + vec_len, tmpvec_len );
-
-            unsigned idx2 = _xixj[j + 2];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx2 & 0xf), trimat + 2 * vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx2 >> 4), trimat + 2 * vec_len, tmpvec_len );
-
-            unsigned idx3 = _xixj[j + 3];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx3 & 0xf), trimat + 3 * vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx3 >> 4), trimat + 3 * vec_len, tmpvec_len );
-            trimat += vec_len * 4;
-        }
         for (; j < o; j++) {
             unsigned idx = _xixj[j];
             gf256v_add( accu_low  + TMPVEC_LEN * (idx & 0xf), trimat, tmpvec_len );
@@ -294,24 +238,6 @@ void accu_eval_quad_gf256( unsigned char *accu_low, unsigned char *accu_high, co
         }
         gfv_mul_scalar( _xixj + i_start, _x[i], n - i_start );
         unsigned j = i;
-        for (; j + 3 < n; j += 4) {
-            unsigned idx0 = _xixj[j];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx0 & 0xf), trimat, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx0 >> 4), trimat, tmpvec_len );
-
-            unsigned idx1 = _xixj[j + 1];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx1 & 0xf), trimat + vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx1 >> 4), trimat + vec_len, tmpvec_len );
-
-            unsigned idx2 = _xixj[j + 2];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx2 & 0xf), trimat + 2 * vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx2 >> 4), trimat + 2 * vec_len, tmpvec_len );
-
-            unsigned idx3 = _xixj[j + 3];
-            gf256v_add( accu_low  + TMPVEC_LEN * (idx3 & 0xf), trimat + 3 * vec_len, tmpvec_len );
-            gf256v_add( accu_high + TMPVEC_LEN * (idx3 >> 4), trimat + 3 * vec_len, tmpvec_len );
-            trimat += vec_len * 4;
-        }
         for (; j < n; j++) {
             unsigned idx = _xixj[j];
             gf256v_add( accu_low  + TMPVEC_LEN * (idx & 0xf), trimat, tmpvec_len );
@@ -452,10 +378,7 @@ void accu_eval_quad_gf256( unsigned char *accu_low, unsigned char *accu_high, co
 
 
 static
-void madd_reduce_gf256( unsigned char *y, const unsigned char *tmp_low, const unsigned char *tmp_high, unsigned vec_len ) {
-    unsigned char tmp[TMPVEC_LEN];
-
-    int accu_bit = 1;
+void madd_reduce_gf256( unsigned char *y, unsigned char *tmp_low, unsigned char *tmp_high, unsigned vec_len ) {
 
     #if defined( _BLAS_AVX2_ )
     unsigned tmpvec_len = ((vec_len + 31) >> 5) << 5;
@@ -468,76 +391,40 @@ void madd_reduce_gf256( unsigned char *y, const unsigned char *tmp_low, const un
     #endif
     unsigned char tmp_y[TMPVEC_LEN * 4];
 
+    for (int i = 15; i > 8; i--) {
+        gf256v_add( tmp_low + TMPVEC_LEN * 8, tmp_low + TMPVEC_LEN * i, tmpvec_len );
+        gf256v_add( tmp_low + TMPVEC_LEN * (i - 8), tmp_low + TMPVEC_LEN * i, tmpvec_len );
+    }
+    for (int i = 7; i > 4; i--) {
+        gf256v_add( tmp_low + TMPVEC_LEN * 4, tmp_low + TMPVEC_LEN * i, tmpvec_len );
+        gf256v_add( tmp_low + TMPVEC_LEN * (i - 4), tmp_low + TMPVEC_LEN * i, tmpvec_len );
+    }
+    for (int i = 3; i > 2; i--) {
+        gf256v_add( tmp_low + TMPVEC_LEN * 2, tmp_low + TMPVEC_LEN * i, tmpvec_len );
+        gf256v_add( tmp_low + TMPVEC_LEN * (i - 2), tmp_low + TMPVEC_LEN * i, tmpvec_len );
+    }
     gf256v_set_zero( tmp_y, tmpvec_len );
-    // x1
-    for (int i = 1; i < 16; i += 2) {
-        gf256v_add( tmp_y, tmp_low + TMPVEC_LEN * i, tmpvec_len );
-    }
-    // x2
-    accu_bit = 1 << 1; // 2
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = accu_bit; i < 16; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_low + TMPVEC_LEN * (i + j), tmpvec_len );
-        }
-    }
-    gf256v_madd( tmp_y, tmp, accu_bit, tmpvec_len );
+    gf256v_add ( tmp_y, tmp_low + TMPVEC_LEN, tmpvec_len );  // x1
+    gf256v_madd( tmp_y, tmp_low + TMPVEC_LEN * 2, 2, tmpvec_len ); // x2
+    gf256v_madd( tmp_y, tmp_low + TMPVEC_LEN * 4, 4, tmpvec_len ); // x4
+    gf256v_madd( tmp_y, tmp_low + TMPVEC_LEN * 8, 8, tmpvec_len ); // x8
 
-    // x4
-    accu_bit = 1 << 2; // 4
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = accu_bit; i < 16; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_low + TMPVEC_LEN * (i + j), tmpvec_len );
-        }
+    for (int i = 15; i > 8; i--) {
+        gf256v_add( tmp_high + TMPVEC_LEN * 8, tmp_high + TMPVEC_LEN * i, tmpvec_len );
+        gf256v_add( tmp_high + TMPVEC_LEN * (i - 8), tmp_high + TMPVEC_LEN * i, tmpvec_len );
     }
-    gf256v_madd( tmp_y, tmp, accu_bit, tmpvec_len );
-
-    // x8
-    accu_bit = 1 << 3; // 8
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = accu_bit; i < 16; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_low + TMPVEC_LEN * (i + j), tmpvec_len );
-        }
+    for (int i = 7; i > 4; i--) {
+        gf256v_add( tmp_high + TMPVEC_LEN * 4, tmp_high + TMPVEC_LEN * i, tmpvec_len );
+        gf256v_add( tmp_high + TMPVEC_LEN * (i - 4), tmp_high + TMPVEC_LEN * i, tmpvec_len );
     }
-    gf256v_madd( tmp_y, tmp, accu_bit, tmpvec_len );
-
-/////
-
-    accu_bit = 1; // 16
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = 1; i < 16; i += 2) {
-        gf256v_add( tmp, tmp_high + TMPVEC_LEN * (i), tmpvec_len );
+    for (int i = 3; i > 2; i--) {
+        gf256v_add( tmp_high + TMPVEC_LEN * 2, tmp_high + TMPVEC_LEN * i, tmpvec_len );
+        gf256v_add( tmp_high + TMPVEC_LEN * (i - 2), tmp_high + TMPVEC_LEN * i, tmpvec_len );
     }
-    gf256v_madd( tmp_y, tmp, accu_bit << 4, tmpvec_len );
-
-    accu_bit = 1 << 1; // 32
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = accu_bit; i < 16; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_high + TMPVEC_LEN * (i + j), tmpvec_len );
-        }
-    }
-    gf256v_madd( tmp_y, tmp, accu_bit << 4, tmpvec_len );
-
-    accu_bit = 1 << 2; // 64
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = accu_bit; i < 16; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_high + TMPVEC_LEN * (i + j), tmpvec_len );
-        }
-    }
-    gf256v_madd( tmp_y, tmp, accu_bit << 4, tmpvec_len );
-
-    accu_bit = 1 << 3; // 128
-    gf256v_set_zero( tmp, tmpvec_len );
-    for (int i = accu_bit; i < 16; i += accu_bit * 2) {
-        for (int j = 0; j < accu_bit; j++) {
-            gf256v_add( tmp, tmp_high + TMPVEC_LEN * (i + j), tmpvec_len );
-        }
-    }
-    gf256v_madd( tmp_y, tmp, accu_bit << 4, tmpvec_len );
+    gf256v_madd( tmp_y, tmp_high + TMPVEC_LEN * 1, 16, tmpvec_len ); // x16
+    gf256v_madd( tmp_y, tmp_high + TMPVEC_LEN * 2, 32, tmpvec_len ); // x32
+    gf256v_madd( tmp_y, tmp_high + TMPVEC_LEN * 4, 64, tmpvec_len ); // x64
+    gf256v_madd( tmp_y, tmp_high + TMPVEC_LEN * 8, 128, tmpvec_len ); // x128
 
     memcpy( y, tmp_y, vec_len );
 }

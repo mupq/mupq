@@ -50,7 +50,7 @@ static void ov_aes128_ctr_publicinputs(unsigned char *out, size_t outlen, const 
         outlen -= 16;
         inc1_be(ivw + 3);
     }
-    
+
     if(outlen > 0){
         aes128_ecb_publicinputs(tmp, (unsigned char *)ivw, 1, ctx);
         for (i = 0; i < outlen; i++) {
@@ -68,6 +68,10 @@ int aes128ctr_publicinputs( unsigned char *out, unsigned nblocks, const unsigned
 }
 
 
+void prng_release_publicinputs(prng_publicinputs_t *ctx){
+    //no-op
+    (void) ctx;
+}
 
 int prng_gen_publicinputs(prng_publicinputs_t *ctx, unsigned char *out, unsigned long outlen) {
     unsigned long long xlen = outlen;

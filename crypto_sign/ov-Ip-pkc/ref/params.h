@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 #ifndef _PARAMS_H_
 #define _PARAMS_H_
 
@@ -8,8 +9,6 @@
  */
 
 // -----------------------------------------------------------------------------
-
-// #define _LDU_DECOMPOSE_
 
 //#define _4ROUND_AES_
 
@@ -26,7 +25,6 @@
 #define _OV_PKC
 //#define _OV_PKC_SKC
 #endif
-
 
 // -----------------------------------------------------------------------------
 
@@ -55,9 +53,6 @@
 #define _PUB_M 96
 #define _HASH_LEN 64
 #endif
-
-
-
 
 #define _O (_PUB_M)
 #define _V ((_PUB_N)-(_O))
@@ -106,12 +101,11 @@
 
 
 #define OV_SK_UNCOMPRESSED_BYTES (LEN_SKSEED                     + \
-                                  LEN_PKSEED                     + \
                                   _V_BYTE*_O                     + \
                                   _O_BYTE * N_TRIANGLE_TERMS(_V) + \
                                   _O_BYTE * _V*_O)
 #define OV_PK_UNCOMPRESSED_BYTES (_PUB_M_BYTE * N_TRIANGLE_TERMS(_PUB_N))
-#define OV_SK_COMPRESSED_BYTES   (LEN_SKSEED + LEN_PKSEED)
+#define OV_SK_COMPRESSED_BYTES   (LEN_SKSEED)
 #define OV_PK_COMPRESSED_BYTES   (LEN_PKSEED + _O_BYTE * N_TRIANGLE_TERMS(_O))
 
 
@@ -121,16 +115,24 @@
 #define OV_PUBLICKEYBYTES OV_PK_UNCOMPRESSED_BYTES
 
 #elif defined _OV_PKC
-#define OV_ALGNAME (OV_PARAMNAME "-cpk")
+#define OV_ALGNAME (OV_PARAMNAME "-pkc")
 #define OV_SECRETKEYBYTES OV_SK_UNCOMPRESSED_BYTES
 #define OV_PUBLICKEYBYTES OV_PK_COMPRESSED_BYTES
 
 #elif defined _OV_PKC_SKC
-#define OV_ALGNAME (OV_PARAMNAME "-cpk-csk")
+#define OV_ALGNAME (OV_PARAMNAME "-pkc-skc")
 #define OV_SECRETKEYBYTES OV_SK_COMPRESSED_BYTES
 #define OV_PUBLICKEYBYTES OV_PK_COMPRESSED_BYTES
 #endif
 
+
+#if defined(_BLAS_NEON_)
+#elif defined(_BLAS_AVX2_)
+#else
+#endif
+
+#define PQOV_CONCAT_(x1,x2,x3,x4,x5) x1##_##x2##x3##_##x4##_##x5
+#define PQOV_CONCAT(x1,x2,x3,x4,x5) PQOV_CONCAT_(x1,x2,x3,x4,x5)
 
 
 

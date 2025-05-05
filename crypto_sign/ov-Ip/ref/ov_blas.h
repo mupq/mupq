@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 /// @file ov_blas.h
 /// @brief Defining the functions used in ov.c according to the definitions in params.h
 ///
@@ -49,7 +50,6 @@
 #define batch_2trimat_madd_multab   batch_2trimat_madd_multab_gf16
 #define batch_matTr_madd_multab     batch_matTr_madd_multab_gf16
 #define batch_upper_matTr_x_mat_multab     batch_upper_matTr_x_mat_multab_gf16
-#define batch_quad_trimat_eval_multab batch_quad_trimat_eval_multab_gf16
 #endif
 
 #else
@@ -75,7 +75,6 @@
 #define batch_2trimat_madd_multab   batch_2trimat_madd_multab_gf256
 #define batch_matTr_madd_multab     batch_matTr_madd_multab_gf256
 #define batch_upper_matTr_x_mat_multab     batch_upper_matTr_x_mat_multab_gf256
-#define batch_quad_trimat_eval_multab batch_quad_trimat_eval_multab_gf256
 #endif
 
 // TODO: this should be cleaner
