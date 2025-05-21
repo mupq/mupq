@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 /// @file ov_keypair.h
 /// @brief Formats of key pairs and functions for generating key pairs.
 /// Formats of key pairs and functions for generating key pairs.
@@ -62,7 +63,6 @@ struct {
 typedef
 struct {
     unsigned char sk_seed[LEN_SKSEED];   ///< seed for generating a part of secret key.
-    unsigned char pk_seed[LEN_PKSEED];   ///< seed for generating a part of public key.
 } csk_t;
 
 

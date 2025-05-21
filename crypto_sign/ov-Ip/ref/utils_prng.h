@@ -46,6 +46,8 @@ typedef struct {
 
 ///////////////// end of defination of prng_publicinputs_t  /////////////////////////////////
 
+void prng_release_publicinputs(prng_publicinputs_t *ctx);
+
 int prng_set_publicinputs(prng_publicinputs_t *ctx, const unsigned char prng_seed[16]);
 
 int prng_gen_publicinputs(prng_publicinputs_t *ctx, unsigned char *out, unsigned long outlen);

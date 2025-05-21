@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: CC0 OR Apache-2.0
 /// @file ov.c
 /// @brief The standard implementations for functions in ov.h
 ///
@@ -44,10 +45,6 @@ int ov_sign( uint8_t *signature, const sk_t *sk, const uint8_t *message, size_t 
     uint8_t y[_PUB_N_BYTE];
     uint8_t x_o1[_O_BYTE];
 
-    #if defined(_MUL_WITH_MULTAB_)
-    uint8_t multabs[(_V) * 32] __attribute__((aligned(32)));
-    #endif
-
     hash_ctx h_m_salt_secret;
     hash_ctx h_vinegar_copy;
     // The computation:  H(M||salt)  -->   y  --C-map-->   x   --T-->   w
@@ -73,21 +70,11 @@ int ov_sign( uint8_t *signature, const sk_t *sk, const uint8_t *message, size_t 
         #endif
 
 // generate linear system:
-        #if !defined(_MUL_WITH_MULTAB_)
 // matrix
         gfmat_prod( mat_l1, sk->S, _O * _O_BYTE, _V, vinegar );
 // constant
         // Given vinegars, evaluate P1 with the vinegars
         batch_quad_trimat_eval( r_l1_F1, sk->P1, vinegar, _V, _O_BYTE );
-        #else
-// generate mul-tables of vinegars
-        gfv_generate_multabs( multabs, vinegar, _V );
-// matrix
-        gfmat_prod_multab( mat_l1, sk->S, _O * _O_BYTE, _V, multabs );
-// constant
-        // Given vinegars, evaluate P1 with the vinegars
-        batch_quad_trimat_eval_multab( r_l1_F1, sk->P1, multabs, _V, _O_BYTE );
-        #endif
         gf256v_add( r_l1_F1, y, _O_BYTE );      // substract the contribution from vinegar variables
 
 // solve linear system:
@@ -170,18 +157,36 @@ int ov_verify( const uint8_t *message, size_t mlen, const uint8_t *signature, co
 }
 #endif
 
+
+#if defined(_OV_PKC) || defined(_OV_PKC_SKC)
+#if !defined(PQM4)
+#define _MALLOC_
+#endif
+
 #if defined(_OV_PKC_SKC)
 int ov_expand_and_sign( uint8_t *signature, const csk_t *csk, const uint8_t *message, size_t mlen ) {
+    #ifdef _MALLOC_
+    sk_t *sk = ov_malloc(sizeof(sk_t));
+    if (NULL == sk) {
+        return -1;
+    }
+    #else
     sk_t _sk;
     sk_t *sk = &_sk;
-    expand_sk( sk, csk->pk_seed, csk->sk_seed );    // generating classic secret key.
+    #endif
+
+    expand_sk( sk, csk->sk_seed );    // generating classic secret key.
 
     int r = ov_sign( signature, sk, message, mlen );
+
+    #ifdef _MALLOC_
+    ov_free(sk, sizeof(sk_t));
+    #endif
+
     return r;
 }
 #endif
 
-#if defined(_OV_PKC) || defined(_OV_PKC_SKC)
 int ov_expand_and_verify( const uint8_t *message, size_t mlen, const uint8_t *signature, const cpk_t *cpk ) {
 
     #ifdef _SAVE_MEMORY_
@@ -189,8 +194,18 @@ int ov_expand_and_verify( const uint8_t *message, size_t mlen, const uint8_t *si
     ov_publicmap_pkc( digest_ck, cpk, signature );
     return _ov_verify( message, mlen, signature + _PUB_N_BYTE, digest_ck );
     #else
+    int rc;
+
+    #ifdef _MALLOC_
+    pk_t *pk = ov_malloc(sizeof(pk_t));
+    if (NULL == pk) {
+        return -1;
+    }
+    #else
     pk_t _pk;
     pk_t *pk = &_pk;
+    #endif
+
     #if _GFSIZE == 16  && (defined(_BLAS_NEON_) || defined(_BLAS_M4F_))
     uint8_t xi[_PUB_N];
     for (int i = 0; i < _PUB_N; i++) {
@@ -200,7 +215,13 @@ int ov_expand_and_verify( const uint8_t *message, size_t mlen, const uint8_t *si
     #else
     expand_pk( pk, cpk );
     #endif
-    return ov_verify( message, mlen, signature, pk );
+    rc = ov_verify( message, mlen, signature, pk );
+
+
+    #ifdef _MALLOC_
+    ov_free(pk, sizeof(pk_t));
+    #endif
+    return rc;
     #endif
 }
 #endif
