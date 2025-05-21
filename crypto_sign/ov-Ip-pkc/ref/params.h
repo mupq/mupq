@@ -2,6 +2,9 @@
 #ifndef _PARAMS_H_
 #define _PARAMS_H_
 
+#ifndef PQM4
+#define PQM4
+#endif
 
 /*
  *   This parameter file contains all options that affect testvectors
