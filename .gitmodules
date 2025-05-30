@@ -3,3 +3,6 @@
 	url = https://github.com/pqclean/pqclean
 	branch = master
 
+[submodule "mlkem-native"]
+	path = mlkem-native
+	url = https://github.com/pq-code-package/mlkem-native
