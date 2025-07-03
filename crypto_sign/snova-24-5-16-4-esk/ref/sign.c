@@ -29,7 +29,8 @@ int crypto_sign(unsigned char *sm, size_t *smlen,
 
     snova_init();
     // hash
-    shake256(digest, 64, m, mlen);
+    memmove(sm + CRYPTO_BYTES, m, mlen);
+    shake256(digest, 64, sm + CRYPTO_BYTES, mlen);
 
     // sign
     create_salt(salt);
@@ -39,7 +40,6 @@ int crypto_sign(unsigned char *sm, size_t *smlen,
     sign_digest_esk(sm, digest, 64, salt, sk);
 #endif
 
-    memcpy(sm + CRYPTO_BYTES, m, mlen);
     *smlen = CRYPTO_BYTES + mlen;
     return 0;
 }
@@ -61,8 +61,9 @@ int crypto_sign_open(unsigned char *m, size_t *mlen,
         return -1;
     }
 
-    memcpy(m, sm + CRYPTO_BYTES, smlen - CRYPTO_BYTES);
+    memmove(m, sm + CRYPTO_BYTES, smlen - CRYPTO_BYTES);
     *mlen = smlen - CRYPTO_BYTES;
 
     return 0;
 }
+
