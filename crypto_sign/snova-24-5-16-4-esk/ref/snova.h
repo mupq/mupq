@@ -78,10 +78,10 @@ void generate_keys_esk(const uint8_t* pkseed, const uint8_t* skseed,
 void create_salt(uint8_t* array_salt);
 
 void sign_digest_ssk(uint8_t* pt_signature, const uint8_t* digest,
-                     uint64_t bytes_digest, uint8_t* array_salt,
+                     uint64_t bytes_digest, const uint8_t* array_salt,
                      const uint8_t* ssk);
 void sign_digest_esk(uint8_t* pt_signature, const uint8_t* digest,
-                     uint64_t bytes_digest, uint8_t* array_salt,
+                     uint64_t bytes_digest, const uint8_t* array_salt,
                      const uint8_t* esk);
 
 int verify_signture(const uint8_t* pt_digest, uint64_t bytes_digest,
@@ -92,3 +92,4 @@ int verify_signture(const uint8_t* pt_digest, uint64_t bytes_digest,
 #endif
 
 #endif
+

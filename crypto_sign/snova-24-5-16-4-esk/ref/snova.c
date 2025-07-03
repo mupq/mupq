@@ -37,7 +37,7 @@ void snova_init() {
  * @param pt_output_array - Pointer to the hash output. (Fixed length of
  * bytes_prng_public)
  */
-void hash_aes128(uint8_t* pt_seed_array, uint8_t* pt_output_array) {
+void hash_aes128(const uint8_t* pt_seed_array, uint8_t* pt_output_array) {
     const uint8_t iv[12] = {0};
     aes128ctx ctx;
     aes128_ctr_keyexp(&ctx, pt_seed_array);
@@ -52,7 +52,7 @@ void hash_aes128(uint8_t* pt_seed_array, uint8_t* pt_output_array) {
  * @param gf16_array - output (GF16)
  * @param num_of_GF16s - GF16 amount
  */
-void convert_bytes_to_GF16s(uint8_t* byte_array, gf16_t* gf16_array,
+void convert_bytes_to_GF16s(const uint8_t* byte_array, gf16_t* gf16_array,
                             int num_of_GF16s) {
     uint16_t* GF16_array_2B = (uint16_t*)gf16_array;
     for (int index = 0; index < num_of_GF16s >> 1; index++) {
@@ -90,7 +90,7 @@ void convert_GF16s_to_bytes(uint8_t* byte_array, gf16_t* gf16_array,
  * @param gf16_array - output (GF16)
  * @param num_of_GF16s - GF16 amount
  */
-void convert_bytes_to_GF16s_cut_in_half(uint8_t* byte_array, gf16_t* gf16_array,
+void convert_bytes_to_GF16s_cut_in_half(const uint8_t* byte_array, gf16_t* gf16_array,
                                         int num_of_GF16s) {
     uint64_t* pt_GF16_8;
     uint64_t* pt_GF16half_8;
@@ -138,7 +138,7 @@ void convert_GF16s_to_bytes_merger_in_half(uint8_t* byte_array,
             gf16_array[index] |
             ((gf16_array[index + ((num_of_GF16s + 1) >> 1)]) << 4);
     }
-    if (num_of_GF16s & 1 == 1) {
+    if ((num_of_GF16s & 1) == 1) {
         byte_array[num_of_GF16s >> 1] = gf16_array[num_of_GF16s >> 1];
     }
 }
@@ -165,7 +165,7 @@ void gen_a_FqS(gf16_t* c, gf16m_t* pt_matrix) {
  * @param T12 - output
  * @param seed - input
  */
-void gen_seeds_and_T12(T12_t T12, uint8_t* seed) {
+void gen_seeds_and_T12(T12_t T12, const uint8_t* seed) {
     gf16_t* pt_array;
     uint8_t prng_output_private[bytes_prng_private];
     gf16_t GF16_prng_output_private[GF16s_prng_private];
@@ -192,7 +192,7 @@ void gen_seeds_and_T12(T12_t T12, uint8_t* seed) {
  * @param map - P11 P12 P21 Aalpha Balpha Qalpha1 Qalpha2
  * @param pt_public_key_seed - input
  */
-void gen_A_B_Q_P(map_group1* map, uint8_t* pt_public_key_seed) {
+void gen_A_B_Q_P(map_group1* map, const uint8_t* pt_public_key_seed) {
     uint8_t prng_output_public[bytes_prng_public];
     uint8_t temp[lsq_SNOVA * l_SNOVA];
     // ----- pt temp -----
@@ -315,8 +315,8 @@ void input_P22(uint8_t* P22_gf16s, uint8_t* P22_bytes) {
  * @param pk_seed - pointer to input public key seed.
  * @param sk_seed - pointer to input private key elements.
  */
-void generate_keys_core(snova_key_elems* key_elems, uint8_t* pk_seed,
-                        uint8_t* sk_seed) {
+void generate_keys_core(snova_key_elems* key_elems, const uint8_t* pk_seed,
+                        const uint8_t* sk_seed) {
     gen_seeds_and_T12(key_elems->T12, sk_seed);
 
     memcpy(key_elems->pk.pt_public_key_seed, pk_seed, seed_length_public);
@@ -335,8 +335,8 @@ void generate_keys_core(snova_key_elems* key_elems, uint8_t* pk_seed,
  * @param key_elems - pointer to input snova key elements.
  * @param pt_private_key_seed - pointer to input private key seed.
  */
-void sk_pack(uint8_t* esk, snova_key_elems* key_elems,
-             uint8_t* pt_private_key_seed) {
+void sk_pack(uint8_t* esk, const snova_key_elems* key_elems,
+             const uint8_t* pt_private_key_seed) {
     uint8_t* sk_gf16_ptr = (uint8_t*)(key_elems->map1.Aalpha);
     convert_GF16s_to_bytes_merger_in_half(
         esk, sk_gf16_ptr,
@@ -424,12 +424,12 @@ void create_salt(uint8_t* array_salt) { randombytes(array_salt, bytes_salt); }
  * @param pt_public_key_seed - pointer to output public key seed.
  * @param pt_private_key_seed - pointer to output private key seed.
  */
-void sign_digest_core(uint8_t* pt_signature, uint8_t* digest,
-                      uint64_t bytes_digest, uint8_t* array_salt,
+void sign_digest_core(uint8_t* pt_signature, const uint8_t* digest,
+                      uint64_t bytes_digest, const uint8_t* array_salt,
                       Aalpha_t Aalpha, Balpha_t Balpha, Qalpha1_t Qalpha1,
                       Qalpha2_t Qalpha2, T12_t T12, F11_t F11, F12_t F12,
-                      F21_t F21, uint8_t pt_public_key_seed[seed_length_public],
-                      uint8_t pt_private_key_seed[seed_length_private]) {
+                      F21_t F21, const uint8_t pt_public_key_seed[seed_length_public],
+                      const uint8_t pt_private_key_seed[seed_length_private]) {
     gf16_t Gauss[m_SNOVA * lsq_SNOVA][m_SNOVA * lsq_SNOVA + 1];
     gf16_t Temp[lsq_SNOVA][lsq_SNOVA];
     gf16_t t_GF16, solution[m_SNOVA * lsq_SNOVA];
@@ -722,11 +722,11 @@ void sign_digest_core(uint8_t* pt_signature, uint8_t* digest,
  * @param ssk - pointer to input private key (seed).
  */
 void sign_digest_ssk(uint8_t* pt_signature, const uint8_t* digest,
-                     uint64_t bytes_digest, uint8_t* array_salt,
+                     uint64_t bytes_digest, const uint8_t* array_salt,
                      const uint8_t* ssk) {
     snova_key_elems key_elems;
-    uint8_t* pk_seed = ssk;
-    uint8_t* sk_seed = ssk + seed_length_public;
+    const uint8_t* pk_seed = ssk;
+    const uint8_t* sk_seed = ssk + seed_length_public;
 
     gen_seeds_and_T12(key_elems.T12, sk_seed);
     gen_A_B_Q_P(&(key_elems.map1), pk_seed);
@@ -748,7 +748,7 @@ void sign_digest_ssk(uint8_t* pt_signature, const uint8_t* digest,
  * @param esk - pointer to input private key (expanded).
  */
 void sign_digest_esk(uint8_t* pt_signature, const uint8_t* digest,
-                     uint64_t bytes_digest, uint8_t* array_salt,
+                     uint64_t bytes_digest, const uint8_t* array_salt,
                      const uint8_t* esk) {
     sk_gf16 sk_upk;
     sk_unpack(&sk_upk, esk);
@@ -771,7 +771,7 @@ int verify_signture(const uint8_t* pt_digest, uint64_t bytes_digest,
     uint8_t hash_in_bytes[bytes_hash];
     uint8_t hash_input[seed_length_public + bytes_digest + bytes_salt];
     uint8_t signed_hash[bytes_hash];
-    uint8_t* pt_salt = pt_signature + bytes_signature;
+    const uint8_t* pt_salt = pt_signature + bytes_signature;
 
     gf16m_t Left[lsq_SNOVA][n_SNOVA], Right[lsq_SNOVA][n_SNOVA];
     gf16m_t hash_in_GF16Matrix[m_SNOVA];
