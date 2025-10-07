@@ -1,1 +1,0 @@
-../../cross-RSDP-1-SIG_SIZE/ref/merkle_tree.h
