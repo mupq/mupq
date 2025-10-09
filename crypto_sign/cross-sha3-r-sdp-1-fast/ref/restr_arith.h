@@ -1,1 +1,0 @@
-../../cross-sha3-r-sdp-1-small/ref/restr_arith.h
