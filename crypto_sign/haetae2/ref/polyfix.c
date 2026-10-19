@@ -1,10 +1,11 @@
+// SPDX-License-Identifier: MIT
+
 #include "polyfix.h"
-#include "decompose.h"
-#include "math.h"
-#include "ntt.h"
+#include "fips202.h"
+#include "fixpoint.h"
 #include "params.h"
-#include "reduce.h"
-#include "symmetric.h"
+#include "sampler.h"
+
 #include <stdint.h>
 
 /*************************************************
@@ -18,10 +19,10 @@
  *              - const poly *b: pointer to second summand
  **************************************************/
 void polyfix_add(polyfix *c, const polyfix *a, const poly *b) {
-    unsigned int i;
+  unsigned int i;
 
-    for (i = 0; i < N; ++i)
-        c->coeffs[i] = a->coeffs[i] + LN * b->coeffs[i];
+  for (i = 0; i < HAETAE_N; ++i)
+    c->coeffs[i] = a->coeffs[i] + HAETAE_LN * b->coeffs[i];
 }
 
 /*************************************************
@@ -35,18 +36,14 @@ void polyfix_add(polyfix *c, const polyfix *a, const poly *b) {
  *              - const polyfix *b: pointer to second summand
  **************************************************/
 void polyfixfix_sub(polyfix *c, const polyfix *a, const polyfix *b) {
-    unsigned int i;
+  unsigned int i;
 
-    for (i = 0; i < N; ++i)
-        c->coeffs[i] = a->coeffs[i] - b->coeffs[i];
+  for (i = 0; i < HAETAE_N; ++i)
+    c->coeffs[i] = a->coeffs[i] - b->coeffs[i];
 }
 
 int32_t fix_round(int32_t num) {
-    num += (num >> 31) & (-LN + 1);
-    num +=
-        LN /
-        2; // total \floor(LN / 2) if positive, -\floor(LN / 2) + 1 if negative
-    return num / LN;
+  return (num + HAETAE_LNHALF) >> HAETAE_LNBITS;
 }
 
 /*************************************************
@@ -58,20 +55,16 @@ int32_t fix_round(int32_t num) {
  *              - poly *b: input fixed polynomial
  **************************************************/
 void polyfix_round(poly *a, const polyfix *b) {
-    unsigned i;
+  unsigned i;
 
-    for (i = 0; i < N; ++i)
-        a->coeffs[i] = fix_round(b->coeffs[i]);
+  for (i = 0; i < HAETAE_N; ++i)
+    a->coeffs[i] = fix_round(b->coeffs[i]);
 }
-
-/**************************************************************/
-/********* Double Vectors of polynomials of length K **********/
-/**************************************************************/
 
 /*************************************************
  * Name:        polyfixveck_add
  *
- * Description: Add vector to a vector of double polynomials of length K.
+ * Description: Add vector to a vector of double polynomials of length HAETAE_K.
  *              No modular reduction is performed.
  *
  * Arguments:   - polyveck *w: pointer to output vector
@@ -79,10 +72,10 @@ void polyfix_round(poly *a, const polyfix *b) {
  *              - const polyveck *v: pointer to second summand
  **************************************************/
 void polyfixveck_add(polyfixveck *w, const polyfixveck *u, const polyveck *v) {
-    unsigned int i;
+  unsigned int i;
 
-    for (i = 0; i < K; ++i)
-        polyfix_add(&w->vec[i], &u->vec[i], &v->vec[i]);
+  for (i = 0; i < HAETAE_K; ++i)
+    polyfix_add(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
 
 /*************************************************
@@ -97,46 +90,42 @@ void polyfixveck_add(polyfixveck *w, const polyfixveck *u, const polyveck *v) {
  **************************************************/
 void polyfixfixveck_sub(polyfixveck *w, const polyfixveck *u,
                         const polyfixveck *v) {
-    unsigned int i;
+  unsigned int i;
 
-    for (i = 0; i < K; ++i)
-        polyfixfix_sub(&w->vec[i], &u->vec[i], &v->vec[i]);
+  for (i = 0; i < HAETAE_K; ++i)
+    polyfixfix_sub(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
 
 /*************************************************
  * Name:        polyfixveck_double
  *
- * Description: Double vector of polynomials of length K.
+ * Description: Double vector of polynomials of length HAETAE_K.
  *
  * Arguments:   - polyveck *b: pointer to output vector
  *              - polyveck *a: pointer to input vector
  **************************************************/
 void polyfixveck_double(polyfixveck *b, const polyfixveck *a) {
-    unsigned int i, j;
+  unsigned int i, j;
 
-    for (i = 0; i < K; ++i)
-        for (j = 0; j < N; ++j)
-            b->vec[i].coeffs[j] = 2 * a->vec[i].coeffs[j];
+  for (i = 0; i < HAETAE_K; ++i)
+    for (j = 0; j < HAETAE_N; ++j)
+      b->vec[i].coeffs[j] = 2 * a->vec[i].coeffs[j];
 }
 
 /*************************************************
  * Name:        polyfixveck_round
  *
- * Description: rounds a fixed polynomial vector of length K
+ * Description: rounds a fixed polynomial vector of length HAETAE_K
  *
  * Arguments:   - polyveck *a: output integer polynomial vector
  *              - polyfixveck *b: input fixed polynomial vector
  **************************************************/
 void polyfixveck_round(polyveck *a, const polyfixveck *b) {
-    unsigned i;
+  unsigned i;
 
-    for (i = 0; i < K; ++i)
-        polyfix_round(&a->vec[i], &b->vec[i]);
+  for (i = 0; i < HAETAE_K; ++i)
+    polyfix_round(&a->vec[i], &b->vec[i]);
 }
-
-/**************************************************************/
-/********* Double Vectors of polynomials of length L **********/
-/**************************************************************/
 
 /*************************************************
  * Name:        polyfixvecl_add
@@ -149,10 +138,10 @@ void polyfixveck_round(polyveck *a, const polyfixveck *b) {
  *              - const polyvecl *v: pointer to second summand
  **************************************************/
 void polyfixvecl_add(polyfixvecl *w, const polyfixvecl *u, const polyvecl *v) {
-    unsigned int i;
+  unsigned int i;
 
-    for (i = 0; i < L; ++i)
-        polyfix_add(&w->vec[i], &u->vec[i], &v->vec[i]);
+  for (i = 0; i < HAETAE_L; ++i)
+    polyfix_add(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
 
 /*************************************************
@@ -167,10 +156,10 @@ void polyfixvecl_add(polyfixvecl *w, const polyfixvecl *u, const polyvecl *v) {
  **************************************************/
 void polyfixfixvecl_sub(polyfixvecl *w, const polyfixvecl *u,
                         const polyfixvecl *v) {
-    unsigned int i;
+  unsigned int i;
 
-    for (i = 0; i < L; ++i)
-        polyfixfix_sub(&w->vec[i], &u->vec[i], &v->vec[i]);
+  for (i = 0; i < HAETAE_L; ++i)
+    polyfixfix_sub(&w->vec[i], &u->vec[i], &v->vec[i]);
 }
 /*************************************************
  * Name:        polyfixvecl_double
@@ -181,11 +170,11 @@ void polyfixfixvecl_sub(polyfixvecl *w, const polyfixvecl *u,
  *              - polyveck *a: pointer to input vector
  **************************************************/
 void polyfixvecl_double(polyfixvecl *b, const polyfixvecl *a) {
-    unsigned int i, j;
+  unsigned int i, j;
 
-    for (i = 0; i < L; ++i)
-        for (j = 0; j < N; ++j)
-            b->vec[i].coeffs[j] = 2 * a->vec[i].coeffs[j];
+  for (i = 0; i < HAETAE_L; ++i)
+    for (j = 0; j < HAETAE_N; ++j)
+      b->vec[i].coeffs[j] = 2 * a->vec[i].coeffs[j];
 }
 
 /*************************************************
@@ -197,96 +186,113 @@ void polyfixvecl_double(polyfixvecl *b, const polyfixvecl *a) {
  *              - polyfixvecl *b: input fixed polynomial vector
  **************************************************/
 void polyfixvecl_round(polyvecl *a, const polyfixvecl *b) {
-    unsigned i;
+  unsigned i;
 
-    for (i = 0; i < L; ++i)
-        polyfix_round(&a->vec[i], &b->vec[i]);
+  for (i = 0; i < HAETAE_L; ++i)
+    polyfix_round(&a->vec[i], &b->vec[i]);
 }
 
 /*************************************************
  * Name:        polyfixveclk_norm2
  *
  * Description: Calculates L2 norm of a fixed point polynomial vector with
- *length L + K The result is L2 norm * LN similar to the way polynomial is
- *usually stored
+ *              length HAETAE_L + HAETAE_K The result is L2 norm * HAETAE_LN
+ *               similar to the way polynomial is usually stored
  *
- * Arguments:   - polyfixvecl *a: polynomial vector with length L to calculate
- *                norm
- *              - polyfixveck *a: polynomial vector with length K to calculate
- *                norm
+ * Arguments:   - polyfixvecl *a: polynomial vector with length HAETAE_L to
+ *              calculate norm
+ *              - polyfixveck *b: polynomial vector with length HAETAE_K to
+ *              calculate norm
  **************************************************/
 uint64_t polyfixveclk_sqnorm2(const polyfixvecl *a, const polyfixveck *b) {
-    unsigned int i, j;
-    uint64_t ret = 0;
+  unsigned int i, j;
+  uint64_t ret = 0;
 
-    for (i = 0; i < L; ++i) {
-        for (j = 0; j < N; ++j)
-            ret += (int64_t)a->vec[i].coeffs[j] * a->vec[i].coeffs[j];
-    }
+  for (i = 0; i < HAETAE_L; ++i) {
+    for (j = 0; j < HAETAE_N; ++j)
+      ret += (int64_t)a->vec[i].coeffs[j] * a->vec[i].coeffs[j];
+  }
 
-    for (i = 0; i < K; ++i) {
-        for (j = 0; j < N; ++j)
-            ret += (int64_t)b->vec[i].coeffs[j] * b->vec[i].coeffs[j];
-    }
+  for (i = 0; i < HAETAE_K; ++i) {
+    for (j = 0; j < HAETAE_N; ++j)
+      ret += (int64_t)b->vec[i].coeffs[j] * b->vec[i].coeffs[j];
+  }
 
-    return ret;
+  return ret;
 }
 
-uint16_t polyfixveclk_sample_hyperball(polyfixvecl *y1, polyfixveck *y2, uint8_t *b,
-                                       const uint8_t seed[CRHBYTES],
+/*************************************************
+ * Name:        polyfixveclk_sample_hyperball
+ *
+ * Description: sample hyperball
+ *
+ * Arguments:   - polyfixvecl *y1: polynomial vector with length HAETAE_L to
+ *              calculate norm
+ *              - polyfixveck *y2: polynomial vector with length HAETAE_K to
+ *              calculate norm
+ *              - uint8_t *b: output byte
+ *              - uint8_t seed[HAETAE_CRHBYTES]: input seed bytes
+ *              - const uint16_t nonce: input nonce
+ *
+ * Specification: Implements @[Algorithm 13, SampleHyperball]
+ **************************************************/
+uint16_t polyfixveclk_sample_hyperball(polyfixvecl *y1, polyfixveck *y2,
+                                       uint8_t *b,
+                                       const uint8_t seed[HAETAE_CRHBYTES],
                                        const uint16_t nonce) {
-    uint16_t ni = nonce;
-    uint64_t samples[N * (L + K)];
-    fp96_76 sqsum, invsqrt;
-    unsigned int i, j;
-    uint8_t signs[N * (L + K) / 8];
+  uint16_t ni = nonce;
+  uint64_t samples[HAETAE_N * (HAETAE_L + HAETAE_K)];
+  fp96_76 sqsum, invsqrt;
+  unsigned int i, j;
+  uint8_t signs[HAETAE_N * (HAETAE_L + HAETAE_K) / 8];
 
-    do {
-        sqsum.limb48[0] = 0;
-        sqsum.limb48[1] = 0;
-        
-        sample_gauss_N(&samples[0], &signs[0], &sqsum, seed, ni++, N + 1);
-        sample_gauss_N(&samples[N], &signs[N / 8], &sqsum, seed, ni++, N + 1);
+  do {
+    sqsum.limb48[0] = 0;
+    sqsum.limb48[1] = 0;
 
-        for (i = 2; i < L + K; i++)
-            sample_gauss_N(&samples[N * i], &signs[N / 8 * i], &sqsum, seed,
-                           ni++, N);
+    sample_gauss_N(&samples[0], &signs[0], &sqsum, seed, ni++, HAETAE_N + 1);
+    sample_gauss_N(&samples[HAETAE_N], &signs[HAETAE_N / 8], &sqsum, seed, ni++,
+                   HAETAE_N + 1);
 
-        // divide sqsum by 2 and approximate inverse square root
-        sqsum.limb48[0] += 1; // rounding
-        sqsum.limb48[0] >>= 1;
-        sqsum.limb48[0] += (sqsum.limb48[1] & 1) << 47;
-        sqsum.limb48[1] >>= 1;
-        sqsum.limb48[1] += sqsum.limb48[0] >> 48;
-        sqsum.limb48[0] &= (1ULL << 48) - 1;
-        fixpoint_newton_invsqrt(&invsqrt, &sqsum);
-        fixpoint_mul_high(&sqsum, &invsqrt,
-                          (uint64_t)(B0 * LN + SQNM / 2) << (28 - 13));
+    for (i = 2; i < HAETAE_L + HAETAE_K; i++)
+      sample_gauss_N(&samples[HAETAE_N * i], &signs[HAETAE_N / 8 * i], &sqsum,
+                     seed, ni++, HAETAE_N);
 
-        for (i = 0; i < L; i++) {
-            for (j = 0; j < N; j++)
-                y1->vec[i].coeffs[j] = fixpoint_mul_rnd13(
-                    samples[(i * N + j)], &sqsum,
-                    (signs[(i * N + j) / 8] >> ((i * N + j) % 8)) & 1);
-        }
-        for (i = L; i < K + L; i++) {
-            for (j = 0; j < N; j++)
-                y2->vec[i - L].coeffs[j] = fixpoint_mul_rnd13(
-                    samples[(i * N + j)], &sqsum,
-                    (signs[(i * N + j) / 8] >> ((i * N + j) % 8)) & 1);
-        }
-    } while (polyfixveclk_sqnorm2(y1, y2) > B0SQ * LN * LN);
+    // divide sqsum by 2 and approximate inverse square root
+    sqsum.limb48[0] += 1; // rounding
+    sqsum.limb48[0] >>= 1;
+    sqsum.limb48[0] += (sqsum.limb48[1] & 1) << 47;
+    sqsum.limb48[1] >>= 1;
+    sqsum.limb48[1] += sqsum.limb48[0] >> 48;
+    sqsum.limb48[0] &= (UINT64_C(1) << 48) - 1;
+    fixpoint_newton_invsqrt(&invsqrt, &sqsum);
+    fixpoint_mul_high(&sqsum, &invsqrt,
+                      (uint64_t)(HAETAE_B0 * HAETAE_LN + HAETAE_SQNM / 2)
+                          << (28 - 13));
 
-    {
-      uint8_t tmp[CRHBYTES + 2];
-      for (i = 0; i < CRHBYTES; i++)
-      {
-        tmp[i] = seed[i];
-      }
-      tmp[CRHBYTES + 0] = ni >> 0;
-      tmp[CRHBYTES + 1] = ni >> 8;
-      shake256(b, 1, tmp, CRHBYTES+2);
+    for (i = 0; i < HAETAE_L; i++) {
+      for (j = 0; j < HAETAE_N; j++)
+        y1->vec[i].coeffs[j] = fixpoint_mul_rnd13(
+            samples[(i * HAETAE_N + j)], &sqsum,
+            (signs[(i * HAETAE_N + j) / 8] >> ((i * HAETAE_N + j) % 8)) & 1);
     }
+    for (i = HAETAE_L; i < HAETAE_K + HAETAE_L; i++) {
+      for (j = 0; j < HAETAE_N; j++)
+        y2->vec[i - HAETAE_L].coeffs[j] = fixpoint_mul_rnd13(
+            samples[(i * HAETAE_N + j)], &sqsum,
+            (signs[(i * HAETAE_N + j) / 8] >> ((i * HAETAE_N + j) % 8)) & 1);
+    }
+  } while (polyfixveclk_sqnorm2(y1, y2) > HAETAE_B0SQ * HAETAE_LN * HAETAE_LN);
 
-    return ni;
+  {
+    uint8_t tmp[HAETAE_CRHBYTES + 2];
+    for (i = 0; i < HAETAE_CRHBYTES; i++) {
+      tmp[i] = seed[i];
+    }
+    tmp[HAETAE_CRHBYTES + 0] = ni >> 0;
+    tmp[HAETAE_CRHBYTES + 1] = ni >> 8;
+    shake256(b, 1, tmp, HAETAE_CRHBYTES + 2);
+  }
+
+  return ni;
 }
