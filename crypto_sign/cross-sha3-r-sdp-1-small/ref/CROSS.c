@@ -153,7 +153,7 @@ void expand_private_seed(FZ_ELEM eta[N],
 void CROSS_sign(const prikey_t *SK,
                const char *const m,
                const uint64_t mlen,
-               sig_t *sig){
+               CROSS_sig_t *sig){
     /* Key material expansion */
     FQ_ELEM V_tr[N-K][K];
     FZ_ELEM eta[N];
@@ -344,7 +344,7 @@ void CROSS_sign(const prikey_t *SK,
 int CROSS_verify(const pubkey_t *const PK,
                  const char *const m,
                  const uint64_t mlen,
-                 const sig_t *const sig){
+                 const CROSS_sig_t *const sig){
     CSPRNG_STATE_T CSPRNG_state;
 
     FQ_ELEM V_tr[N-K][K];

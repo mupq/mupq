@@ -61,7 +61,7 @@ typedef struct {
    uint8_t stp[SEED_TREE_MAX_PUBLISHED_BYTES];
    rsp_0_t rsp_0[T-W];
    uint8_t rsp_1[T-W][HASH_DIGEST_LENGTH];
-} sig_t;
+} CROSS_sig_t;
 
 
 /* keygen cannot fail */
@@ -72,10 +72,10 @@ void CROSS_keygen(prikey_t *SK,
 void CROSS_sign(const prikey_t * const SK,
                 const char * const m,
                 const uint64_t mlen,
-                sig_t * const sig);
+                CROSS_sig_t * const sig);
 
 /* verify returns 1 if signature is ok, 0 otherwise */
 int CROSS_verify(const pubkey_t * const PK,
                  const char * const m,
                  const uint64_t mlen,
-                 const sig_t * const sig);
+                 const CROSS_sig_t * const sig);

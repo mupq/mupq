@@ -49,14 +49,14 @@ int crypto_sign(unsigned char *sm,
                 const unsigned char *sk)                          // in parameter
 {
    // TODO: this should not be needed, but CROSS_sign seems to not set all bytes of the signature
-   memset(sm+mlen, 0, sizeof(sig_t));
+   memset(sm+mlen, 0, sizeof(CROSS_sig_t));
    /* sign cannot fail */
    memcpy((unsigned char *) sm, (const unsigned char *) m, (size_t) mlen);
    CROSS_sign((const prikey_t *)
              sk,                                // in parameter
              (const char *const) m, (const uint64_t) mlen,         // in parameter
-             (sig_t *) (sm+mlen));                                 // out parameter
-   *smlen = mlen + (size_t) sizeof(sig_t);
+             (CROSS_sig_t *) (sm+mlen));                                 // out parameter
+   *smlen = mlen + (size_t) sizeof(CROSS_sig_t);
 
    return 0;  // NIST convention: 0 == zero errors
 } // end crypto_sign
@@ -73,12 +73,12 @@ int crypto_sign_open(unsigned char *m,
 {
 
    /* verify returns 1 if signature is ok, 0 otherwise */
-   *mlen = smlen-(size_t) sizeof(sig_t);
+   *mlen = smlen-(size_t) sizeof(CROSS_sig_t);
    memcpy((unsigned char *) m, (const unsigned char *) sm, (size_t) *mlen);
    int ok = CROSS_verify((const pubkey_t *const)
                         pk,                     // in parameter
                         (const char *const) m, (const uint64_t) *mlen,  // in parameter
-                        (const sig_t * const) (sm+*mlen));              // in parameter
+                        (const CROSS_sig_t * const) (sm+*mlen));              // in parameter
 
 
    return ok-1; // NIST convention: 0 == zero errors, -1 == error condition
