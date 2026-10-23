@@ -352,8 +352,13 @@ class TestVectors(BoardTestCase):
         return hash
 
     def run_test(self, implementation):
-        checksum = self.hash_output(
-            super().run_test(implementation).encode('utf-8'))
+        if implementation.scheme not in self.testvectorhash:
+            self.log.error("Test %s - %s Failed: no host testvector", implementation, self.test_type)
+            return -1
+        output = super().run_test(implementation)
+        if output == -1:
+            return -1
+        checksum = self.hash_output(output.encode('utf-8'))
         if self.testvectorhash[implementation.scheme] != checksum:
             self.log.error("Test %s - %s Failed!", implementation, self.test_type)
             return -1
@@ -389,7 +394,8 @@ class TestVectors(BoardTestCase):
                         ))
                 except Exception as e:
                     self.log.error("Generating testvector for %s failed with exception: %s", impl, e)
-                self.testvectorhash[impl.scheme] = checksum
+                else:
+                    self.testvectorhash[impl.scheme] = checksum
                 pb.update()
         return 0
 
