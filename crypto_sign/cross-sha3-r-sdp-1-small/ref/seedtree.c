@@ -153,7 +153,7 @@ int publish_seeds(unsigned char *seed_storage,
    compute_seeds_to_publish(flags_tree_to_publish, indices_to_publish);
 
    int num_seeds_published = 0;
-   for (int i = 1; i < 2*NUM_LEAVES_OF_SEED_TREE-1; i++) {
+   for (int i = 1; (unsigned long)i < 2*NUM_LEAVES_OF_SEED_TREE-1; i++) {
       if ( (flags_tree_to_publish[i] == TO_PUBLISH) &&
            (flags_tree_to_publish[PARENT(i)] == NOT_TO_PUBLISH) ) {
             memcpy(seed_storage + num_seeds_published*SEED_LENGTH_BYTES,

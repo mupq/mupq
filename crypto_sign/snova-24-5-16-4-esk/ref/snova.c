@@ -456,7 +456,7 @@ void sign_digest_core(uint8_t* pt_signature, uint8_t* digest,
     for (int index = 0; index < seed_length_public; ++index) {
         hash_input[index] = pt_public_key_seed[index];
     }
-    for (int index = 0; index < bytes_digest; ++index) {
+    for (int index = 0; (uint64_t)index < bytes_digest; ++index) {
         hash_input[seed_length_public + index] = digest[index];
     }
     for (int index = 0; index < bytes_salt; ++index) {
@@ -472,7 +472,7 @@ void sign_digest_core(uint8_t* pt_signature, uint8_t* digest,
     for (int index = 0; index < seed_length_private; ++index) {
         vinegar_input[index] = pt_private_key_seed[index];
     }
-    for (int index = 0; index < bytes_digest; ++index) {
+    for (int index = 0; (uint64_t)index < bytes_digest; ++index) {
         vinegar_input[seed_length_private + index] = digest[index];
     }
     for (int index = 0; index < bytes_salt; ++index) {
@@ -786,7 +786,7 @@ int verify_signture(const uint8_t* pt_digest, uint64_t bytes_digest,
     for (int index = 0; index < seed_length_public; ++index) {
         hash_input[index] = pk_stru->pt_public_key_seed[index];
     }
-    for (int index = 0; index < bytes_digest; ++index) {
+    for (int index = 0; (uint64_t)index < bytes_digest; ++index) {
         hash_input[seed_length_public + index] = pt_digest[index];
     }
     for (int index = 0; index < bytes_salt; ++index) {
