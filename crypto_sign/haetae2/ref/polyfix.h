@@ -1,15 +1,16 @@
-// clang-format off
+// SPDX-License-Identifier: MIT
+
 #ifndef HAETAE_POLYFIX_H
 #define HAETAE_POLYFIX_H
 
 #include "params.h"
 #include "poly.h"
 #include "polyvec.h"
-#include "reduce.h"
+
 #include <stdint.h>
 
 typedef struct {
-    int32_t coeffs[N];
+  int32_t coeffs[HAETAE_N];
 } polyfix;
 
 #define polyfix_norm2 HAETAE_NAMESPACE(polyfix_norm2)
@@ -22,7 +23,7 @@ void polyfix_round(poly *a, const polyfix *b);
 void polyfix_add(polyfix *c, const polyfix *a, const poly *b);
 
 typedef struct {
-    polyfix vec[K];
+  polyfix vec[HAETAE_K];
 } polyfixveck;
 
 #define polyfixveck_add HAETAE_NAMESPACE(polyfixveck_add)
@@ -37,7 +38,7 @@ void polyfixveck_double(polyfixveck *b, const polyfixveck *a);
 void polyfixveck_round(polyveck *a, const polyfixveck *b);
 
 typedef struct {
-    polyfix vec[L];
+  polyfix vec[HAETAE_L];
 } polyfixvecl;
 
 #define polyfixvecl_add HAETAE_NAMESPACE(polyfixvecl_add)
@@ -54,8 +55,11 @@ void polyfixvecl_round(polyvecl *a, const polyfixvecl *b);
 #define polyfixveclk_sqnorm2 HAETAE_NAMESPACE(polyfixveclk_sqnorm2)
 uint64_t polyfixveclk_sqnorm2(const polyfixvecl *a, const polyfixveck *b);
 
-#define polyfixveclk_sample_hyperball HAETAE_NAMESPACE(polyfixveclk_sample_hyperball)
-uint16_t polyfixveclk_sample_hyperball(polyfixvecl *y1, polyfixveck *y2, uint8_t *b, const uint8_t seed[CRHBYTES], const uint16_t nonce);
+#define polyfixveclk_sample_hyperball                                          \
+  HAETAE_NAMESPACE(polyfixveclk_sample_hyperball)
+uint16_t polyfixveclk_sample_hyperball(polyfixvecl *y1, polyfixveck *y2,
+                                       uint8_t *b,
+                                       const uint8_t seed[HAETAE_CRHBYTES],
+                                       const uint16_t nonce);
 
-#endif
-// clang-format on
+#endif /* !HAETAE_POLYFIX_H */

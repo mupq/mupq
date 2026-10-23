@@ -1,20 +1,42 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+// SPDX-License-Identifier: MIT
 
-#define HAETAE_MODE 2
+#ifndef HAETAE_CONFIG_H
+#define HAETAE_CONFIG_H
 
-#if HAETAE_MODE == 2
-#define CRYPTO_ALGNAME "HAETAE2"
-#define HAETAE_NAMESPACETOP haetae2
-#define HAETAE_NAMESPACE(s) cryptolab_haetae2_##s
-#elif HAETAE_MODE == 3
-#define CRYPTO_ALGNAME "HAETAE3"
-#define HAETAE_NAMESPACETOP haetae3
-#define HAETAE_NAMESPACE(s) cryptolab_haetae3_##s
-#elif HAETAE_MODE == 5
-#define CRYPTO_ALGNAME "HAETAE5"
-#define HAETAE_NAMESPACETOP haetae5
-#define HAETAE_NAMESPACE(s) cryptolab_haetae5_##s
-#endif /* if HAETAE_MODE */
+#include "common.h"
 
-#endif /* CONFIG_H */
+#define HAETAE_MODE2 0
+#define HAETAE_MODE3 1
+#define HAETAE_MODE5 2
+
+#if !defined(HAETAE_CONFIG_MODE)
+#define HAETAE_CONFIG_MODE HAETAE_MODE2
+#endif
+
+#if (HAETAE_CONFIG_MODE != HAETAE_MODE2) &&                                    \
+    (HAETAE_CONFIG_MODE != HAETAE_MODE3) &&                                    \
+    (HAETAE_CONFIG_MODE != HAETAE_MODE5)
+#error "Invalid HAETAE_CONFIG_MODE"
+#endif
+
+#if !defined(HAETAE_CONFIG_MODE_STRING)
+#if HAETAE_CONFIG_MODE == HAETAE_MODE2
+#define HAETAE_CONFIG_MODE_STRING mode2
+#elif HAETAE_CONFIG_MODE == HAETAE_MODE3
+#define HAETAE_CONFIG_MODE_STRING mode3
+#elif HAETAE_CONFIG_MODE == HAETAE_MODE5
+#define HAETAE_CONFIG_MODE_STRING mode5
+#endif
+#endif
+
+#if !defined(HAETAE_CONFIG_NAMESPACE_PREFIX)
+#define HAETAE_CONFIG_NAMESPACE_PREFIX cryptolab_haetae_
+#endif
+
+#if !defined(HAETAE_CONFIG_NAMESPACE_PREFIX_MODE)
+#define HAETAE_ADD_MODE(s) HAETAE_CONCAT(s, HAETAE_CONFIG_MODE_STRING)
+#define HAETAE_CONFIG_NAMESPACE_PREFIX_MODE                                    \
+  HAETAE_CONCAT(HAETAE_ADD_MODE(HAETAE_CONFIG_NAMESPACE_PREFIX), _)
+#endif
+
+#endif /* !HAETAE_CONFIG_H */

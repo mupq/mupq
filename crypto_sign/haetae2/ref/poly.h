@@ -1,30 +1,15 @@
-// clang-format off
+// SPDX-License-Identifier: MIT
+
 #ifndef HAETAE_POLY_H
 #define HAETAE_POLY_H
 
 #include "params.h"
-#include "reduce.h"
-#include "sampler.h"
+
 #include <stdint.h>
 
-/**********************************************************************
- * Name:        poly
- * Description: Holds the coefficients of a polynomial.
- **********************************************************************/
 typedef struct {
-    int32_t coeffs[N];
+  int32_t coeffs[HAETAE_N];
 } poly;
-
-/**********************************************************************
- * Name:        poly_frozen
- * Description: Holds the fully reduced coefficients of a polynomial,
- *              i.e. all coefficients are in the interval [0,q-1].
- *              Typically used for polynomials which are used as 
- *              read-only after initial computation.
- **********************************************************************/
-typedef struct {
-    uint16_t coeffs[N];
-} poly_frozen;
 
 #define poly_add HAETAE_NAMESPACE(poly_add)
 void poly_add(poly *c, const poly *a, const poly *b);
@@ -32,8 +17,6 @@ void poly_add(poly *c, const poly *a, const poly *b);
 void poly_sub(poly *c, const poly *a, const poly *b);
 #define poly_pointwise_montgomery HAETAE_NAMESPACE(poly_pointwise_montgomery)
 void poly_pointwise_montgomery(poly *c, const poly *a, const poly *b);
-#define poly_pointwise_montgomery_frozen HAETAE_NAMESPACE(poly_pointwise_montgomery_frozen)
-void poly_pointwise_montgomery_frozen(poly *c, const poly_frozen *a, const poly *b);
 
 #define poly_reduce2q HAETAE_NAMESPACE(poly_reduce2q)
 void poly_reduce2q(poly *a);
@@ -52,38 +35,22 @@ void poly_compose(poly *a, const poly *ha, const poly *la);
 void poly_lsb(poly *a0, const poly *a);
 
 #define poly_uniform HAETAE_NAMESPACE(poly_uniform)
-void poly_uniform(poly *a, const uint8_t seed[SEEDBYTES], uint16_t nonce);
-#define poly_uniform_frozen HAETAE_NAMESPACE(poly_uniform_frozen)
-void poly_uniform_frozen(poly_frozen *a, const uint8_t seed[SEEDBYTES], uint16_t nonce);
+void poly_uniform(poly *a, const uint8_t seed[HAETAE_SEEDBYTES],
+                  uint16_t nonce);
 #define poly_uniform_eta HAETAE_NAMESPACE(poly_uniform_eta)
-void poly_uniform_eta(poly *a, const uint8_t seed[CRHBYTES], uint16_t nonce);
+void poly_uniform_eta(poly *a, const uint8_t seed[HAETAE_CRHBYTES],
+                      uint16_t nonce);
 #define poly_challenge HAETAE_NAMESPACE(poly_challenge)
-void poly_challenge(poly *c, const uint8_t highbits_lsb[POLYVECK_HIGHBITS_PACKEDBYTES + POLYC_PACKEDBYTES], const uint8_t mu[SEEDBYTES]);
+void poly_challenge(
+    poly *c,
+    const uint8_t highbits_lsb[HAETAE_POLYVECK_HIGHBITS_PACKEDBYTES +
+                               HAETAE_POLYC_PACKEDBYTES],
+    const uint8_t mu[HAETAE_SEEDBYTES]);
 
 #define poly_decomposed_pack HAETAE_NAMESPACE(poly_decomposed_pack)
 void poly_decomposed_pack(uint8_t *buf, const poly *a);
 #define poly_decomposed_unpack HAETAE_NAMESPACE(poly_decomposed_unpack)
 void poly_decomposed_unpack(poly *a, const uint8_t *buf);
-
-#define poly_pack_highbits HAETAE_NAMESPACE(poly_pack_highbits)
-void poly_pack_highbits(uint8_t *buf, const poly *a);
-
-#define poly_pack_lsb HAETAE_NAMESPACE(poly_pack_lsb)
-void poly_pack_lsb(uint8_t *buf, const poly *a);
-
-#define polyq_pack HAETAE_NAMESPACE(polyq_pack)
-void polyq_pack(uint8_t *r, const poly *a);
-#define polyq_unpack HAETAE_NAMESPACE(polyq_unpack)
-void polyq_unpack(poly *r, const uint8_t *a);
-
-#define polyeta_pack HAETAE_NAMESPACE(polyeta_pack)
-void polyeta_pack(uint8_t *r, const poly *a);
-#define polyeta_unpack HAETAE_NAMESPACE(polyeta_unpack)
-void polyeta_unpack(poly *r, const uint8_t *a);
-#define poly2eta_pack HAETAE_NAMESPACE(poly2eta_pack)
-void poly2eta_pack(uint8_t *r, const poly *a);
-#define poly2eta_unpack HAETAE_NAMESPACE(poly2eta_unpack)
-void poly2eta_unpack(poly *r, const uint8_t *a);
 
 #define poly_fromcrt HAETAE_NAMESPACE(poly_fromcrt)
 void poly_fromcrt(poly *w, const poly *u, const poly *v);
@@ -95,5 +62,4 @@ void poly_ntt(poly *a);
 #define poly_invntt_tomont HAETAE_NAMESPACE(poly_invntt_tomont)
 void poly_invntt_tomont(poly *a);
 
-#endif
-// clang-format on
+#endif /* !HAETAE_POLY_H */

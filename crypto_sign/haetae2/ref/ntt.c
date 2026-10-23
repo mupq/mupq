@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: MIT
+
 #include "ntt.h"
 #include "params.h"
 #include "reduce.h"
+
 #include <stdint.h>
 
-static const int32_t zetas[N] = {
+static const int32_t zetas[HAETAE_N] = {
     0,      26964,  -16505, 22229,  30746,  20243,  19064,  -31218, 9395,
     -30985, 22859,  -8851,  32144,  13744,  21408,  17599,  -16039, -22946,
     6241,   -19553, 10681,  22935,  22431,  -29104, 28147,  -27527, -29133,
@@ -39,25 +42,27 @@ static const int32_t zetas[N] = {
  *
  * Description: Forward NTT, in-place. No modular reduction is performed after
  *              additions or subtractions. Output vector is in bitreversed
- *order.
+ *              order.
  *
- * Arguments:   - uint32_t p[N]: input/output coefficient array
+ * Arguments:   - uint32_t p[HAETAE_N]: input/output coefficient array
+ *
+ * Specification: Implements @[Algorithm 2, NTT]
  **************************************************/
-void ntt(int32_t a[N]) {
-    unsigned int len, start, j, k;
-    int32_t zeta, t;
+void ntt(int32_t a[HAETAE_N]) {
+  unsigned int len, start, j, k;
+  int32_t zeta, t;
 
-    k = 0;
-    for (len = 128; len > 0; len >>= 1) {
-        for (start = 0; start < N; start = j + len) {
-            zeta = zetas[++k];
-            for (j = start; j < start + len; ++j) {
-                t = montgomery_reduce((int64_t)zeta * a[j + len]);
-                a[j + len] = a[j] - t;
-                a[j] = a[j] + t;
-            }
-        }
+  k = 0;
+  for (len = 128; len > 0; len >>= 1) {
+    for (start = 0; start < HAETAE_N; start = j + len) {
+      zeta = zetas[++k];
+      for (j = start; j < start + len; ++j) {
+        t = montgomery_reduce((int64_t)zeta * a[j + len]);
+        a[j + len] = a[j] - t;
+        a[j] = a[j] + t;
+      }
     }
+  }
 }
 
 /*************************************************
@@ -66,30 +71,30 @@ void ntt(int32_t a[N]) {
  * Description: Inverse NTT and multiplication by Montgomery factor 2^32.
  *              In-place. No modular reductions after additions or
  *              subtractions; input coefficients need to be smaller than
- *              Q in absolute value. Output coefficient are smaller than Q in
- *              absolute value.
+ *              HAETAE_Q in absolute value. Output coefficient are smaller than
+ *              HAETAE_Q in absolute value.
  *
- * Arguments:   - uint32_t p[N]: input/output coefficient array
+ * Arguments:   - uint32_t p[HAETAE_N]: input/output coefficient array
  **************************************************/
-void invntt_tomont(int32_t a[N]) {
-    unsigned int start, len, j, k;
-    int32_t t, zeta;
-    const int32_t f = -29720; // mont^2/256
+void invntt_tomont(int32_t a[HAETAE_N]) {
+  unsigned int start, len, j, k;
+  int32_t t, zeta;
+  const int32_t f = -29720; // mont^2/256
 
-    k = 256;
-    for (len = 1; len < N; len <<= 1) {
-        for (start = 0; start < N; start = j + len) {
-            zeta = -zetas[--k];
-            for (j = start; j < start + len; ++j) {
-                t = a[j];
-                a[j] = t + a[j + len];
-                a[j + len] = t - a[j + len];
-                a[j + len] = montgomery_reduce((int64_t)zeta * a[j + len]);
-            }
-        }
+  k = 256;
+  for (len = 1; len < HAETAE_N; len <<= 1) {
+    for (start = 0; start < HAETAE_N; start = j + len) {
+      zeta = -zetas[--k];
+      for (j = start; j < start + len; ++j) {
+        t = a[j];
+        a[j] = t + a[j + len];
+        a[j + len] = t - a[j + len];
+        a[j + len] = montgomery_reduce((int64_t)zeta * a[j + len]);
+      }
     }
+  }
 
-    for (j = 0; j < N; ++j) {
-        a[j] = montgomery_reduce((int64_t)f * a[j]);
-    }
+  for (j = 0; j < HAETAE_N; ++j) {
+    a[j] = montgomery_reduce((int64_t)f * a[j]);
+  }
 }
