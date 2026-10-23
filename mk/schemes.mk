@@ -29,9 +29,9 @@ obj/.schemes.mk:
 	$(Q)[ -d $(@D) ] || mkdir -p $(@D); \
 	touch $@; \
 	printf "KEM_SCHEMES :=" > $@; \
-	find $(KEM_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@; \
+	find -L $(KEM_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@; \
 	printf "\n\nSIGN_SCHEMES :=" >> $@; \
-	find $(SIGN_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@;
+	find -L $(SIGN_SEARCH_PATHS) -mindepth 2 -maxdepth 2 -type d \! \( $(IGNORE_IMPLEMENTATIONS) \) -print0 | xargs -0 printf " \\\\\\n\\t%s" >> $@;
 
 ifeq ($(MAKE_RESTARTS),)
   _ := $(shell rm -f obj/.schemes.mk)
