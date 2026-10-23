@@ -29,6 +29,12 @@ export MUPQ_OPENOCD_SERIAL=066BFF575550897767144107
 export MUPQ_ST_FLASH_ARGS="--serial 066CFF485648756687012533"
 ```
 
+# Serial baud rate
+The serial platforms (`OpenOCD`, `StLink`) read the board's output at 38400 baud by default. `MUPQ_BAUD` sets another rate, which must match the rate the firmware was built with:
+```
+export MUPQ_BAUD=115200
+```
+
 # License
 Different parts of **mupq** have different licenses. Each subdirectory containing implementations contains a LICENSE file stating under what license that specific implementation is released. The files in common contain licensing information at the top of the file (and are currently either public domain or MIT).
 All other code in this repository is dual-licensed under [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) and under the conditions of [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
