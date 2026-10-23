@@ -81,7 +81,7 @@ void setup_tree(uint16_t layer_offsets[LOGT+1], uint16_t nodes_per_layer[LOGT+1]
         depth = 0;
         subtree_found = 0;
         while( !subtree_found ) {
-            if (r_leaves <= (1UL << depth)) {
+            if ((unsigned long)r_leaves <= (1UL << depth)) {
                 for (int i=depth; i>0; i--) {
                     layer_offsets[layer+i] -= (1UL << (i-1));
                 }
@@ -198,7 +198,7 @@ void generate_merkle_tree(unsigned char merkle_tree[NUM_NODES_OF_MERKLE_TREE *
     parent_layer = LOGT-1;
     for (i=NUM_NODES_OF_MERKLE_TREE-1; i>0; i -= 2) {
         hash(merkle_tree + OFFSET(PARENT(i) + layer_offsets[parent_layer]), merkle_tree + OFFSET(SIBLING(i)), 2*HASH_DIGEST_LENGTH);
-        if (node_ctr >= nodes_per_layer[parent_layer+1] - 2) {
+        if (node_ctr >= (unsigned int)(nodes_per_layer[parent_layer+1] - 2)) {
             parent_layer--;
             node_ctr = 0;
         } else {
@@ -257,7 +257,7 @@ void generate_merkle_proof(uint16_t merkle_proof_indices[TREE_NODES_TO_STORE],
             merkle_proof_indices[(*merkle_proof_len)++] = i;
 
         /* Due to the unbalenced structure we got to keep track of the nodes per layer processed */
-        if (node_ctr >= nodes_per_layer[parent_layer+1] - 2) {
+        if (node_ctr >= (unsigned int)(nodes_per_layer[parent_layer+1] - 2)) {
             parent_layer--;
             node_ctr = 0;
         } else {
@@ -315,7 +315,7 @@ void rebuild_merkle_tree(unsigned char merkle_tree[NUM_NODES_OF_MERKLE_TREE * HA
 
         /* Both siblings are unused, but it must be kept track of the node and layer counter to chose the right offsets */
         if (flag_tree_valid[i] == INVALID_MERKLE_NODE && flag_tree_valid[SIBLING(i)] == INVALID_MERKLE_NODE) {
-            if (node_ctr >= nodes_per_layer[parent_layer+1] - 2) {
+            if (node_ctr >= (unsigned int)(nodes_per_layer[parent_layer+1] - 2)) {
                 parent_layer--;
                 node_ctr = 0;
             } else {
@@ -345,7 +345,7 @@ void rebuild_merkle_tree(unsigned char merkle_tree[NUM_NODES_OF_MERKLE_TREE * HA
         hash(merkle_tree + OFFSET(PARENT(i) + layer_offsets[parent_layer]), hash_input, 2*HASH_DIGEST_LENGTH);
         flag_tree_valid[PARENT(i) + layer_offsets[parent_layer]] = VALID_MERKLE_NODE;
 
-        if (node_ctr >= nodes_per_layer[parent_layer+1] - 2) {
+        if (node_ctr >= (unsigned int)(nodes_per_layer[parent_layer+1] - 2)) {
             parent_layer--;
             node_ctr = 0;
         } else {
