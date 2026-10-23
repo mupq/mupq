@@ -125,13 +125,20 @@ class SerialCommsPlatform(mupq.Platform):
 
 
 class OpenOCD(SerialCommsPlatform):
+    """Flashes with OpenOCD. MUPQ_OPENOCD_SERIAL selects the adapter by its
+    serial number."""
+
     def __init__(self, script, tty="/dev/ttyACM0", baud=38400, timeout=60):
         super().__init__(tty, baud, timeout)
         self.script = script
 
     def flash(self, binary_path):
+        args = ["openocd", "-f", self.script]
+        if os.getenv("MUPQ_OPENOCD_SERIAL") is not None:
+            args += ["-c", f"adapter serial {os.getenv('MUPQ_OPENOCD_SERIAL')}"]
+        args += ["-c", f"program {binary_path} verify reset exit"]
         subprocess.check_call(
-            ["openocd", "-f", self.script, "-c", f"program {binary_path} verify reset exit"],
+            args,
             # stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
