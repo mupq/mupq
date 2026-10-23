@@ -83,6 +83,8 @@ class SerialCommsPlatform(mupq.Platform):
 
     def __init__(self, tty="/dev/ttyACM0", baud=38400, timeout=1):
         super().__init__()
+        if os.getenv("MUPQ_BAUD") is not None:
+            baud = int(os.getenv("MUPQ_BAUD"))
         self._dev = serial.Serial(tty, baud, timeout=timeout)
 
     def __enter__(self):
