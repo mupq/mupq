@@ -95,9 +95,9 @@ class Implementation(object):
         makeflags.extend(self.extraflags)
         makeflags.append(target)
         p = subprocess.Popen(makeflags, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        ret = p.wait()
-        stdout = p.stdout.read()
-        stderr = p.stdout.read()
+        # communicate() drains both pipes, so a full stderr cannot block make.
+        stdout, stderr = p.communicate()
+        ret = p.returncode
         if len(stdout) > 0:
             self.log.log(logging.ERROR if ret else logging.DEBUG,
                          "make stdout output:\n" + stdout.decode("utf8").strip())
@@ -116,7 +116,7 @@ class Implementation(object):
 
     def build_binary(self, test_type, bin_type):
         self.log.info("Building %s - %s", self, test_type)
-        self.run_make(self.get_binary_path(test_type, bin_type))
+        return self.run_make(self.get_binary_path(test_type, bin_type))
 
     def get_object_path(self, source):
         return f'obj/{self.path}/{source}'
@@ -231,8 +231,10 @@ class BoardTestCase(abc.ABC):
     @abc.abstractmethod
     def run_test(self, implementation):
         self.log.info("Runnning %s - %s", implementation, self.test_type)
-        implementation.build_binary(f'{self.test_type}',
-                                    self.platform_settings.binary_type)
+        if implementation.build_binary(f'{self.test_type}',
+                                       self.platform_settings.binary_type):
+            self.log.error("Building %s - %s failed", implementation, self.test_type)
+            return -1
         binary = implementation.get_binary_path(f'{self.test_type}',
                                                 self.platform_settings.binary_type)
         try:

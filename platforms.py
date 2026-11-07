@@ -51,6 +51,10 @@ class Qemu(mupq.Platform):
             output = ""
             while "#" not in output:
                 buf = proc.stdout.readline()
+                if buf == "":
+                    # EOF: QEMU exited before printing the end marker.
+                    rc = proc.wait()
+                    raise RuntimeError(f"QEMU exited with code {rc} before the end marker '#'")
                 # print(buf)
                 output += buf
                 if expiterations > 1:
