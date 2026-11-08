@@ -35,6 +35,7 @@ int main(void)
   unsigned char sk[MUPQ_CRYPTO_SECRETKEYBYTES];
   unsigned char pk[MUPQ_CRYPTO_PUBLICKEYBYTES];
   unsigned char sm[MLEN+MUPQ_CRYPTO_BYTES];
+  unsigned char m[MLEN];
   size_t smlen;
   unsigned int rc;
   unsigned long long t0, t1;
@@ -55,10 +56,11 @@ int main(void)
     printcycles("keypair hash cycles:", hash_cycles);
 
     // Signing
-    randombytes(sm, MLEN);
+    // Sign from a separate buffer: not every scheme supports sm == m.
+    randombytes(m, MLEN);
     hash_cycles = 0;
     t0 = hal_get_time();
-    MUPQ_crypto_sign(sm, &smlen, sm, MLEN, sk);
+    MUPQ_crypto_sign(sm, &smlen, m, MLEN, sk);
     t1 = hal_get_time();
     printcycles("sign cycles:", t1-t0);
     printcycles("sign hash cycles:", hash_cycles);
